@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
 import {
   GraduationCap,
   LayoutDashboard,
@@ -14,6 +15,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Bell,
+  ShoppingBag,
+  Palette,
+  Package,
 } from "lucide-react";
 
 interface DashboardLayoutProps {
@@ -25,6 +29,7 @@ const DashboardLayout = ({ children, userRole = "school_admin" }: DashboardLayou
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, profile, signOut } = useAuth();
 
   const superAdminLinks = [
     { name: "Dashboard", href: "/super-admin", icon: LayoutDashboard },
@@ -36,17 +41,17 @@ const DashboardLayout = ({ children, userRole = "school_admin" }: DashboardLayou
 
   const schoolAdminLinks = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Products", href: "/dashboard/products", icon: Building2 },
-    { name: "Orders", href: "/dashboard/orders", icon: CreditCard },
+    { name: "Products", href: "/dashboard/products", icon: Package },
+    { name: "Orders", href: "/dashboard/orders", icon: ShoppingBag },
     { name: "Users", href: "/dashboard/users", icon: Users },
     { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
-    { name: "Branding", href: "/dashboard/branding", icon: Settings },
+    { name: "Branding", href: "/dashboard/branding", icon: Palette },
     { name: "Settings", href: "/dashboard/settings", icon: Settings },
   ];
 
   const userLinks = [
     { name: "Home", href: "/portal", icon: LayoutDashboard },
-    { name: "Shop", href: "/portal/shop", icon: Building2 },
+    { name: "Shop", href: "/portal/shop", icon: ShoppingBag },
     { name: "My Orders", href: "/portal/orders", icon: CreditCard },
     { name: "Profile", href: "/portal/profile", icon: Users },
   ];
@@ -64,6 +69,21 @@ const DashboardLayout = ({ children, userRole = "school_admin" }: DashboardLayou
       : userRole === "school_admin"
       ? "School Admin"
       : "Student";
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate("/login");
+  };
+
+  const displayName = profile 
+    ? `${profile.first_name || ""} ${profile.last_name || ""}`.trim() || "User"
+    : "User";
+
+  const initials = profile
+    ? `${(profile.first_name?.[0] || "").toUpperCase()}${(profile.last_name?.[0] || "").toUpperCase()}` || "U"
+    : "U";
+
+  const email = user?.email || "";
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -120,7 +140,7 @@ const DashboardLayout = ({ children, userRole = "school_admin" }: DashboardLayou
             {!sidebarCollapsed && <span className="font-medium">Help</span>}
           </Link>
           <button
-            onClick={() => navigate("/login")}
+            onClick={handleLogout}
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground/70 hover:bg-destructive/20 hover:text-destructive transition-colors w-full"
           >
             <LogOut className="h-5 w-5 flex-shrink-0" />
@@ -159,12 +179,12 @@ const DashboardLayout = ({ children, userRole = "school_admin" }: DashboardLayou
             </Button>
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
-                <span className="text-sm font-semibold text-primary">JD</span>
+                <span className="text-sm font-semibold text-primary">{initials}</span>
               </div>
               {!sidebarCollapsed && (
                 <div className="hidden sm:block">
-                  <div className="text-sm font-medium text-foreground">John Doe</div>
-                  <div className="text-xs text-muted-foreground">john@school.edu</div>
+                  <div className="text-sm font-medium text-foreground">{displayName}</div>
+                  <div className="text-xs text-muted-foreground">{email}</div>
                 </div>
               )}
             </div>

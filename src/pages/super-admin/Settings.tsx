@@ -1,11 +1,55 @@
+import { useState } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { usePlatformSettings } from "@/hooks/usePlatformSettings";
+import { Loader2 } from "lucide-react";
 
 const Settings = () => {
+  const { settings, isLoading, updateSettings } = usePlatformSettings();
+  const [isSaving, setIsSaving] = useState(false);
+  const [formData, setFormData] = useState({
+    platform_name: settings?.platform_name || "EduMarket",
+    support_email: settings?.support_email || "calebworks4@gmail.com",
+    support_phone: settings?.support_phone || "",
+    allow_registrations: settings?.allow_registrations ?? true,
+    maintenance_mode: settings?.maintenance_mode ?? false,
+    email_notifications: settings?.email_notifications ?? true,
+  });
+
+  // Update form data when settings load
+  useState(() => {
+    if (settings) {
+      setFormData({
+        platform_name: settings.platform_name || "EduMarket",
+        support_email: settings.support_email || "calebworks4@gmail.com",
+        support_phone: settings.support_phone || "",
+        allow_registrations: settings.allow_registrations ?? true,
+        maintenance_mode: settings.maintenance_mode ?? false,
+        email_notifications: settings.email_notifications ?? true,
+      });
+    }
+  });
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    await updateSettings(formData);
+    setIsSaving(false);
+  };
+
+  if (isLoading) {
+    return (
+      <DashboardLayout userRole="super_admin">
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout userRole="super_admin">
       <div className="space-y-6">
@@ -22,15 +66,28 @@ const Settings = () => {
             <CardContent className="space-y-4">
               <div className="grid gap-2">
                 <Label htmlFor="platform-name">Platform Name</Label>
-                <Input id="platform-name" defaultValue="EduMarket" />
+                <Input
+                  id="platform-name"
+                  value={formData.platform_name}
+                  onChange={(e) => setFormData({ ...formData, platform_name: e.target.value })}
+                />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="support-email">Support Email</Label>
-                <Input id="support-email" type="email" defaultValue="support@edumarket.com" />
+                <Input
+                  id="support-email"
+                  type="email"
+                  value={formData.support_email}
+                  onChange={(e) => setFormData({ ...formData, support_email: e.target.value })}
+                />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="support-phone">Support Phone</Label>
-                <Input id="support-phone" defaultValue="+1 (555) 123-4567" />
+                <Input
+                  id="support-phone"
+                  value={formData.support_phone}
+                  onChange={(e) => setFormData({ ...formData, support_phone: e.target.value })}
+                />
               </div>
             </CardContent>
           </Card>
@@ -45,28 +102,54 @@ const Settings = () => {
                   <Label>Allow New Registrations</Label>
                   <p className="text-sm text-muted-foreground">Enable schools to register on the platform</p>
                 </div>
-                <Switch defaultChecked />
+                <Switch
+                  checked={formData.allow_registrations}
+                  onCheckedChange={(checked) =>
+                    setFormData({ ...formData, allow_registrations: checked })
+                  }
+                />
               </div>
               <div className="flex items-center justify-between">
                 <div>
                   <Label>Maintenance Mode</Label>
                   <p className="text-sm text-muted-foreground">Put the platform in maintenance mode</p>
                 </div>
-                <Switch />
+                <Switch
+                  checked={formData.maintenance_mode}
+                  onCheckedChange={(checked) =>
+                    setFormData({ ...formData, maintenance_mode: checked })
+                  }
+                />
               </div>
               <div className="flex items-center justify-between">
                 <div>
                   <Label>Email Notifications</Label>
                   <p className="text-sm text-muted-foreground">Send email notifications for important events</p>
                 </div>
-                <Switch defaultChecked />
+                <Switch
+                  checked={formData.email_notifications}
+                  onCheckedChange={(checked) =>
+                    setFormData({ ...formData, email_notifications: checked })
+                  }
+                />
               </div>
             </CardContent>
           </Card>
 
           <div className="flex justify-end gap-4">
-            <Button variant="outline">Cancel</Button>
-            <Button>Save Changes</Button>
+            <Button variant="outline" onClick={() => window.history.back()}>
+              Cancel
+            </Button>
+            <Button onClick={handleSave} disabled={isSaving}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Saving...
+                </>
+              ) : (
+                "Save Changes"
+              )}
+            </Button>
           </div>
         </div>
       </div>
