@@ -3,19 +3,14 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { GraduationCap, Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
 
 const SignUp = () => {
   const [formData, setFormData] = useState({
-    schoolName: "",
+    firstName: "",
+    lastName: "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -25,6 +20,7 @@ const SignUp = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { signUp } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,15 +45,29 @@ const SignUp = () => {
 
     setIsLoading(true);
 
-    // Simulating API call - will be replaced with actual Supabase auth
-    setTimeout(() => {
-      setIsLoading(false);
+    const { error } = await signUp(
+      formData.email,
+      formData.password,
+      formData.firstName,
+      formData.lastName
+    );
+
+    setIsLoading(false);
+
+    if (error) {
       toast({
-        title: "Verification email sent!",
-        description: "Please check your email to verify your account.",
+        title: "Sign up failed",
+        description: error.message,
+        variant: "destructive",
       });
-      navigate("/verify-email", { state: { email: formData.email } });
-    }, 1500);
+      return;
+    }
+
+    toast({
+      title: "Verification email sent!",
+      description: "Please check your email to verify your account.",
+    });
+    navigate("/verify-email", { state: { email: formData.email } });
   };
 
   return (
@@ -87,18 +97,33 @@ const SignUp = () => {
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-2">
-              <Label htmlFor="schoolName">School Name</Label>
-              <Input
-                id="schoolName"
-                placeholder="Enter your school name"
-                value={formData.schoolName}
-                onChange={(e) =>
-                  setFormData({ ...formData, schoolName: e.target.value })
-                }
-                required
-                className="h-12"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="firstName">First Name</Label>
+                <Input
+                  id="firstName"
+                  placeholder="John"
+                  value={formData.firstName}
+                  onChange={(e) =>
+                    setFormData({ ...formData, firstName: e.target.value })
+                  }
+                  required
+                  className="h-12"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Last Name</Label>
+                <Input
+                  id="lastName"
+                  placeholder="Doe"
+                  value={formData.lastName}
+                  onChange={(e) =>
+                    setFormData({ ...formData, lastName: e.target.value })
+                  }
+                  required
+                  className="h-12"
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -106,7 +131,7 @@ const SignUp = () => {
               <Input
                 id="email"
                 type="email"
-                placeholder="admin@yourschool.edu"
+                placeholder="you@example.com"
                 value={formData.email}
                 onChange={(e) =>
                   setFormData({ ...formData, email: e.target.value })
@@ -234,7 +259,7 @@ const SignUp = () => {
               Join 500+ Schools Already Growing with EduMarket
             </h2>
             <p className="text-primary-foreground/70 text-lg mb-8">
-              Create your school portal in minutes. Manage students, sell products,
+              Create your account in minutes. Manage products, track orders,
               and grow your educational community.
             </p>
             

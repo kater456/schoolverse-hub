@@ -4,11 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { GraduationCap, Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
 
 const Login = () => {
   const [formData, setFormData] = useState({
-    schoolIdentifier: "",
     email: "",
     password: "",
   });
@@ -16,21 +16,35 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { signIn, userRole } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulating API call - will be replaced with actual Supabase auth
-    setTimeout(() => {
+    const { error } = await signIn(formData.email, formData.password);
+
+    if (error) {
       setIsLoading(false);
       toast({
-        title: "Welcome back!",
-        description: "You have successfully logged in.",
+        title: "Login failed",
+        description: error.message,
+        variant: "destructive",
       });
-      // Navigate based on role - for now, default to school admin dashboard
-      navigate("/dashboard");
-    }, 1500);
+      return;
+    }
+
+    toast({
+      title: "Welcome back!",
+      description: "You have successfully logged in.",
+    });
+
+    // Navigate based on role after a short delay to allow state to update
+    setTimeout(() => {
+      setIsLoading(false);
+      // Redirect will be handled by the auth state change
+      navigate("/portal");
+    }, 500);
   };
 
   return (
@@ -54,32 +68,18 @@ const Login = () => {
               Welcome back
             </h1>
             <p className="text-muted-foreground">
-              Sign in to access your school portal
+              Sign in to access your portal
             </p>
           </div>
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="schoolIdentifier">School Name or ID</Label>
-              <Input
-                id="schoolIdentifier"
-                placeholder="Enter your school name or ID"
-                value={formData.schoolIdentifier}
-                onChange={(e) =>
-                  setFormData({ ...formData, schoolIdentifier: e.target.value })
-                }
-                required
-                className="h-12"
-              />
-            </div>
-
-            <div className="space-y-2">
               <Label htmlFor="email">Email Address</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="you@yourschool.edu"
+                placeholder="you@example.com"
                 value={formData.email}
                 onChange={(e) =>
                   setFormData({ ...formData, email: e.target.value })
