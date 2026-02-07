@@ -1,22 +1,23 @@
 import { useState } from "react";
-import { Play, Pause } from "lucide-react";
+import { Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import explainerVideo from "@/assets/edumarket-explainer.mp4";
 
-const VideoSection = () => {
-  const [isPlaying, setIsPlaying] = useState(false);
+interface VideoSectionProps {
+  youtubeUrl?: string;
+}
 
-  const handlePlayVideo = () => {
-    const video = document.getElementById("explainer-video") as HTMLVideoElement;
-    if (video) {
-      if (isPlaying) {
-        video.pause();
-      } else {
-        video.play();
-      }
-      setIsPlaying(!isPlaying);
-    }
+const VideoSection = ({ youtubeUrl }: VideoSectionProps) => {
+  const [showVideo, setShowVideo] = useState(false);
+
+  // Extract YouTube video ID from URL
+  const getYouTubeId = (url: string) => {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return match && match[2].length === 11 ? match[2] : null;
   };
+
+  const videoId = youtubeUrl ? getYouTubeId(youtubeUrl) : null;
+  const hasVideo = !!videoId;
 
   return (
     <section className="py-20 bg-secondary/30">
@@ -35,29 +36,53 @@ const VideoSection = () => {
         </div>
 
         <div className="max-w-4xl mx-auto">
-          <div className="relative rounded-2xl overflow-hidden shadow-2xl bg-background">
-            <video
-              id="explainer-video"
-              src={explainerVideo}
-              className="w-full aspect-video"
-              poster=""
-              onPlay={() => setIsPlaying(true)}
-              onPause={() => setIsPlaying(false)}
-              onEnded={() => setIsPlaying(false)}
-              controls
-            />
-            
-            {!isPlaying && (
-              <div className="absolute inset-0 flex items-center justify-center bg-primary/10">
-                <Button
-                  onClick={handlePlayVideo}
-                  variant="hero"
-                  size="xl"
-                  className="rounded-full w-20 h-20 p-0"
-                >
-                  <Play className="h-8 w-8 ml-1" />
-                </Button>
-              </div>
+          <div className="relative rounded-2xl overflow-hidden shadow-2xl bg-background aspect-video">
+            {hasVideo && showVideo ? (
+              <iframe
+                src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`}
+                title="EduMarket Demo Video"
+                className="absolute inset-0 w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            ) : (
+              <>
+                {/* Video thumbnail/placeholder */}
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-accent/20 flex flex-col items-center justify-center">
+                  {hasVideo ? (
+                    <img
+                      src={`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`}
+                      alt="Video thumbnail"
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="text-center p-8">
+                      <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Play className="h-12 w-12 text-primary" />
+                      </div>
+                      <h3 className="text-xl font-semibold text-foreground mb-2">
+                        Demo Video Coming Soon
+                      </h3>
+                      <p className="text-muted-foreground max-w-md">
+                        We're working on an awesome walkthrough video. Check back soon!
+                      </p>
+                    </div>
+                  )}
+                  
+                  {hasVideo && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                      <Button
+                        onClick={() => setShowVideo(true)}
+                        variant="hero"
+                        size="xl"
+                        className="rounded-full w-20 h-20 p-0"
+                      >
+                        <Play className="h-8 w-8 ml-1" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </>
             )}
           </div>
 
