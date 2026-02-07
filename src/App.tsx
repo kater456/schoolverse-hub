@@ -13,6 +13,9 @@ import Login from "./pages/auth/Login";
 import VerifyEmail from "./pages/auth/VerifyEmail";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 
+// Setup Page
+import SetupSuperAdmin from "./pages/SetupSuperAdmin";
+
 // Super Admin Pages
 import SuperAdminDashboard from "./pages/dashboard/SuperAdminDashboard";
 import Schools from "./pages/super-admin/Schools";
@@ -55,6 +58,7 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/setup-admin" element={<SetupSuperAdmin />} />
             
             {/* Super Admin Routes */}
             <Route path="/super-admin" element={<SuperAdminDashboard />} />
