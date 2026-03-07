@@ -202,6 +202,8 @@ export type Database = {
           last_name: string | null
           phone: string | null
           school_id: string | null
+          trial_ends_at: string | null
+          trial_started_at: string | null
           updated_at: string
           user_id: string
         }
@@ -214,6 +216,8 @@ export type Database = {
           last_name?: string | null
           phone?: string | null
           school_id?: string | null
+          trial_ends_at?: string | null
+          trial_started_at?: string | null
           updated_at?: string
           user_id: string
         }
@@ -226,6 +230,8 @@ export type Database = {
           last_name?: string | null
           phone?: string | null
           school_id?: string | null
+          trial_ends_at?: string | null
+          trial_started_at?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -247,12 +253,15 @@ export type Database = {
           id: string
           logo_url: string | null
           name: string
+          payment_confirmed: boolean | null
           phone: string | null
           primary_color: string | null
           secondary_color: string | null
           subdomain: string | null
           subscription_plan: string | null
           subscription_status: string | null
+          trial_ends_at: string | null
+          trial_started_at: string | null
           updated_at: string
         }
         Insert: {
@@ -262,12 +271,15 @@ export type Database = {
           id?: string
           logo_url?: string | null
           name: string
+          payment_confirmed?: boolean | null
           phone?: string | null
           primary_color?: string | null
           secondary_color?: string | null
           subdomain?: string | null
           subscription_plan?: string | null
           subscription_status?: string | null
+          trial_ends_at?: string | null
+          trial_started_at?: string | null
           updated_at?: string
         }
         Update: {
@@ -277,12 +289,15 @@ export type Database = {
           id?: string
           logo_url?: string | null
           name?: string
+          payment_confirmed?: boolean | null
           phone?: string | null
           primary_color?: string | null
           secondary_color?: string | null
           subdomain?: string | null
           subscription_plan?: string | null
           subscription_status?: string | null
+          trial_ends_at?: string | null
+          trial_started_at?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -337,7 +352,9 @@ export type Database = {
         Args: { _school_id: string; _user_id: string }
         Returns: boolean
       }
+      is_school_trial_active: { Args: { _school_id: string }; Returns: boolean }
       is_super_admin: { Args: { _user_id?: string }; Returns: boolean }
+      is_trial_active: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "super_admin" | "school_admin" | "staff" | "student"
