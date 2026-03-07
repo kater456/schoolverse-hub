@@ -1,6 +1,8 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useTrialStatus } from "@/hooks/useTrialStatus";
 import { Loader2 } from "lucide-react";
+import TrialExpired from "@/components/TrialExpired";
 
 type AppRole = "super_admin" | "school_admin" | "staff" | "student";
 
@@ -11,9 +13,10 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   const { user, userRole, isLoading } = useAuth();
+  const { isTrialActive, isLoading: trialLoading } = useTrialStatus();
   const location = useLocation();
 
-  if (isLoading) {
+  if (isLoading || trialLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
@@ -28,8 +31,12 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  // Check trial status (super_admin bypassed in hook)
+  if (!isTrialActive) {
+    return <TrialExpired />;
+  }
+
   if (allowedRoles && userRole && !allowedRoles.includes(userRole.role)) {
-    // Redirect to appropriate dashboard based on role
     if (userRole.role === "super_admin") {
       return <Navigate to="/super-admin" replace />;
     } else if (userRole.role === "school_admin") {
