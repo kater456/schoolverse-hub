@@ -4,6 +4,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
+import { CartProvider } from "@/hooks/useCart";
+import InstallPrompt from "@/components/InstallPrompt";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -46,50 +49,52 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            
-            {/* Auth Routes */}
-            <Route path="/signup" element={<SignUp />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/verify-email" element={<VerifyEmail />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/setup-admin" element={<SetupSuperAdmin />} />
-            
-            {/* Super Admin Routes */}
-            <Route path="/super-admin" element={<SuperAdminDashboard />} />
-            <Route path="/super-admin/schools" element={<Schools />} />
-            <Route path="/super-admin/subscriptions" element={<Subscriptions />} />
-            <Route path="/super-admin/analytics" element={<SuperAdminAnalytics />} />
-            <Route path="/super-admin/settings" element={<SuperAdminSettings />} />
-            
-            {/* School Admin Routes */}
-            <Route path="/dashboard" element={<SchoolAdminDashboard />} />
-            <Route path="/dashboard/products" element={<Products />} />
-            <Route path="/dashboard/orders" element={<Orders />} />
-            <Route path="/dashboard/users" element={<Users />} />
-            <Route path="/dashboard/analytics" element={<SchoolAnalytics />} />
-            <Route path="/dashboard/branding" element={<Branding />} />
-            <Route path="/dashboard/settings" element={<SchoolSettings />} />
-            
-            {/* User Portal Routes */}
-            <Route path="/portal" element={<UserPortal />} />
-            <Route path="/portal/shop" element={<Shop />} />
-            <Route path="/portal/orders" element={<MyOrders />} />
-            <Route path="/portal/profile" element={<Profile />} />
-            
-            {/* Help Route */}
-            <Route path="/help" element={<Help />} />
-            
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
+      <CartProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <InstallPrompt />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              
+              {/* Auth Routes */}
+              <Route path="/signup" element={<SignUp />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/verify-email" element={<VerifyEmail />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/setup-admin" element={<SetupSuperAdmin />} />
+              
+              {/* Super Admin Routes */}
+              <Route path="/super-admin" element={<ProtectedRoute allowedRoles={["super_admin"]}><SuperAdminDashboard /></ProtectedRoute>} />
+              <Route path="/super-admin/schools" element={<ProtectedRoute allowedRoles={["super_admin"]}><Schools /></ProtectedRoute>} />
+              <Route path="/super-admin/subscriptions" element={<ProtectedRoute allowedRoles={["super_admin"]}><Subscriptions /></ProtectedRoute>} />
+              <Route path="/super-admin/analytics" element={<ProtectedRoute allowedRoles={["super_admin"]}><SuperAdminAnalytics /></ProtectedRoute>} />
+              <Route path="/super-admin/settings" element={<ProtectedRoute allowedRoles={["super_admin"]}><SuperAdminSettings /></ProtectedRoute>} />
+              
+              {/* School Admin Routes */}
+              <Route path="/dashboard" element={<ProtectedRoute allowedRoles={["school_admin"]}><SchoolAdminDashboard /></ProtectedRoute>} />
+              <Route path="/dashboard/products" element={<ProtectedRoute allowedRoles={["school_admin"]}><Products /></ProtectedRoute>} />
+              <Route path="/dashboard/orders" element={<ProtectedRoute allowedRoles={["school_admin"]}><Orders /></ProtectedRoute>} />
+              <Route path="/dashboard/users" element={<ProtectedRoute allowedRoles={["school_admin"]}><Users /></ProtectedRoute>} />
+              <Route path="/dashboard/analytics" element={<ProtectedRoute allowedRoles={["school_admin"]}><SchoolAnalytics /></ProtectedRoute>} />
+              <Route path="/dashboard/branding" element={<ProtectedRoute allowedRoles={["school_admin"]}><Branding /></ProtectedRoute>} />
+              <Route path="/dashboard/settings" element={<ProtectedRoute allowedRoles={["school_admin"]}><SchoolSettings /></ProtectedRoute>} />
+              
+              {/* User Portal Routes */}
+              <Route path="/portal" element={<ProtectedRoute allowedRoles={["student", "staff"]}><UserPortal /></ProtectedRoute>} />
+              <Route path="/portal/shop" element={<ProtectedRoute allowedRoles={["student", "staff"]}><Shop /></ProtectedRoute>} />
+              <Route path="/portal/orders" element={<ProtectedRoute allowedRoles={["student", "staff"]}><MyOrders /></ProtectedRoute>} />
+              <Route path="/portal/profile" element={<ProtectedRoute allowedRoles={["student", "staff"]}><Profile /></ProtectedRoute>} />
+              
+              {/* Help Route */}
+              <Route path="/help" element={<Help />} />
+              
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </CartProvider>
     </AuthProvider>
   </QueryClientProvider>
 );

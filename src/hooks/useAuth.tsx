@@ -14,6 +14,8 @@ interface Profile {
   avatar_url: string | null;
   phone: string | null;
   grade: string | null;
+  trial_started_at: string | null;
+  trial_ends_at: string | null;
 }
 
 interface UserRole {
