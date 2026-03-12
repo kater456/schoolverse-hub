@@ -14,6 +14,82 @@ export type Database = {
   }
   public: {
     Tables: {
+      campus_locations: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          school_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          school_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          school_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campus_locations_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      featured_listings: {
+        Row: {
+          amount: number
+          confirmed_by: string | null
+          created_at: string
+          ends_at: string
+          id: string
+          payment_reference: string | null
+          payment_status: string
+          starts_at: string
+          vendor_id: string
+        }
+        Insert: {
+          amount?: number
+          confirmed_by?: string | null
+          created_at?: string
+          ends_at?: string
+          id?: string
+          payment_reference?: string | null
+          payment_status?: string
+          starts_at?: string
+          vendor_id: string
+        }
+        Update: {
+          amount?: number
+          confirmed_by?: string | null
+          created_at?: string
+          ends_at?: string
+          id?: string
+          payment_reference?: string | null
+          payment_status?: string
+          starts_at?: string
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "featured_listings_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           created_at: string
@@ -334,6 +410,171 @@ export type Database = {
           },
         ]
       }
+      vendor_images: {
+        Row: {
+          created_at: string
+          display_order: number | null
+          id: string
+          image_url: string
+          is_primary: boolean | null
+          vendor_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          image_url: string
+          is_primary?: boolean | null
+          vendor_id: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          image_url?: string
+          is_primary?: boolean | null
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_images_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendor_private_details: {
+        Row: {
+          created_at: string
+          full_name: string
+          id: string
+          personal_contact: string | null
+          residential_location: string | null
+          vendor_id: string
+          vendor_photo_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          full_name: string
+          id?: string
+          personal_contact?: string | null
+          residential_location?: string | null
+          vendor_id: string
+          vendor_photo_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          full_name?: string
+          id?: string
+          personal_contact?: string | null
+          residential_location?: string | null
+          vendor_id?: string
+          vendor_photo_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_private_details_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: true
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendor_videos: {
+        Row: {
+          created_at: string
+          id: string
+          vendor_id: string
+          video_url: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          vendor_id: string
+          video_url: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          vendor_id?: string
+          video_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_videos_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendors: {
+        Row: {
+          business_name: string
+          campus_location_id: string | null
+          category: string
+          contact_number: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          is_approved: boolean | null
+          messaging_enabled: boolean | null
+          school_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          business_name: string
+          campus_location_id?: string | null
+          category: string
+          contact_number?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_approved?: boolean | null
+          messaging_enabled?: boolean | null
+          school_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          business_name?: string
+          campus_location_id?: string | null
+          category?: string
+          contact_number?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_approved?: boolean | null
+          messaging_enabled?: boolean | null
+          school_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendors_campus_location_id_fkey"
+            columns: ["campus_location_id"]
+            isOneToOne: false
+            referencedRelation: "campus_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendors_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -355,9 +596,10 @@ export type Database = {
       is_school_trial_active: { Args: { _school_id: string }; Returns: boolean }
       is_super_admin: { Args: { _user_id?: string }; Returns: boolean }
       is_trial_active: { Args: { _user_id: string }; Returns: boolean }
+      is_vendor_featured: { Args: { _vendor_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "super_admin" | "school_admin" | "staff" | "student"
+      app_role: "super_admin" | "school_admin" | "staff" | "student" | "vendor"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -485,7 +727,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["super_admin", "school_admin", "staff", "student"],
+      app_role: ["super_admin", "school_admin", "staff", "student", "vendor"],
     },
   },
 } as const
