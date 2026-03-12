@@ -1,10 +1,8 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { useTrialStatus } from "@/hooks/useTrialStatus";
 import { Loader2 } from "lucide-react";
-import TrialExpired from "@/components/TrialExpired";
 
-type AppRole = "super_admin" | "school_admin" | "staff" | "student";
+type AppRole = "super_admin" | "school_admin" | "staff" | "student" | "vendor";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -13,10 +11,9 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   const { user, userRole, isLoading } = useAuth();
-  const { isTrialActive, isLoading: trialLoading } = useTrialStatus();
   const location = useLocation();
 
-  if (isLoading || trialLoading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
@@ -31,19 +28,11 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Check trial status (super_admin bypassed in hook)
-  if (!isTrialActive) {
-    return <TrialExpired />;
-  }
-
-  if (allowedRoles && userRole && !allowedRoles.includes(userRole.role)) {
+  if (allowedRoles && userRole && !allowedRoles.includes(userRole.role as AppRole)) {
     if (userRole.role === "super_admin") {
-      return <Navigate to="/super-admin" replace />;
-    } else if (userRole.role === "school_admin") {
-      return <Navigate to="/dashboard" replace />;
-    } else {
-      return <Navigate to="/portal" replace />;
+      return <Navigate to="/admin" replace />;
     }
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;

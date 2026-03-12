@@ -1,89 +1,99 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X, GraduationCap } from "lucide-react";
+import { Menu, X, ShoppingBag, Search, User, LogOut } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
-
-  const navLinks = [
-    { name: "Features", href: "#features" },
-    { name: "How It Works", href: "#how-it-works" },
-    { name: "Pricing", href: "#pricing" },
-    { name: "Contact", href: "#contact" },
-  ];
+  const { user, userRole, signOut } = useAuth();
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-border/50">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
-          {/* Logo */}
           <Link to="/" className="flex items-center gap-2 group">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/80 shadow-md group-hover:shadow-lg transition-shadow">
-              <GraduationCap className="h-5 w-5 text-primary-foreground" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-accent to-accent/80 shadow-md">
+              <ShoppingBag className="h-5 w-5 text-accent-foreground" />
             </div>
             <span className="font-display text-xl font-bold text-foreground">
               EduMarket
             </span>
           </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-8">
-            {navLinks.map((link) => (
-              <a
-                key={link.name}
-                href={link.href}
-                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {link.name}
-              </a>
-            ))}
+          <div className="hidden md:flex items-center gap-6">
+            <Link to="/browse" className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+              <Search className="h-4 w-4" />
+              Browse
+            </Link>
+            {user && userRole?.role === "super_admin" && (
+              <Link to="/admin" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                Admin
+              </Link>
+            )}
           </div>
 
-          {/* Desktop CTA */}
           <div className="hidden md:flex items-center gap-3">
-            <Button variant="ghost" asChild>
-              <Link to="/login">Sign In</Link>
-            </Button>
-            <Button variant="accent" asChild>
-              <Link to="/signup">Get Started</Link>
-            </Button>
+            {user ? (
+              <>
+                <Button variant="outline" size="sm" asChild>
+                  <Link to="/register-vendor">Sell on Campus</Link>
+                </Button>
+                <Button variant="ghost" size="icon" onClick={signOut}>
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link to="/login">Sign In</Link>
+                </Button>
+                <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90" asChild>
+                  <Link to="/signup">Get Started</Link>
+                </Button>
+              </>
+            )}
           </div>
 
-          {/* Mobile Menu Button */}
           <button
             onClick={() => setIsOpen(!isOpen)}
             className="md:hidden p-2 rounded-lg hover:bg-secondary transition-colors"
           >
-            {isOpen ? (
-              <X className="h-5 w-5 text-foreground" />
-            ) : (
-              <Menu className="h-5 w-5 text-foreground" />
-            )}
+            {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
 
-        {/* Mobile Navigation */}
         {isOpen && (
           <div className="md:hidden py-4 border-t border-border/50 animate-fade-in">
             <div className="flex flex-col gap-2">
-              {navLinks.map((link) => (
-                <a
-                  key={link.name}
-                  href={link.href}
-                  className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition-colors"
-                  onClick={() => setIsOpen(false)}
-                >
-                  {link.name}
-                </a>
-              ))}
+              <Link to="/browse" className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg" onClick={() => setIsOpen(false)}>
+                Browse Marketplace
+              </Link>
+              {user && userRole?.role === "super_admin" && (
+                <Link to="/admin" className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg" onClick={() => setIsOpen(false)}>
+                  Admin Dashboard
+                </Link>
+              )}
               <div className="flex flex-col gap-2 mt-4 px-4">
-                <Button variant="outline" asChild className="w-full">
-                  <Link to="/login">Sign In</Link>
-                </Button>
-                <Button variant="accent" asChild className="w-full">
-                  <Link to="/signup">Get Started</Link>
-                </Button>
+                {user ? (
+                  <>
+                    <Button variant="outline" asChild className="w-full" onClick={() => setIsOpen(false)}>
+                      <Link to="/register-vendor">Sell on Campus</Link>
+                    </Button>
+                    <Button variant="ghost" className="w-full" onClick={() => { signOut(); setIsOpen(false); }}>
+                      Sign Out
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button variant="outline" asChild className="w-full">
+                      <Link to="/login">Sign In</Link>
+                    </Button>
+                    <Button className="w-full bg-accent text-accent-foreground hover:bg-accent/90" asChild>
+                      <Link to="/signup">Get Started</Link>
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           </div>
