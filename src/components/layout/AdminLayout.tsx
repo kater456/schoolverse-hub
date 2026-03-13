@@ -2,7 +2,10 @@ import { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { LayoutDashboard, Users, GraduationCap, MapPin, Star, LogOut, ShoppingBag } from "lucide-react";
+import {
+  LayoutDashboard, Users, GraduationCap, MapPin, Star,
+  LogOut, ShoppingBag, BarChart3, UserCog,
+} from "lucide-react";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -10,6 +13,8 @@ const navItems = [
   { href: "/admin/schools", label: "Schools", icon: GraduationCap },
   { href: "/admin/locations", label: "Campus Locations", icon: MapPin },
   { href: "/admin/featured", label: "Featured", icon: Star },
+  { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/admin/sub-admins", label: "Sub-Admins", icon: UserCog },
 ];
 
 const AdminLayout = ({ children }: { children: ReactNode }) => {
@@ -18,7 +23,6 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
 
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Sidebar */}
       <aside className="w-64 bg-sidebar border-r border-sidebar-border hidden md:flex flex-col">
         <div className="p-4 border-b border-sidebar-border">
           <Link to="/" className="flex items-center gap-2">
@@ -56,9 +60,7 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
         </div>
       </aside>
 
-      {/* Main */}
       <main className="flex-1 overflow-auto">
-        {/* Mobile header */}
         <div className="md:hidden flex items-center gap-3 p-4 border-b border-border overflow-x-auto">
           {navItems.map((item) => {
             const isActive = location.pathname === item.href;

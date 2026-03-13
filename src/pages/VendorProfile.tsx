@@ -1,26 +1,38 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { MapPin, Phone, MessageCircle, Star, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
+import { MapPin, Phone, MessageCircle, Heart, MessageSquare, Eye, Send, Loader2 } from "lucide-react";
 
 const VendorProfile = () => {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [vendor, setVendor] = useState<any>(null);
   const [images, setImages] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
+  // Engagement state
+  const [liked, setLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
+  const [comments, setComments] = useState<any[]>([]);
+  const [commentText, setCommentText] = useState("");
+  const [viewCount, setViewCount] = useState(0);
 
   useEffect(() => {
     const fetchVendor = async () => {
       if (!id) return;
       const { data } = await supabase
         .from("vendors")
-        .select(`*, schools(name), campus_locations(name), vendor_images(*)`)
+        .select(`*, schools(name, id), campus_locations(name), vendor_images(*)`)
         .eq("id", id)
         .single();
 
@@ -29,11 +41,76 @@ const VendorProfile = () => {
         setImages(data.vendor_images || []);
         const primary = data.vendor_images?.find((img: any) => img.is_primary);
         setSelectedImage(primary?.image_url || data.vendor_images?.[0]?.image_url || null);
+
+        // Track view
+        await supabase.from("vendor_views").insert({
+          vendor_id: id,
+          viewer_id: user?.id || null,
+          school_id: data.schools?.id || null,
+        } as any);
+
+        // Fetch engagement data
+        const [viewsRes, likesRes, userLike, commentsRes] = await Promise.all([
+          supabase.from("vendor_views").select("id", { count: "exact", head: true }).eq("vendor_id", id),
+          supabase.from("vendor_likes").select("id", { count: "exact", head: true }).eq("vendor_id", id),
+          user ? supabase.from("vendor_likes").select("id").eq("vendor_id", id).eq("user_id", user.id) : Promise.resolve({ data: [] }),
+          supabase.from("vendor_comments").select("*, profiles:user_id(first_name, last_name)").eq("vendor_id", id).order("created_at", { ascending: false }).limit(20),
+        ]);
+
+        setViewCount(viewsRes.count || 0);
+        setLikeCount(likesRes.count || 0);
+        setLiked((userLike as any).data?.length > 0);
+        setComments(commentsRes.data || []);
       }
       setIsLoading(false);
     };
     fetchVendor();
-  }, [id]);
+  }, [id, user]);
+
+  const toggleLike = async () => {
+    if (!user) {
+      toast({ title: "Sign in to like", variant: "destructive" });
+      return;
+    }
+    if (liked) {
+      await supabase.from("vendor_likes").delete().eq("vendor_id", id!).eq("user_id", user.id);
+      setLiked(false);
+      setLikeCount((c) => c - 1);
+    } else {
+      await supabase.from("vendor_likes").insert({ vendor_id: id!, user_id: user.id } as any);
+      setLiked(true);
+      setLikeCount((c) => c + 1);
+    }
+  };
+
+  const submitComment = async () => {
+    if (!user) {
+      toast({ title: "Sign in to comment", variant: "destructive" });
+      return;
+    }
+    if (!commentText.trim()) return;
+
+    const { data, error } = await supabase
+      .from("vendor_comments")
+      .insert({ vendor_id: id!, user_id: user.id, content: commentText.trim() } as any)
+      .select("*, profiles:user_id(first_name, last_name)")
+      .single();
+
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      setComments((prev) => [data, ...prev]);
+      setCommentText("");
+    }
+  };
+
+  const trackContact = async (type: string) => {
+    await supabase.from("vendor_contacts").insert({
+      vendor_id: id!,
+      contact_type: type,
+      school_id: vendor?.schools?.id || null,
+    } as any);
+  };
 
   if (isLoading) {
     return (
@@ -87,13 +164,27 @@ const VendorProfile = () => {
                   ))}
                 </div>
               )}
+
+              {/* Engagement Bar */}
+              <div className="flex items-center gap-4 mt-4 py-3 border-t border-border/50">
+                <button onClick={toggleLike} className="flex items-center gap-1.5 text-sm">
+                  <Heart className={`h-5 w-5 ${liked ? "fill-destructive text-destructive" : "text-muted-foreground"}`} />
+                  <span className="text-muted-foreground">{likeCount}</span>
+                </button>
+                <div className="flex items-center gap-1.5 text-sm">
+                  <MessageSquare className="h-5 w-5 text-muted-foreground" />
+                  <span className="text-muted-foreground">{comments.length}</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-sm">
+                  <Eye className="h-5 w-5 text-muted-foreground" />
+                  <span className="text-muted-foreground">{viewCount}</span>
+                </div>
+              </div>
             </div>
 
             {/* Info */}
             <div>
-              <div className="flex items-start gap-2 mb-2">
-                <h1 className="text-2xl font-bold text-foreground">{vendor.business_name}</h1>
-              </div>
+              <h1 className="text-2xl font-bold text-foreground mb-2">{vendor.business_name}</h1>
 
               <div className="flex flex-wrap gap-2 mb-4">
                 <Badge variant="secondary">{vendor.category}</Badge>
@@ -112,11 +203,16 @@ const VendorProfile = () => {
                 <p className="text-muted-foreground mb-6">{vendor.description}</p>
               )}
 
-              <Card className="border-border/50">
+              <Card className="border-border/50 mb-6">
                 <CardContent className="p-4 space-y-3">
                   <h3 className="font-semibold text-sm">Contact</h3>
                   {vendor.contact_number && (
-                    <Button variant="outline" className="w-full justify-start" asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start"
+                      onClick={() => trackContact("call")}
+                      asChild
+                    >
                       <a href={`tel:${vendor.contact_number}`}>
                         <Phone className="h-4 w-4 mr-2" />
                         {vendor.contact_number}
@@ -124,13 +220,63 @@ const VendorProfile = () => {
                     </Button>
                   )}
                   {vendor.messaging_enabled && vendor.contact_number && (
-                    <Button variant="outline" className="w-full justify-start" asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start"
+                      onClick={() => trackContact("whatsapp")}
+                      asChild
+                    >
                       <a href={`https://wa.me/${vendor.contact_number.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer">
                         <MessageCircle className="h-4 w-4 mr-2" />
                         Message on WhatsApp
                       </a>
                     </Button>
                   )}
+                </CardContent>
+              </Card>
+
+              {/* Comments Section */}
+              <Card className="border-border/50">
+                <CardContent className="p-4">
+                  <h3 className="font-semibold text-sm mb-3">
+                    Comments ({comments.length})
+                  </h3>
+
+                  {/* Comment Input */}
+                  <div className="flex gap-2 mb-4">
+                    <Input
+                      placeholder={user ? "Write a comment..." : "Sign in to comment"}
+                      value={commentText}
+                      onChange={(e) => setCommentText(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && submitComment()}
+                      disabled={!user}
+                      className="h-9 text-sm"
+                    />
+                    <Button size="sm" onClick={submitComment} disabled={!user || !commentText.trim()}>
+                      <Send className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  {/* Comments List */}
+                  <div className="space-y-3 max-h-64 overflow-y-auto">
+                    {comments.length === 0 ? (
+                      <p className="text-xs text-muted-foreground text-center py-2">No comments yet</p>
+                    ) : (
+                      comments.map((c: any) => (
+                        <div key={c.id} className="border-b border-border/30 pb-2 last:border-0">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span className="text-xs font-medium text-foreground">
+                              {(c.profiles as any)?.first_name || "User"} {(c.profiles as any)?.last_name || ""}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground">
+                              {new Date(c.created_at).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">{c.content}</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             </div>

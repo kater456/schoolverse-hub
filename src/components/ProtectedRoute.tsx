@@ -2,7 +2,7 @@ import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2 } from "lucide-react";
 
-type AppRole = "super_admin" | "school_admin" | "staff" | "student" | "vendor";
+type AppRole = "super_admin" | "admin" | "sub_admin" | "school_admin" | "staff" | "student" | "vendor";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -31,6 +31,12 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   if (allowedRoles && userRole && !allowedRoles.includes(userRole.role as AppRole)) {
     if (userRole.role === "super_admin") {
       return <Navigate to="/admin" replace />;
+    }
+    if (userRole.role === "vendor") {
+      return <Navigate to="/vendor-dashboard" replace />;
+    }
+    if (userRole.role === "sub_admin" || userRole.role === "admin") {
+      return <Navigate to="/sub-admin" replace />;
     }
     return <Navigate to="/" replace />;
   }
