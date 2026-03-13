@@ -91,7 +91,7 @@ const SignUp = () => {
               Create your account
             </h1>
             <p className="text-muted-foreground">
-              Start your 14-day free trial. No credit card required.
+              Join the campus marketplace — buy, sell, and connect.
             </p>
           </div>
 
