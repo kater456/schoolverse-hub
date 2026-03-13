@@ -28,14 +28,15 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (allowedRoles && userRole && !allowedRoles.includes(userRole.role as AppRole)) {
-    if (userRole.role === "super_admin") {
+  const role = userRole?.role as string;
+  if (allowedRoles && role && !allowedRoles.includes(role as AppRole)) {
+    if (role === "super_admin") {
       return <Navigate to="/admin" replace />;
     }
-    if (userRole.role === "vendor") {
+    if (role === "vendor") {
       return <Navigate to="/vendor-dashboard" replace />;
     }
-    if (userRole.role === "sub_admin" || userRole.role === "admin") {
+    if (role === "sub_admin" || role === "admin") {
       return <Navigate to="/sub-admin" replace />;
     }
     return <Navigate to="/" replace />;

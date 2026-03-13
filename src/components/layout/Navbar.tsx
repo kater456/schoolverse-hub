@@ -8,8 +8,9 @@ const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { user, userRole, signOut } = useAuth();
 
-  const vendorDashLink = userRole?.role === "vendor" ? "/vendor-dashboard" : null;
-  const subAdminLink = userRole?.role === "sub_admin" ? "/sub-admin" : null;
+  const role = userRole?.role as string;
+  const vendorDashLink = role === "vendor" ? "/vendor-dashboard" : null;
+  const subAdminLink = role === "sub_admin" || role === "admin" ? "/sub-admin" : null;
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-border/50">
