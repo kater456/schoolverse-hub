@@ -259,8 +259,7 @@ const SignUp = () => {
               Join Campus Entrepreneurs on EduMarket
             </h2>
             <p className="text-primary-foreground/70 text-lg mb-8">
-              Create your account in minutes. Manage products, track orders,
-              and grow your educational community.
+              Create your account in minutes. List your business, reach students, and grow your campus hustle.
             </p>
             
             {/* Testimonial */}

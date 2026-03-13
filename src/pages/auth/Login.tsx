@@ -179,10 +179,10 @@ const Login = () => {
             {/* Feature List */}
             <div className="space-y-4 text-left">
               {[
-                "Manage products and inventory",
-                "Track orders and payments",
-                "View analytics and reports",
-                "Customize your branding",
+                "Browse campus businesses",
+                "List your products for free",
+                "Get featured for ₦2,000",
+                "Connect with students",
               ].map((feature) => (
                 <div
                   key={feature}
