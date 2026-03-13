@@ -5,11 +5,14 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import InstallPrompt from "@/components/InstallPrompt";
+import AppDownloadPopup from "@/components/AppDownloadPopup";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import PageTracker from "@/components/PageTracker";
 import Index from "./pages/Index";
 import Browse from "./pages/Browse";
 import VendorProfile from "./pages/VendorProfile";
 import VendorRegistration from "./pages/VendorRegistration";
+import Reels from "./pages/Reels";
 import NotFound from "./pages/NotFound";
 
 // Auth Pages
@@ -27,6 +30,12 @@ import ManageVendors from "./pages/admin/ManageVendors";
 import ManageSchools from "./pages/admin/ManageSchools";
 import ManageCampusLocations from "./pages/admin/ManageCampusLocations";
 import ManageFeatured from "./pages/admin/ManageFeatured";
+import AdminAnalytics from "./pages/admin/AdminAnalytics";
+import ManageSubAdmins from "./pages/admin/ManageSubAdmins";
+
+// Dashboard Pages
+import VendorDashboard from "./pages/dashboard/VendorDashboard";
+import SubAdminDashboard from "./pages/dashboard/SubAdminDashboard";
 
 const queryClient = new QueryClient();
 
@@ -37,11 +46,14 @@ const App = () => (
         <Toaster />
         <Sonner />
         <InstallPrompt />
+        <AppDownloadPopup />
         <BrowserRouter>
+          <PageTracker />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/browse" element={<Browse />} />
             <Route path="/vendor/:id" element={<VendorProfile />} />
+            <Route path="/reels" element={<Reels />} />
             <Route path="/register-vendor" element={
               <ProtectedRoute><VendorRegistration /></ProtectedRoute>
             } />
@@ -68,6 +80,22 @@ const App = () => (
             } />
             <Route path="/admin/featured" element={
               <ProtectedRoute allowedRoles={["super_admin"]}><ManageFeatured /></ProtectedRoute>
+            } />
+            <Route path="/admin/analytics" element={
+              <ProtectedRoute allowedRoles={["super_admin"]}><AdminAnalytics /></ProtectedRoute>
+            } />
+            <Route path="/admin/sub-admins" element={
+              <ProtectedRoute allowedRoles={["super_admin"]}><ManageSubAdmins /></ProtectedRoute>
+            } />
+
+            {/* Vendor Dashboard */}
+            <Route path="/vendor-dashboard" element={
+              <ProtectedRoute allowedRoles={["vendor"]}><VendorDashboard /></ProtectedRoute>
+            } />
+
+            {/* Sub-Admin Dashboard */}
+            <Route path="/sub-admin" element={
+              <ProtectedRoute allowedRoles={["sub_admin", "admin"]}><SubAdminDashboard /></ProtectedRoute>
             } />
 
             <Route path="*" element={<NotFound />} />

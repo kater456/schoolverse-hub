@@ -170,20 +170,19 @@ const Login = () => {
         <div className="relative z-10 flex flex-col items-center justify-center p-12 text-center">
           <div className="max-w-md">
             <h2 className="font-display text-4xl font-bold text-primary-foreground mb-6">
-              Your Complete School Solution
+              Your Campus Marketplace Awaits
             </h2>
             <p className="text-primary-foreground/70 text-lg mb-8">
-              Access your school portal, manage your marketplace, and connect
-              with your educational community.
+              Browse student businesses, discover new products, and support your campus community.
             </p>
 
             {/* Feature List */}
             <div className="space-y-4 text-left">
               {[
-                "Manage products and inventory",
-                "Track orders and payments",
-                "View analytics and reports",
-                "Customize your branding",
+                "Browse campus businesses",
+                "List your products for free",
+                "Get featured for ₦2,000",
+                "Connect with students",
               ].map((feature) => (
                 <div
                   key={feature}
