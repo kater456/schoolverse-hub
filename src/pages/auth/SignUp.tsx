@@ -256,7 +256,7 @@ const SignUp = () => {
         <div className="relative z-10 flex flex-col items-center justify-center p-12 text-center">
           <div className="max-w-md">
             <h2 className="font-display text-4xl font-bold text-primary-foreground mb-6">
-              Join 500+ Schools Already Growing with EduMarket
+              Join Campus Entrepreneurs on EduMarket
             </h2>
             <p className="text-primary-foreground/70 text-lg mb-8">
               Create your account in minutes. Manage products, track orders,
