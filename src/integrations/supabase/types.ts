@@ -599,7 +599,14 @@ export type Database = {
       is_vendor_featured: { Args: { _vendor_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "super_admin" | "school_admin" | "staff" | "student" | "vendor"
+      app_role:
+        | "super_admin"
+        | "school_admin"
+        | "staff"
+        | "student"
+        | "vendor"
+        | "admin"
+        | "sub_admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -727,7 +734,15 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["super_admin", "school_admin", "staff", "student", "vendor"],
+      app_role: [
+        "super_admin",
+        "school_admin",
+        "staff",
+        "student",
+        "vendor",
+        "admin",
+        "sub_admin",
+      ],
     },
   },
 } as const
