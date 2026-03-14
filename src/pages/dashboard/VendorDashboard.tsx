@@ -19,6 +19,7 @@ const VendorDashboard = () => {
   });
   const [recentComments, setRecentComments] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showFeaturedModal, setShowFeaturedModal] = useState(false);
 
   useEffect(() => {
     if (!user) return;
