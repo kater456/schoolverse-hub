@@ -9,6 +9,7 @@ import AppDownloadPopup from "@/components/AppDownloadPopup";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import PageTracker from "@/components/PageTracker";
 import Index from "./pages/Index";
+import Help from "./pages/Help";
 import Browse from "./pages/Browse";
 import VendorProfile from "./pages/VendorProfile";
 import VendorRegistration from "./pages/VendorRegistration";
