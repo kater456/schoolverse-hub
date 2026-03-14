@@ -236,6 +236,13 @@ const VendorDashboard = () => {
           </Card>
         </div>
       </main>
+
+      <FeaturedPaymentModal
+        open={showFeaturedModal}
+        onOpenChange={setShowFeaturedModal}
+        vendorId={vendor.id}
+        onSuccess={() => window.location.reload()}
+      />
     </div>
   );
 };
