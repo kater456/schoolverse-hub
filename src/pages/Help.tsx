@@ -1,9 +1,11 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
 import {
   GraduationCap,
   HelpCircle,
@@ -13,14 +15,31 @@ import {
   Mail,
   ChevronRight,
   ArrowLeft,
+  UserCog,
+  Loader2,
 } from "lucide-react";
 
 const Help = () => {
+  const [subAdmins, setSubAdmins] = useState<any[]>([]);
+  const [loadingSA, setLoadingSA] = useState(true);
+
+  useEffect(() => {
+    const fetchSubAdmins = async () => {
+      const { data } = await supabase
+        .from("user_roles")
+        .select("*, profiles:user_id(first_name, last_name, phone), schools:assigned_school_id(name)")
+        .in("role", ["sub_admin", "admin"] as any[]);
+      setSubAdmins(data || []);
+      setLoadingSA(false);
+    };
+    fetchSubAdmins();
+  }, []);
+
   const faqs = [
     { question: "How do I reset my password?", answer: "Click on 'Forgot Password' on the login page and follow the instructions." },
-    { question: "How do I add products to my school store?", answer: "Go to Dashboard > Products > Add Product and fill in the details." },
-    { question: "How do payments work?", answer: "Payments go directly to your connected payment account. Set this up in Settings." },
-    { question: "Can I customize my school portal?", answer: "Yes! Go to Dashboard > Branding to customize colors, logo, and more." },
+    { question: "How do I add products to my store?", answer: "Go to your Vendor Dashboard to manage your listings and products." },
+    { question: "How do payments work?", answer: "Payments for featured listings are made via bank transfer (Nigeria) or Mobile Money (Ghana). Details are shown when you activate a feature." },
+    { question: "Can I customize my listing?", answer: "Yes! Add photos, descriptions, pricing, and contact info when registering as a vendor." },
   ];
 
   return (
@@ -78,10 +97,47 @@ const Help = () => {
               <CardContent className="p-6 text-center">
                 <Phone className="h-8 w-8 text-primary mx-auto mb-3" />
                 <h3 className="font-semibold mb-1">Call Us</h3>
-                <p className="text-sm text-muted-foreground">+1 (555) 123-4567</p>
+                <p className="text-sm text-muted-foreground">+234 9016103308</p>
               </CardContent>
             </Card>
           </div>
+
+          {/* Sub-Admin Contacts */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <UserCog className="h-5 w-5" />
+                Campus Sub-Admin Contacts
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loadingSA ? (
+                <div className="flex justify-center py-6">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : subAdmins.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">No campus sub-admins listed yet.</p>
+              ) : (
+                <div className="grid sm:grid-cols-2 gap-4">
+                  {subAdmins.map((sa) => (
+                    <div key={sa.id} className="p-4 rounded-lg bg-secondary/30 border border-border/50">
+                      <p className="font-medium text-foreground">
+                        {(sa.profiles as any)?.first_name || "—"} {(sa.profiles as any)?.last_name || ""}
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        📍 {(sa.schools as any)?.name || "All campuses"}
+                      </p>
+                      {(sa.profiles as any)?.phone && (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          📞 {(sa.profiles as any).phone}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* FAQs */}
           <Card>
@@ -138,16 +194,16 @@ const Help = () => {
           <div className="text-center p-8 bg-secondary/30 rounded-xl">
             <h3 className="font-semibold text-lg mb-2">Need immediate assistance?</h3>
             <p className="text-muted-foreground mb-4">
-              Our support team is available Monday-Friday, 9am-6pm EST
+              Our support team is available Monday–Friday, 9am–6pm WAT
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <div className="flex items-center gap-2">
                 <Phone className="h-4 w-4 text-primary" />
-                <span>+1 (555) 123-4567</span>
+                <span>+234 9016103308</span>
               </div>
               <div className="flex items-center gap-2">
                 <Mail className="h-4 w-4 text-primary" />
-                <span>calebworks4@gmail.com</span>
+                <span>Calebworks2@gmail.com</span>
               </div>
             </div>
           </div>

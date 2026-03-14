@@ -4,27 +4,24 @@ import { GraduationCap, Mail, Phone, MapPin } from "lucide-react";
 const Footer = () => {
   const footerLinks = {
     product: [
-      { name: "Features", href: "#features" },
-      { name: "Pricing", href: "#pricing" },
-      { name: "Schools", href: "#schools" },
-      { name: "Marketplace", href: "#marketplace" },
+      { name: "Browse Marketplace", href: "/browse" },
+      { name: "Pricing", href: "/#pricing" },
+      { name: "Reels", href: "/reels" },
+      { name: "Register as Vendor", href: "/register-vendor" },
     ],
     company: [
-      { name: "About Us", href: "#about" },
-      { name: "Careers", href: "#careers" },
-      { name: "Blog", href: "#blog" },
-      { name: "Contact", href: "#contact" },
+      { name: "About Us", href: "/help" },
+      { name: "Contact", href: "/help" },
+      { name: "Help Center", href: "/help" },
     ],
     resources: [
-      { name: "Documentation", href: "#docs" },
-      { name: "Help Center", href: "#help" },
-      { name: "API Reference", href: "#api" },
-      { name: "Status", href: "#status" },
+      { name: "Help Center", href: "/help" },
+      { name: "Sign Up", href: "/signup" },
+      { name: "Login", href: "/login" },
     ],
     legal: [
-      { name: "Privacy Policy", href: "#privacy" },
-      { name: "Terms of Service", href: "#terms" },
-      { name: "Cookie Policy", href: "#cookies" },
+      { name: "Privacy Policy", href: "/help" },
+      { name: "Terms of Service", href: "/help" },
     ],
   };
 
@@ -47,15 +44,15 @@ const Footer = () => {
             <div className="space-y-3">
               <div className="flex items-center gap-3 text-sm text-primary-foreground/70">
                 <Mail className="h-4 w-4 text-accent" />
-                <span>support@edumarket.com</span>
+                <span>Calebworks2@gmail.com</span>
               </div>
               <div className="flex items-center gap-3 text-sm text-primary-foreground/70">
                 <Phone className="h-4 w-4 text-accent" />
-                <span>+1 (555) 123-4567</span>
+                <span>+234 9016103308</span>
               </div>
               <div className="flex items-center gap-3 text-sm text-primary-foreground/70">
                 <MapPin className="h-4 w-4 text-accent" />
-                <span>123 Education Ave, Suite 100</span>
+                <span>Your Campus</span>
               </div>
             </div>
           </div>
@@ -66,12 +63,12 @@ const Footer = () => {
             <ul className="space-y-3">
               {footerLinks.product.map((link) => (
                 <li key={link.name}>
-                  <a
-                    href={link.href}
+                  <Link
+                    to={link.href}
                     className="text-sm text-primary-foreground/70 hover:text-accent transition-colors"
                   >
                     {link.name}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -83,12 +80,12 @@ const Footer = () => {
             <ul className="space-y-3">
               {footerLinks.company.map((link) => (
                 <li key={link.name}>
-                  <a
-                    href={link.href}
+                  <Link
+                    to={link.href}
                     className="text-sm text-primary-foreground/70 hover:text-accent transition-colors"
                   >
                     {link.name}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -100,12 +97,12 @@ const Footer = () => {
             <ul className="space-y-3">
               {footerLinks.resources.map((link) => (
                 <li key={link.name}>
-                  <a
-                    href={link.href}
+                  <Link
+                    to={link.href}
                     className="text-sm text-primary-foreground/70 hover:text-accent transition-colors"
                   >
                     {link.name}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -117,12 +114,12 @@ const Footer = () => {
             <ul className="space-y-3">
               {footerLinks.legal.map((link) => (
                 <li key={link.name}>
-                  <a
-                    href={link.href}
+                  <Link
+                    to={link.href}
                     className="text-sm text-primary-foreground/70 hover:text-accent transition-colors"
                   >
                     {link.name}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -136,24 +133,18 @@ const Footer = () => {
               © {new Date().getFullYear()} EduMarket. All rights reserved.
             </p>
             <div className="flex items-center gap-6">
-              <a
-                href="#twitter"
+              <Link
+                to="/help"
                 className="text-primary-foreground/60 hover:text-accent transition-colors"
               >
-                Twitter
-              </a>
-              <a
-                href="#linkedin"
+                Help Center
+              </Link>
+              <Link
+                to="/browse"
                 className="text-primary-foreground/60 hover:text-accent transition-colors"
               >
-                LinkedIn
-              </a>
-              <a
-                href="#facebook"
-                className="text-primary-foreground/60 hover:text-accent transition-colors"
-              >
-                Facebook
-              </a>
+                Marketplace
+              </Link>
             </div>
           </div>
         </div>
