@@ -113,6 +113,11 @@ const VendorDashboard = () => {
           <Button variant="ghost" size="sm" asChild>
             <Link to={`/vendor/${vendor.id}`}>View Public Profile</Link>
           </Button>
+          {!activeFeatured && (
+            <Button size="sm" className="bg-orange-500 text-white hover:bg-orange-600" onClick={() => setShowFeaturedModal(true)}>
+              <CreditCard className="h-4 w-4 mr-1" /> Go Featured
+            </Button>
+          )}
           <Button variant="ghost" size="icon" onClick={signOut}>
             <LogOut className="h-4 w-4" />
           </Button>
