@@ -9,6 +9,7 @@ import AppDownloadPopup from "@/components/AppDownloadPopup";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import PageTracker from "@/components/PageTracker";
 import Index from "./pages/Index";
+import Help from "./pages/Help";
 import Browse from "./pages/Browse";
 import VendorProfile from "./pages/VendorProfile";
 import VendorRegistration from "./pages/VendorRegistration";
@@ -52,6 +53,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/browse" element={<Browse />} />
+            <Route path="/help" element={<Help />} />
             <Route path="/vendor/:id" element={<VendorProfile />} />
             <Route path="/reels" element={<Reels />} />
             <Route path="/register-vendor" element={

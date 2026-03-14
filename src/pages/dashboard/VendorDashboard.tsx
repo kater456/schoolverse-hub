@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import {
   Eye, Heart, MessageSquare, Phone, TrendingUp, ShoppingBag,
-  BarChart3, Star, LogOut, LayoutDashboard, Film,
+  BarChart3, Star, LogOut, LayoutDashboard, Film, Loader2, CreditCard,
 } from "lucide-react";
-import { Loader2 } from "lucide-react";
+import FeaturedPaymentModal from "@/components/vendor/FeaturedPaymentModal";
 
 const VendorDashboard = () => {
   const { user, signOut } = useAuth();
@@ -19,6 +19,7 @@ const VendorDashboard = () => {
   });
   const [recentComments, setRecentComments] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showFeaturedModal, setShowFeaturedModal] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -112,6 +113,11 @@ const VendorDashboard = () => {
           <Button variant="ghost" size="sm" asChild>
             <Link to={`/vendor/${vendor.id}`}>View Public Profile</Link>
           </Button>
+          {!activeFeatured && (
+            <Button size="sm" className="bg-orange-500 text-white hover:bg-orange-600" onClick={() => setShowFeaturedModal(true)}>
+              <CreditCard className="h-4 w-4 mr-1" /> Go Featured
+            </Button>
+          )}
           <Button variant="ghost" size="icon" onClick={signOut}>
             <LogOut className="h-4 w-4" />
           </Button>
@@ -230,6 +236,13 @@ const VendorDashboard = () => {
           </Card>
         </div>
       </main>
+
+      <FeaturedPaymentModal
+        open={showFeaturedModal}
+        onOpenChange={setShowFeaturedModal}
+        vendorId={vendor.id}
+        onSuccess={() => window.location.reload()}
+      />
     </div>
   );
 };
