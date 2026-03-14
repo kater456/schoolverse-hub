@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import {
   Eye, Heart, MessageSquare, Phone, TrendingUp, ShoppingBag,
-  BarChart3, Star, LogOut, LayoutDashboard, Film,
+  BarChart3, Star, LogOut, LayoutDashboard, Film, Loader2, CreditCard,
 } from "lucide-react";
-import { Loader2 } from "lucide-react";
+import FeaturedPaymentModal from "@/components/vendor/FeaturedPaymentModal";
 
 const VendorDashboard = () => {
   const { user, signOut } = useAuth();
