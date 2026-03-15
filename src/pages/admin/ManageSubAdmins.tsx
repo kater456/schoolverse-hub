@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import AdminLayout from "@/components/layout/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,9 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useSchools } from "@/hooks/useSchools";
-import { Plus, Eye, Loader2, UserCog, Activity } from "lucide-react";
+import { Plus, Loader2, UserCog, Activity, Trash2 } from "lucide-react";
 
 const ManageSubAdmins = () => {
+  const { session } = useAuth();
   const [subAdmins, setSubAdmins] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -21,6 +23,7 @@ const ManageSubAdmins = () => {
   const [activityLog, setActivityLog] = useState<any[]>([]);
   const [email, setEmail] = useState("");
   const [selectedSchool, setSelectedSchool] = useState("");
+  const [selectedRole, setSelectedRole] = useState("sub_admin");
   const [creating, setCreating] = useState(false);
   const { schools } = useSchools();
   const { toast } = useToast();
@@ -28,7 +31,7 @@ const ManageSubAdmins = () => {
   const fetchSubAdmins = async () => {
     const { data } = await supabase
       .from("user_roles")
-      .select("*, profiles:user_id(first_name, last_name, user_id), schools:assigned_school_id(name)")
+      .select("*, profiles:user_id(first_name, last_name, user_id, is_active), schools:assigned_school_id(name)")
       .in("role", ["sub_admin", "admin"] as any[]);
     setSubAdmins(data || []);
     setIsLoading(false);
@@ -55,22 +58,38 @@ const ManageSubAdmins = () => {
     }
     setCreating(true);
 
-    // Find user by email via profiles
-    const { data: users } = await supabase.auth.admin.listUsers();
-    // Since we can't use admin API from client, we look up by profile
-    // The sub-admin must already have an account
-    const { data: profiles } = await supabase
-      .from("profiles")
-      .select("user_id")
-      .limit(100);
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-sub-admin", {
+        body: { action: "create", email, school_id: selectedSchool, role: selectedRole },
+      });
 
-    // We need to find user by email - check auth
-    toast({
-      title: "Sub-admin creation",
-      description: "The user must first create an account. Then you can assign them the sub_admin role by their user ID.",
-    });
+      if (error) throw error;
+      if (!data.success) {
+        toast({ title: "Error", description: data.message, variant: "destructive" });
+      } else {
+        toast({ title: "Success", description: data.message });
+        setShowCreate(false);
+        setEmail("");
+        setSelectedSchool("");
+        fetchSubAdmins();
+      }
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Failed to create sub-admin", variant: "destructive" });
+    }
     setCreating(false);
-    setShowCreate(false);
+  };
+
+  const removeRole = async (userId: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-sub-admin", {
+        body: { action: "remove_role", user_id: userId },
+      });
+      if (error) throw error;
+      toast({ title: "Role removed" });
+      fetchSubAdmins();
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    }
   };
 
   return (
@@ -94,12 +113,18 @@ const ManageSubAdmins = () => {
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label>User Email</Label>
-                  <Input
-                    placeholder="subadmin@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
+                  <Input placeholder="subadmin@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
                   <p className="text-xs text-muted-foreground">User must have an existing account</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Role</Label>
+                  <Select value={selectedRole} onValueChange={setSelectedRole}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sub_admin">Sub-Admin</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label>Assign to School</Label>
@@ -113,7 +138,7 @@ const ManageSubAdmins = () => {
                   </Select>
                 </div>
                 <Button onClick={createSubAdmin} disabled={creating} className="w-full">
-                  {creating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  {creating && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
                   Create Sub-Admin
                 </Button>
               </div>
@@ -132,6 +157,7 @@ const ManageSubAdmins = () => {
                     <TableHead>Name</TableHead>
                     <TableHead>Role</TableHead>
                     <TableHead>Assigned School</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -147,22 +173,24 @@ const ManageSubAdmins = () => {
                         </Badge>
                       </TableCell>
                       <TableCell>{(sa.schools as any)?.name || "All schools"}</TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => viewActivity(sa.user_id)}
-                        >
-                          <Activity className="h-4 w-4 mr-1" /> View Activity
+                      <TableCell>
+                        <Badge variant={(sa.profiles as any)?.is_active !== false ? "default" : "secondary"}>
+                          {(sa.profiles as any)?.is_active !== false ? "Active" : "Inactive"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right space-x-1">
+                        <Button size="sm" variant="ghost" onClick={() => viewActivity(sa.user_id)}>
+                          <Activity className="h-4 w-4 mr-1" /> Activity
+                        </Button>
+                        <Button size="sm" variant="ghost" className="text-destructive" onClick={() => removeRole(sa.user_id)}>
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </TableCell>
                     </TableRow>
                   ))}
                   {subAdmins.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
-                        No sub-admins yet
-                      </TableCell>
+                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No sub-admins yet</TableCell>
                     </TableRow>
                   )}
                 </TableBody>
@@ -188,20 +216,9 @@ const ManageSubAdmins = () => {
                   <div key={log.id} className="border-b border-border/50 pb-3 last:border-0">
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-sm font-medium text-foreground">{log.action}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(log.created_at).toLocaleString()}
-                      </span>
+                      <span className="text-xs text-muted-foreground">{new Date(log.created_at).toLocaleString()}</span>
                     </div>
-                    {log.target_type && (
-                      <p className="text-xs text-muted-foreground">
-                        Target: {log.target_type}
-                      </p>
-                    )}
-                    {log.details && (
-                      <pre className="text-xs text-muted-foreground mt-1 bg-muted p-2 rounded">
-                        {JSON.stringify(log.details, null, 2)}
-                      </pre>
-                    )}
+                    {log.target_type && <p className="text-xs text-muted-foreground">Target: {log.target_type}</p>}
                   </div>
                 ))
               )}

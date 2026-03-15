@@ -305,6 +305,7 @@ export type Database = {
           first_name: string | null
           grade: string | null
           id: string
+          is_active: boolean | null
           last_name: string | null
           phone: string | null
           school_id: string | null
@@ -319,6 +320,7 @@ export type Database = {
           first_name?: string | null
           grade?: string | null
           id?: string
+          is_active?: boolean | null
           last_name?: string | null
           phone?: string | null
           school_id?: string | null
@@ -333,6 +335,7 @@ export type Database = {
           first_name?: string | null
           grade?: string | null
           id?: string
+          is_active?: boolean | null
           last_name?: string | null
           phone?: string | null
           school_id?: string | null
@@ -653,6 +656,41 @@ export type Database = {
             foreignKeyName: "vendor_private_details_vendor_id_fkey"
             columns: ["vendor_id"]
             isOneToOne: true
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendor_ratings: {
+        Row: {
+          created_at: string
+          id: string
+          rating: number
+          review: string | null
+          user_id: string
+          vendor_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          rating: number
+          review?: string | null
+          user_id: string
+          vendor_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          rating?: number
+          review?: string | null
+          user_id?: string
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_ratings_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
             referencedRelation: "vendors"
             referencedColumns: ["id"]
           },

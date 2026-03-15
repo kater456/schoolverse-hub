@@ -3,15 +3,25 @@ import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/layout/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 import {
   Eye, Users, Phone, ShoppingBag, TrendingDown,
-  BarChart3, Globe, Loader2,
+  BarChart3, Globe, Loader2, Star, Calendar, TrendingUp,
 } from "lucide-react";
 
 interface SchoolVisitorStat {
   name: string;
   count: number;
   percentage: number;
+}
+
+interface CampusPerformance {
+  id: string;
+  name: string;
+  vendorCount: number;
+  views: number;
+  contacts: number;
+  avgRating: number;
 }
 
 const AdminAnalytics = () => {
@@ -24,26 +34,25 @@ const AdminAnalytics = () => {
     bounceCount: 0,
   });
   const [schoolStats, setSchoolStats] = useState<SchoolVisitorStat[]>([]);
+  const [campusPerformance, setCampusPerformance] = useState<CampusPerformance[]>([]);
   const [topViewed, setTopViewed] = useState<any[]>([]);
   const [topContacted, setTopContacted] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchAnalytics = async () => {
-      const [
-        visits, views, contacts, vendors, schools,
-      ] = await Promise.all([
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+
+      const [visits, views, contacts, vendors, schools] = await Promise.all([
         supabase.from("site_visits").select("id, school_id, page_path", { count: "exact" }),
-        supabase.from("vendor_views").select("id, vendor_id", { count: "exact" }),
-        supabase.from("vendor_contacts").select("id, vendor_id", { count: "exact" }),
-        supabase.from("vendors").select("id", { count: "exact", head: true }),
+        supabase.from("vendor_views").select("id, vendor_id, school_id", { count: "exact" }),
+        supabase.from("vendor_contacts").select("id, vendor_id, school_id", { count: "exact" }),
+        supabase.from("vendors").select("id, school_id, business_name", { count: "exact" }),
         supabase.from("schools").select("id, name"),
       ]);
 
-      // Unique visitors (approximate by unique page sessions)
-      const uniqueVisitors = new Set(visits.data?.map((v: any) => v.id)).size;
-      
-      // Bounce: visited only 1 page
       const bounceCount = visits.data?.filter((v: any) => v.page_path === "/").length || 0;
 
       setStats({
@@ -62,7 +71,6 @@ const AdminAnalytics = () => {
         schoolMap.set(s.id, 0);
         schoolNames.set(s.id, s.name);
       });
-
       visits.data?.forEach((v: any) => {
         if (v.school_id && schoolMap.has(v.school_id)) {
           schoolMap.set(v.school_id, (schoolMap.get(v.school_id) || 0) + 1);
@@ -72,14 +80,36 @@ const AdminAnalytics = () => {
       const total = visits.count || 1;
       const schoolStatsArr: SchoolVisitorStat[] = [];
       schoolMap.forEach((count, id) => {
-        schoolStatsArr.push({
-          name: schoolNames.get(id) || "Unknown",
-          count,
-          percentage: Math.round((count / total) * 100),
-        });
+        schoolStatsArr.push({ name: schoolNames.get(id) || "Unknown", count, percentage: Math.round((count / total) * 100) });
       });
       schoolStatsArr.sort((a, b) => b.count - a.count);
       setSchoolStats(schoolStatsArr);
+
+      // Campus Performance (monthly)
+      const campusPerfMap = new Map<string, CampusPerformance>();
+      schools.data?.forEach((s: any) => {
+        campusPerfMap.set(s.id, { id: s.id, name: s.name, vendorCount: 0, views: 0, contacts: 0, avgRating: 0 });
+      });
+
+      (vendors.data || []).forEach((v: any) => {
+        const cp = campusPerfMap.get(v.school_id);
+        if (cp) cp.vendorCount++;
+      });
+      (views.data || []).forEach((v: any) => {
+        if (v.school_id) {
+          const cp = campusPerfMap.get(v.school_id);
+          if (cp) cp.views++;
+        }
+      });
+      (contacts.data || []).forEach((c: any) => {
+        if (c.school_id) {
+          const cp = campusPerfMap.get(c.school_id);
+          if (cp) cp.contacts++;
+        }
+      });
+
+      const campusPerfArr = Array.from(campusPerfMap.values()).sort((a, b) => b.views - a.views);
+      setCampusPerformance(campusPerfArr);
 
       // Top viewed vendors
       const viewCounts = new Map<string, number>();
@@ -134,6 +164,9 @@ const AdminAnalytics = () => {
     );
   }
 
+  const currentMonth = new Date().toLocaleString("default", { month: "long", year: "numeric" });
+  const maxCampusViews = Math.max(...campusPerformance.map((c) => c.views), 1);
+
   const overviewCards = [
     { title: "Total Visitors", value: stats.totalVisitors, icon: Globe, color: "text-primary" },
     { title: "Total Page Views", value: stats.totalPageViews, icon: Eye, color: "text-accent" },
@@ -151,7 +184,6 @@ const AdminAnalytics = () => {
           <p className="text-sm text-muted-foreground">Real-time platform performance and traffic insights</p>
         </div>
 
-        {/* Overview Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
           {overviewCards.map((c) => (
             <Card key={c.title} className="border-border/50">
@@ -165,6 +197,36 @@ const AdminAnalytics = () => {
             </Card>
           ))}
         </div>
+
+        {/* Campus Performance */}
+        <Card className="border-border/50">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <TrendingUp className="h-4 w-4" /> Campus Performance — {currentMonth}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {campusPerformance.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">No campus data</p>
+            ) : (
+              <div className="space-y-4">
+                {campusPerformance.map((campus) => (
+                  <div key={campus.id} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-foreground">{campus.name}</span>
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        <span>{campus.vendorCount} vendors</span>
+                        <span className="flex items-center gap-1"><Eye className="h-3 w-3" /> {campus.views}</span>
+                        <span className="flex items-center gap-1"><Phone className="h-3 w-3" /> {campus.contacts}</span>
+                      </div>
+                    </div>
+                    <Progress value={(campus.views / maxCampusViews) * 100} className="h-2" />
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Visitor Stats by School */}
@@ -211,9 +273,7 @@ const AdminAnalytics = () => {
                   {topViewed.map((v, i) => (
                     <div key={v.id} className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-bold">
-                          {i + 1}
-                        </span>
+                        <span className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-bold">{i + 1}</span>
                         <span className="text-sm font-medium truncate">{v.business_name}</span>
                       </div>
                       <span className="text-sm text-muted-foreground">{v.count} views</span>
@@ -239,9 +299,7 @@ const AdminAnalytics = () => {
                   {topContacted.map((v, i) => (
                     <div key={v.id} className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-bold">
-                          {i + 1}
-                        </span>
+                        <span className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-bold">{i + 1}</span>
                         <span className="text-sm font-medium truncate">{v.business_name}</span>
                       </div>
                       <span className="text-sm text-muted-foreground">{v.count} contacts</span>

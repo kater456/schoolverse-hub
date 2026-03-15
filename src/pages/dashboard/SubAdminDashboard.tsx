@@ -4,10 +4,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { Link } from "react-router-dom";
 import {
   Eye, Heart, MessageSquare, Phone, ShoppingBag,
-  Users, LogOut, Film, Loader2,
+  Users, LogOut, Film, Loader2, TrendingUp, Star, Calendar,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -20,12 +21,12 @@ const SubAdminDashboard = () => {
     totalComments: 0, totalContacts: 0,
   });
   const [vendors, setVendors] = useState<any[]>([]);
+  const [monthlyPerformance, setMonthlyPerformance] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (!user || !userRole) return;
     const fetchData = async () => {
-      // Get assigned school
       const assignedSchoolId = (userRole as any).assigned_school_id || (userRole as any).school_id;
       if (assignedSchoolId) {
         const { data: s } = await supabase
@@ -36,7 +37,6 @@ const SubAdminDashboard = () => {
         setSchool(s);
       }
 
-      // Get vendors for this school
       const vendorQuery = assignedSchoolId
         ? supabase.from("vendors").select("id, business_name, category, is_approved, reels_enabled").eq("school_id", assignedSchoolId)
         : supabase.from("vendors").select("id, business_name, category, is_approved, reels_enabled");
@@ -60,6 +60,40 @@ const SubAdminDashboard = () => {
           totalComments: comments.count || 0,
           totalContacts: contacts.count || 0,
         });
+
+        // Monthly performance per vendor (this month)
+        const startOfMonth = new Date();
+        startOfMonth.setDate(1);
+        startOfMonth.setHours(0, 0, 0, 0);
+
+        const [monthViews, monthContacts, monthRatings] = await Promise.all([
+          supabase.from("vendor_views").select("vendor_id").in("vendor_id", vendorIds).gte("created_at", startOfMonth.toISOString()),
+          supabase.from("vendor_contacts").select("vendor_id").in("vendor_id", vendorIds).gte("created_at", startOfMonth.toISOString()),
+          supabase.from("vendor_ratings").select("vendor_id, rating").in("vendor_id", vendorIds),
+        ]);
+
+        const perfMap = new Map<string, { views: number; contacts: number; avgRating: number; ratingCount: number }>();
+        vendorIds.forEach((vid: string) => perfMap.set(vid, { views: 0, contacts: 0, avgRating: 0, ratingCount: 0 }));
+
+        (monthViews.data || []).forEach((v: any) => {
+          const p = perfMap.get(v.vendor_id);
+          if (p) p.views++;
+        });
+        (monthContacts.data || []).forEach((c: any) => {
+          const p = perfMap.get(c.vendor_id);
+          if (p) p.contacts++;
+        });
+        (monthRatings.data || []).forEach((r: any) => {
+          const p = perfMap.get(r.vendor_id);
+          if (p) { p.avgRating = ((p.avgRating * p.ratingCount) + r.rating) / (p.ratingCount + 1); p.ratingCount++; }
+        });
+
+        const perf = (vendorData || []).map((v: any) => ({
+          ...v,
+          ...(perfMap.get(v.id) || { views: 0, contacts: 0, avgRating: 0, ratingCount: 0 }),
+        })).sort((a: any, b: any) => b.views - a.views);
+
+        setMonthlyPerformance(perf);
       } else {
         setStats({ totalVendors: 0, totalViews: 0, totalLikes: 0, totalComments: 0, totalContacts: 0 });
       }
@@ -78,7 +112,6 @@ const SubAdminDashboard = () => {
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
-      // Log activity
       await supabase.from("admin_activity_log").insert({
         admin_id: user!.id,
         action: currentState ? "Revoked Reels access" : "Granted Reels access",
@@ -101,6 +134,8 @@ const SubAdminDashboard = () => {
     );
   }
 
+  const currentMonth = new Date().toLocaleString("default", { month: "long", year: "numeric" });
+
   const statCards = [
     { title: "Total Businesses", value: stats.totalVendors, icon: ShoppingBag, color: "text-primary" },
     { title: "Total Views", value: stats.totalViews, icon: Eye, color: "text-accent" },
@@ -108,6 +143,8 @@ const SubAdminDashboard = () => {
     { title: "Total Comments", value: stats.totalComments, icon: MessageSquare, color: "text-primary" },
     { title: "Total Contacts", value: stats.totalContacts, icon: Phone, color: "text-success" },
   ];
+
+  const maxViews = Math.max(...monthlyPerformance.map((v: any) => v.views), 1);
 
   return (
     <div className="min-h-screen bg-background">
@@ -149,6 +186,41 @@ const SubAdminDashboard = () => {
             </Card>
           ))}
         </div>
+
+        {/* Monthly Performance */}
+        <Card className="border-border/50">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Calendar className="h-4 w-4" /> Monthly Business Performance — {currentMonth}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {monthlyPerformance.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">No data this month</p>
+            ) : (
+              <div className="space-y-4">
+                {monthlyPerformance.map((v: any) => (
+                  <div key={v.id} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-foreground">{v.business_name}</span>
+                        <Badge variant="outline" className="text-xs">{v.category}</Badge>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1"><Eye className="h-3 w-3" /> {v.views}</span>
+                        <span className="flex items-center gap-1"><Phone className="h-3 w-3" /> {v.contacts}</span>
+                        {v.ratingCount > 0 && (
+                          <span className="flex items-center gap-1"><Star className="h-3 w-3 text-yellow-500" /> {v.avgRating.toFixed(1)}</span>
+                        )}
+                      </div>
+                    </div>
+                    <Progress value={(v.views / maxViews) * 100} className="h-2" />
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Vendors List */}
         <Card className="border-border/50">
