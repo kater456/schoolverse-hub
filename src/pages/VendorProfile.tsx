@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import Navbar from "@/components/layout/Navbar";
@@ -8,13 +8,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { MapPin, Phone, MessageCircle, Heart, MessageSquare, Eye, Send, Loader2 } from "lucide-react";
+import { MapPin, Phone, MessageCircle, Heart, MessageSquare, Eye, Send, Loader2, Star } from "lucide-react";
 
 const VendorProfile = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [vendor, setVendor] = useState<any>(null);
   const [images, setImages] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -26,6 +28,14 @@ const VendorProfile = () => {
   const [comments, setComments] = useState<any[]>([]);
   const [commentText, setCommentText] = useState("");
   const [viewCount, setViewCount] = useState(0);
+
+  // Rating state
+  const [ratings, setRatings] = useState<any[]>([]);
+  const [avgRating, setAvgRating] = useState(0);
+  const [userRating, setUserRating] = useState(0);
+  const [userReview, setUserReview] = useState("");
+  const [hasRated, setHasRated] = useState(false);
+  const [hoverRating, setHoverRating] = useState(0);
 
   useEffect(() => {
     const fetchVendor = async () => {
@@ -42,7 +52,7 @@ const VendorProfile = () => {
         const primary = data.vendor_images?.find((img: any) => img.is_primary);
         setSelectedImage(primary?.image_url || data.vendor_images?.[0]?.image_url || null);
 
-        // Track view
+        // Track view (no auth required)
         await supabase.from("vendor_views").insert({
           vendor_id: id,
           viewer_id: user?.id || null,
@@ -50,49 +60,68 @@ const VendorProfile = () => {
         } as any);
 
         // Fetch engagement data
-        const [viewsRes, likesRes, userLike, commentsRes] = await Promise.all([
+        const [viewsRes, likesRes, userLike, commentsRes, ratingsRes] = await Promise.all([
           supabase.from("vendor_views").select("id", { count: "exact", head: true }).eq("vendor_id", id),
           supabase.from("vendor_likes").select("id", { count: "exact", head: true }).eq("vendor_id", id),
           user ? supabase.from("vendor_likes").select("id").eq("vendor_id", id).eq("user_id", user.id) : Promise.resolve({ data: [] }),
           supabase.from("vendor_comments").select("*, profiles:user_id(first_name, last_name)").eq("vendor_id", id).order("created_at", { ascending: false }).limit(20),
+          supabase.from("vendor_ratings").select("*").eq("vendor_id", id),
         ]);
 
         setViewCount(viewsRes.count || 0);
         setLikeCount(likesRes.count || 0);
         setLiked((userLike as any).data?.length > 0);
         setComments(commentsRes.data || []);
+
+        const allRatings = ratingsRes.data || [];
+        setRatings(allRatings);
+        if (allRatings.length > 0) {
+          setAvgRating(allRatings.reduce((sum: number, r: any) => sum + r.rating, 0) / allRatings.length);
+        }
+
+        if (user) {
+          const userR = allRatings.find((r: any) => r.user_id === user.id);
+          if (userR) {
+            setUserRating(userR.rating);
+            setUserReview(userR.review || "");
+            setHasRated(true);
+          }
+        }
       }
       setIsLoading(false);
     };
     fetchVendor();
   }, [id, user]);
 
-  const toggleLike = async () => {
+  const requireAuth = (action: string) => {
     if (!user) {
-      toast({ title: "Sign in to like", variant: "destructive" });
-      return;
+      toast({ title: `Sign in to ${action}`, description: "Create an account to interact with businesses", variant: "destructive" });
+      navigate("/signup");
+      return false;
     }
+    return true;
+  };
+
+  const toggleLike = async () => {
+    if (!requireAuth("like")) return;
     if (liked) {
-      await supabase.from("vendor_likes").delete().eq("vendor_id", id!).eq("user_id", user.id);
+      await supabase.from("vendor_likes").delete().eq("vendor_id", id!).eq("user_id", user!.id);
       setLiked(false);
       setLikeCount((c) => c - 1);
     } else {
-      await supabase.from("vendor_likes").insert({ vendor_id: id!, user_id: user.id } as any);
+      await supabase.from("vendor_likes").insert({ vendor_id: id!, user_id: user!.id } as any);
       setLiked(true);
       setLikeCount((c) => c + 1);
     }
   };
 
   const submitComment = async () => {
-    if (!user) {
-      toast({ title: "Sign in to comment", variant: "destructive" });
-      return;
-    }
+    if (!requireAuth("comment")) return;
     if (!commentText.trim()) return;
 
     const { data, error } = await supabase
       .from("vendor_comments")
-      .insert({ vendor_id: id!, user_id: user.id, content: commentText.trim() } as any)
+      .insert({ vendor_id: id!, user_id: user!.id, content: commentText.trim() } as any)
       .select("*, profiles:user_id(first_name, last_name)")
       .single();
 
@@ -101,6 +130,45 @@ const VendorProfile = () => {
     } else {
       setComments((prev) => [data, ...prev]);
       setCommentText("");
+    }
+  };
+
+  const submitRating = async () => {
+    if (!requireAuth("rate")) return;
+    if (userRating === 0) return;
+
+    if (hasRated) {
+      const { error } = await supabase
+        .from("vendor_ratings")
+        .update({ rating: userRating, review: userReview || null } as any)
+        .eq("vendor_id", id!)
+        .eq("user_id", user!.id);
+      if (error) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: "Rating updated!" });
+        // Refresh ratings
+        const { data } = await supabase.from("vendor_ratings").select("*").eq("vendor_id", id!);
+        setRatings(data || []);
+        if (data && data.length > 0) {
+          setAvgRating(data.reduce((sum: number, r: any) => sum + r.rating, 0) / data.length);
+        }
+      }
+    } else {
+      const { error } = await supabase
+        .from("vendor_ratings")
+        .insert({ vendor_id: id!, user_id: user!.id, rating: userRating, review: userReview || null } as any);
+      if (error) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: "Thanks for your rating!" });
+        setHasRated(true);
+        const { data } = await supabase.from("vendor_ratings").select("*").eq("vendor_id", id!);
+        setRatings(data || []);
+        if (data && data.length > 0) {
+          setAvgRating(data.reduce((sum: number, r: any) => sum + r.rating, 0) / data.length);
+        }
+      }
     }
   };
 
@@ -179,6 +247,10 @@ const VendorProfile = () => {
                   <Eye className="h-5 w-5 text-muted-foreground" />
                   <span className="text-muted-foreground">{viewCount}</span>
                 </div>
+                <div className="flex items-center gap-1.5 text-sm ml-auto">
+                  <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+                  <span className="text-muted-foreground">{avgRating.toFixed(1)} ({ratings.length})</span>
+                </div>
               </div>
             </div>
 
@@ -203,16 +275,48 @@ const VendorProfile = () => {
                 <p className="text-muted-foreground mb-6">{vendor.description}</p>
               )}
 
-              <Card className="border-border/50 mb-6">
+              {/* Rating Section */}
+              <Card className="border-border/50 mb-4">
+                <CardContent className="p-4">
+                  <h3 className="font-semibold text-sm mb-3">Rate this business</h3>
+                  <div className="flex items-center gap-1 mb-3">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        onMouseEnter={() => setHoverRating(star)}
+                        onMouseLeave={() => setHoverRating(0)}
+                        onClick={() => setUserRating(star)}
+                        className="transition-transform hover:scale-110"
+                      >
+                        <Star
+                          className={`h-7 w-7 ${
+                            star <= (hoverRating || userRating)
+                              ? "text-yellow-500 fill-yellow-500"
+                              : "text-muted-foreground/30"
+                          }`}
+                        />
+                      </button>
+                    ))}
+                    {userRating > 0 && <span className="text-sm text-muted-foreground ml-2">{userRating}/5</span>}
+                  </div>
+                  <Textarea
+                    placeholder="Write a review (optional)..."
+                    value={userReview}
+                    onChange={(e) => setUserReview(e.target.value)}
+                    className="mb-3 text-sm"
+                    rows={2}
+                  />
+                  <Button size="sm" onClick={submitRating} disabled={userRating === 0}>
+                    {hasRated ? "Update Rating" : "Submit Rating"}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card className="border-border/50 mb-4">
                 <CardContent className="p-4 space-y-3">
                   <h3 className="font-semibold text-sm">Contact</h3>
                   {vendor.contact_number && (
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start"
-                      onClick={() => trackContact("call")}
-                      asChild
-                    >
+                    <Button variant="outline" className="w-full justify-start" onClick={() => trackContact("call")} asChild>
                       <a href={`tel:${vendor.contact_number}`}>
                         <Phone className="h-4 w-4 mr-2" />
                         {vendor.contact_number}
@@ -220,12 +324,7 @@ const VendorProfile = () => {
                     </Button>
                   )}
                   {vendor.messaging_enabled && vendor.contact_number && (
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start"
-                      onClick={() => trackContact("whatsapp")}
-                      asChild
-                    >
+                    <Button variant="outline" className="w-full justify-start" onClick={() => trackContact("whatsapp")} asChild>
                       <a href={`https://wa.me/${vendor.contact_number.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer">
                         <MessageCircle className="h-4 w-4 mr-2" />
                         Message on WhatsApp
@@ -238,26 +337,19 @@ const VendorProfile = () => {
               {/* Comments Section */}
               <Card className="border-border/50">
                 <CardContent className="p-4">
-                  <h3 className="font-semibold text-sm mb-3">
-                    Comments ({comments.length})
-                  </h3>
-
-                  {/* Comment Input */}
+                  <h3 className="font-semibold text-sm mb-3">Comments ({comments.length})</h3>
                   <div className="flex gap-2 mb-4">
                     <Input
                       placeholder={user ? "Write a comment..." : "Sign in to comment"}
                       value={commentText}
                       onChange={(e) => setCommentText(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && submitComment()}
-                      disabled={!user}
                       className="h-9 text-sm"
                     />
-                    <Button size="sm" onClick={submitComment} disabled={!user || !commentText.trim()}>
+                    <Button size="sm" onClick={submitComment} disabled={!commentText.trim()}>
                       <Send className="h-4 w-4" />
                     </Button>
                   </div>
-
-                  {/* Comments List */}
                   <div className="space-y-3 max-h-64 overflow-y-auto">
                     {comments.length === 0 ? (
                       <p className="text-xs text-muted-foreground text-center py-2">No comments yet</p>
