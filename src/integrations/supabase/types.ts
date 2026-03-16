@@ -800,6 +800,7 @@ export type Database = {
           created_at: string
           full_name: string
           id: string
+          id_document_url: string | null
           personal_contact: string | null
           residential_location: string | null
           vendor_id: string
@@ -809,6 +810,7 @@ export type Database = {
           created_at?: string
           full_name: string
           id?: string
+          id_document_url?: string | null
           personal_contact?: string | null
           residential_location?: string | null
           vendor_id: string
@@ -818,6 +820,7 @@ export type Database = {
           created_at?: string
           full_name?: string
           id?: string
+          id_document_url?: string | null
           personal_contact?: string | null
           residential_location?: string | null
           vendor_id?: string
@@ -1036,11 +1039,29 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_my_role_details: {
+        Args: never
+        Returns: {
+          assigned_school_id: string
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          school_id: string
+          user_id: string
+        }[]
+      }
       get_user_role: {
         Args: { _user_id?: string }
         Returns: Database["public"]["Enums"]["app_role"]
       }
       get_user_school_id: { Args: { _user_id?: string }; Returns: string }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       is_school_admin: {
         Args: { _school_id: string; _user_id: string }
         Returns: boolean

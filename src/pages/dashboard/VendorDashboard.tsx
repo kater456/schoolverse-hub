@@ -6,25 +6,23 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import {
-  Eye, Heart, MessageSquare, Phone, TrendingUp, ShoppingBag,
-  BarChart3, Star, LogOut, LayoutDashboard, Film, Loader2, CreditCard,
+  Eye, Heart, MessageSquare, Phone, ShoppingBag,
+  BarChart3, Star, LogOut, Film, Loader2, CreditCard, CheckCircle, Package,
 } from "lucide-react";
 import FeaturedPaymentModal from "@/components/vendor/FeaturedPaymentModal";
 
 const VendorDashboard = () => {
   const { user, signOut } = useAuth();
   const [vendor, setVendor] = useState<any>(null);
-  const [stats, setStats] = useState({
-    views: 0, likes: 0, comments: 0, contacts: 0,
-  });
+  const [stats, setStats] = useState({ views: 0, likes: 0, comments: 0, contacts: 0 });
   const [recentComments, setRecentComments] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showFeaturedModal, setShowFeaturedModal] = useState(false);
 
   useEffect(() => {
     if (!user) return;
-    const fetch = async () => {
-      // Get vendor
+    const fetchData = async () => {
       const { data: v } = await supabase
         .from("vendors")
         .select("*, schools(name), campus_locations(name), featured_listings(*)")
@@ -34,40 +32,38 @@ const VendorDashboard = () => {
       if (!v) { setIsLoading(false); return; }
       setVendor(v);
 
-      // Get stats in parallel
-      const [views, likes, comments, contacts] = await Promise.all([
+      const [views, likes, comments, contacts, txns, cmts] = await Promise.all([
         supabase.from("vendor_views").select("id", { count: "exact", head: true }).eq("vendor_id", v.id),
         supabase.from("vendor_likes").select("id", { count: "exact", head: true }).eq("vendor_id", v.id),
         supabase.from("vendor_comments").select("id", { count: "exact", head: true }).eq("vendor_id", v.id),
         supabase.from("vendor_contacts").select("id", { count: "exact", head: true }).eq("vendor_id", v.id),
+        supabase.from("transactions").select("*").eq("vendor_id", v.id).order("created_at", { ascending: false }).limit(10),
+        supabase.from("vendor_comments").select("*, profiles:user_id(first_name, last_name)").eq("vendor_id", v.id).order("created_at", { ascending: false }).limit(5),
       ]);
 
-      setStats({
-        views: views.count || 0,
-        likes: likes.count || 0,
-        comments: comments.count || 0,
-        contacts: contacts.count || 0,
-      });
-
-      // Recent comments
-      const { data: cmts } = await supabase
-        .from("vendor_comments")
-        .select("*, profiles:user_id(first_name, last_name)")
-        .eq("vendor_id", v.id)
-        .order("created_at", { ascending: false })
-        .limit(5);
-      setRecentComments(cmts || []);
+      setStats({ views: views.count || 0, likes: likes.count || 0, comments: comments.count || 0, contacts: contacts.count || 0 });
+      setTransactions(txns.data || []);
+      setRecentComments(cmts.data || []);
       setIsLoading(false);
     };
-    fetch();
+    fetchData();
   }, [user]);
 
+  const markDelivered = async (txnId: string) => {
+    const { error } = await supabase
+      .from("transactions")
+      .update({ vendor_marked_delivered: true } as any)
+      .eq("id", txnId);
+
+    if (!error) {
+      setTransactions((prev) =>
+        prev.map((t) => t.id === txnId ? { ...t, vendor_marked_delivered: true, status: "delivered" } : t)
+      );
+    }
+  };
+
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return (<div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>);
   }
 
   if (!vendor) {
@@ -98,7 +94,6 @@ const VendorDashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Top bar */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border px-6 h-16 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link to="/" className="flex items-center gap-2">
@@ -118,14 +113,11 @@ const VendorDashboard = () => {
               <CreditCard className="h-4 w-4 mr-1" /> Go Featured
             </Button>
           )}
-          <Button variant="ghost" size="icon" onClick={signOut}>
-            <LogOut className="h-4 w-4" />
-          </Button>
+          <Button variant="ghost" size="icon" onClick={signOut}><LogOut className="h-4 w-4" /></Button>
         </div>
       </header>
 
       <main className="p-6 max-w-6xl mx-auto space-y-6">
-        {/* Business Info */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-foreground">{vendor.business_name}</h1>
@@ -135,20 +127,11 @@ const VendorDashboard = () => {
             </p>
           </div>
           <div className="flex gap-2">
-            {activeFeatured && (
-              <Badge className="bg-accent text-accent-foreground">
-                <Star className="h-3 w-3 mr-1" /> Featured
-              </Badge>
-            )}
-            {vendor.is_approved ? (
-              <Badge className="bg-success text-success-foreground">Approved</Badge>
-            ) : (
-              <Badge variant="secondary">Pending Approval</Badge>
-            )}
+            {activeFeatured && <Badge className="bg-accent text-accent-foreground"><Star className="h-3 w-3 mr-1" /> Featured</Badge>}
+            {vendor.is_approved ? <Badge className="bg-success text-success-foreground">Approved</Badge> : <Badge variant="secondary">Pending Approval</Badge>}
           </div>
         </div>
 
-        {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {statCards.map((s) => (
             <Card key={s.title} className="border-border/50">
@@ -156,22 +139,57 @@ const VendorDashboard = () => {
                 <CardTitle className="text-xs font-medium text-muted-foreground">{s.title}</CardTitle>
                 <s.icon className={`h-4 w-4 ${s.color}`} />
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{s.value.toLocaleString()}</div>
-              </CardContent>
+              <CardContent><div className="text-2xl font-bold">{s.value.toLocaleString()}</div></CardContent>
             </Card>
           ))}
         </div>
 
-        {/* Engagement Overview */}
+        {/* Transactions - Mark as delivered */}
+        <Card className="border-border/50">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Package className="h-4 w-4" /> Recent Transactions
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {transactions.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">No transactions yet</p>
+            ) : (
+              <div className="space-y-3">
+                {transactions.map((t: any) => (
+                  <div key={t.id} className="flex items-center justify-between border-b border-border/50 pb-3 last:border-0">
+                    <div>
+                      <span className="text-sm font-medium text-foreground">Transaction #{t.id.slice(0, 8)}</span>
+                      <div className="flex gap-2 mt-1">
+                        <Badge variant={t.status === "completed" ? "default" : t.status === "delivered" ? "secondary" : "outline"} className="text-xs">
+                          {t.status}
+                        </Badge>
+                        {t.customer_confirmed && <Badge variant="outline" className="text-xs text-success">Customer Confirmed</Badge>}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {!t.vendor_marked_delivered && t.status === "pending" && (
+                        <Button size="sm" onClick={() => markDelivered(t.id)} className="bg-success text-success-foreground hover:bg-success/90">
+                          <CheckCircle className="h-3 w-3 mr-1" /> Mark Delivered
+                        </Button>
+                      )}
+                      {t.vendor_marked_delivered && !t.customer_confirmed && (
+                        <span className="text-xs text-muted-foreground">Awaiting customer confirmation</span>
+                      )}
+                      {t.status === "completed" && (
+                        <span className="text-xs text-success font-medium">✓ Completed</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         <div className="grid lg:grid-cols-2 gap-6">
-          {/* Recent Comments */}
           <Card className="border-border/50">
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <MessageSquare className="h-4 w-4" /> Recent Comments
-              </CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle className="text-base flex items-center gap-2"><MessageSquare className="h-4 w-4" /> Recent Comments</CardTitle></CardHeader>
             <CardContent>
               {recentComments.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-4 text-center">No comments yet</p>
@@ -183,9 +201,7 @@ const VendorDashboard = () => {
                         <span className="text-sm font-medium text-foreground">
                           {(c.profiles as any)?.first_name || "User"} {(c.profiles as any)?.last_name || ""}
                         </span>
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(c.created_at).toLocaleDateString()}
-                        </span>
+                        <span className="text-xs text-muted-foreground">{new Date(c.created_at).toLocaleDateString()}</span>
                       </div>
                       <p className="text-sm text-muted-foreground">{c.content}</p>
                     </div>
@@ -195,13 +211,8 @@ const VendorDashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Visibility Analytics */}
           <Card className="border-border/50">
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <BarChart3 className="h-4 w-4" /> Business Visibility
-              </CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle className="text-base flex items-center gap-2"><BarChart3 className="h-4 w-4" /> Business Visibility</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 {statCards.map((s) => {
@@ -214,16 +225,12 @@ const VendorDashboard = () => {
                         <span className="font-medium">{s.value}</span>
                       </div>
                       <div className="h-2 bg-muted rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-accent rounded-full transition-all"
-                          style={{ width: `${pct}%` }}
-                        />
+                        <div className="h-full bg-accent rounded-full transition-all" style={{ width: `${pct}%` }} />
                       </div>
                     </div>
                   );
                 })}
               </div>
-
               {vendor.reels_enabled && (
                 <div className="pt-2 border-t border-border/50">
                   <div className="flex items-center gap-2 text-sm">
@@ -237,12 +244,8 @@ const VendorDashboard = () => {
         </div>
       </main>
 
-      <FeaturedPaymentModal
-        open={showFeaturedModal}
-        onOpenChange={setShowFeaturedModal}
-        vendorId={vendor.id}
-        onSuccess={() => window.location.reload()}
-      />
+      <FeaturedPaymentModal open={showFeaturedModal} onOpenChange={setShowFeaturedModal}
+        vendorId={vendor.id} onSuccess={() => window.location.reload()} />
     </div>
   );
 };
