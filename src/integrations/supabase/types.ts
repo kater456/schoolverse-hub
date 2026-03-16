@@ -354,6 +354,51 @@ export type Database = {
           },
         ]
       }
+      ratings: {
+        Row: {
+          comment: string | null
+          created_at: string | null
+          id: string
+          rating: number
+          transaction_id: string
+          user_id: string
+          vendor_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string | null
+          id?: string
+          rating: number
+          transaction_id: string
+          user_id: string
+          vendor_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string | null
+          id?: string
+          rating?: number
+          transaction_id?: string
+          user_id?: string
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ratings_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ratings_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       schools: {
         Row: {
           address: string | null
@@ -446,6 +491,82 @@ export type Database = {
           },
         ]
       }
+      transactions: {
+        Row: {
+          created_at: string | null
+          customer_confirmed: boolean | null
+          id: string
+          product_id: string | null
+          status: string | null
+          user_id: string
+          vendor_id: string
+          vendor_marked_delivered: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          customer_confirmed?: boolean | null
+          id?: string
+          product_id?: string | null
+          status?: string | null
+          user_id: string
+          vendor_id: string
+          vendor_marked_delivered?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          customer_confirmed?: boolean | null
+          id?: string
+          product_id?: string | null
+          status?: string | null
+          user_id?: string
+          vendor_id?: string
+          vendor_marked_delivered?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_profiles: {
+        Row: {
+          assigned_school_id: string | null
+          created_at: string | null
+          email_verified: boolean | null
+          role: string
+          user_id: string
+          user_status: string | null
+        }
+        Insert: {
+          assigned_school_id?: string | null
+          created_at?: string | null
+          email_verified?: boolean | null
+          role: string
+          user_id: string
+          user_status?: string | null
+        }
+        Update: {
+          assigned_school_id?: string | null
+          created_at?: string | null
+          email_verified?: boolean | null
+          role?: string
+          user_id?: string
+          user_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_profiles_assigned_school_id_fkey"
+            columns: ["assigned_school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           assigned_school_id: string | null
@@ -481,6 +602,57 @@ export type Database = {
           },
           {
             foreignKeyName: "user_roles_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendor_applications: {
+        Row: {
+          business_name: string
+          id: string
+          id_document_url: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          school_id: string | null
+          status: string
+          submitted_at: string | null
+          user_id: string
+        }
+        Insert: {
+          business_name: string
+          id?: string
+          id_document_url?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          school_id?: string | null
+          status?: string
+          submitted_at?: string | null
+          user_id: string
+        }
+        Update: {
+          business_name?: string
+          id?: string
+          id_document_url?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          school_id?: string | null
+          status?: string
+          submitted_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_applications_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "vendor_applications_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
             referencedRelation: "schools"
@@ -691,6 +863,35 @@ export type Database = {
             foreignKeyName: "vendor_ratings_vendor_id_fkey"
             columns: ["vendor_id"]
             isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendor_stats: {
+        Row: {
+          average_rating: number | null
+          total_reviews: number | null
+          updated_at: string | null
+          vendor_id: string
+        }
+        Insert: {
+          average_rating?: number | null
+          total_reviews?: number | null
+          updated_at?: string | null
+          vendor_id: string
+        }
+        Update: {
+          average_rating?: number | null
+          total_reviews?: number | null
+          updated_at?: string | null
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_stats_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: true
             referencedRelation: "vendors"
             referencedColumns: ["id"]
           },
