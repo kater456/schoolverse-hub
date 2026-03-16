@@ -28,6 +28,7 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  // If allowedRoles specified but user has no role yet, wait briefly then redirect
   const role = userRole?.role as string;
   if (allowedRoles && role && !allowedRoles.includes(role as AppRole)) {
     if (role === "super_admin") {
@@ -39,7 +40,7 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
     if (role === "sub_admin" || role === "admin") {
       return <Navigate to="/sub-admin" replace />;
     }
-    return <Navigate to="/" replace />;
+    return <Navigate to="/browse" replace />;
   }
 
   return <>{children}</>;

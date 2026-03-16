@@ -20,6 +20,7 @@ interface UserRole {
   user_id: string;
   role: AppRole;
   school_id: string | null;
+  assigned_school_id: string | null;
 }
 
 interface AuthContextType {
@@ -44,24 +45,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchProfile = async (userId: string) => {
+    // Fetch profile
     const { data: profileData } = await supabase
       .from("profiles")
       .select("*")
       .eq("user_id", userId)
-      .single();
+      .maybeSingle();
 
     if (profileData) {
       setProfile(profileData as unknown as Profile);
     }
 
-    const { data: roleData } = await supabase
-      .from("user_roles")
-      .select("*")
-      .eq("user_id", userId)
-      .single();
+    // Use security definer RPC to avoid infinite recursion on user_roles
+    const { data: roleData } = await supabase.rpc("get_my_role_details");
 
-    if (roleData) {
-      setUserRole(roleData as unknown as UserRole);
+    if (roleData && Array.isArray(roleData) && roleData.length > 0) {
+      setUserRole(roleData[0] as unknown as UserRole);
+    } else {
+      setUserRole(null);
     }
   };
 
