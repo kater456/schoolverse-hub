@@ -89,7 +89,7 @@ const VerifyEmail = () => {
     }
   };
 
-  const handleResend = () => {
+  const handleResend = async () => {
     try {
       const { error } = await supabase.auth.resend({
         type: "signup",
