@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -50,27 +51,61 @@ const VerifyEmail = () => {
 
     setIsLoading(true);
 
-    // Simulating API call
-    setTimeout(() => {
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        email,
+        token: code,
+        type: "signup",
+      });
+
       setIsLoading(false);
+
+      if (error) {
+        toast({
+          title: "Verification failed",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
       setIsVerified(true);
       toast({
-        title: "Email verified!",
-        description: "Your account has been activated successfully.",
+        title: "Email verified successfully!",
+        description: "Welcome to EduMarket!",
       });
-      
-      // Redirect to login after a brief delay
+
+      // Redirect to landing page after a brief delay
       setTimeout(() => {
-        navigate("/login");
+        navigate("/");
       }, 2000);
-    }, 1500);
+    } catch (err: any) {
+      setIsLoading(false);
+      toast({
+        title: "Error",
+        description: err.message || "Verification failed",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleResend = () => {
-    toast({
-      title: "Code resent",
-      description: "A new verification code has been sent to your email.",
-    });
+  const handleResend = async () => {
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email,
+      });
+      if (error) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+      } else {
+        toast({
+          title: "Code resent",
+          description: "A new verification code has been sent to your email.",
+        });
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to resend code", variant: "destructive" });
+    }
   };
 
   if (isVerified) {
@@ -84,7 +119,7 @@ const VerifyEmail = () => {
             Email Verified!
           </h1>
           <p className="text-muted-foreground mb-6">
-            Your account has been successfully verified. Redirecting you to login...
+            Your account has been successfully verified. Welcome to EduMarket!
           </p>
           <div className="flex justify-center">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />

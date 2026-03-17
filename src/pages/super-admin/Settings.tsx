@@ -18,6 +18,7 @@ const Settings = () => {
     allow_registrations: settings?.allow_registrations ?? true,
     maintenance_mode: settings?.maintenance_mode ?? false,
     email_notifications: settings?.email_notifications ?? true,
+    featured_reels_enabled: settings?.featured_reels_enabled ?? false,
   });
 
   // Update form data when settings load
@@ -30,6 +31,7 @@ const Settings = () => {
         allow_registrations: settings.allow_registrations ?? true,
         maintenance_mode: settings.maintenance_mode ?? false,
         email_notifications: settings.email_notifications ?? true,
+        featured_reels_enabled: settings.featured_reels_enabled ?? false,
       });
     }
   });
@@ -130,6 +132,18 @@ const Settings = () => {
                   checked={formData.email_notifications}
                   onCheckedChange={(checked) =>
                     setFormData({ ...formData, email_notifications: checked })
+                  }
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Activate Featured Reels Payment</Label>
+                  <p className="text-sm text-muted-foreground">When enabled, users can pay to feature their reels</p>
+                </div>
+                <Switch
+                  checked={formData.featured_reels_enabled}
+                  onCheckedChange={(checked) =>
+                    setFormData({ ...formData, featured_reels_enabled: checked })
                   }
                 />
               </div>

@@ -71,12 +71,12 @@ serve(async (req) => {
         // Update existing role
         await supabase
           .from("user_roles")
-          .update({ role: role || "sub_admin", assigned_school_id: school_id || null })
+          .update({ role: role || "sub_admin", assigned_school_id: school_id || null, promotion_notified: false })
           .eq("user_id", targetUser.id);
       } else {
         await supabase
           .from("user_roles")
-          .insert({ user_id: targetUser.id, role: role || "sub_admin", assigned_school_id: school_id || null });
+          .insert({ user_id: targetUser.id, role: role || "sub_admin", assigned_school_id: school_id || null, promotion_notified: false });
       }
 
       // Log activity

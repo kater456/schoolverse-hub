@@ -7,6 +7,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import InstallPrompt from "@/components/InstallPrompt";
 import AppDownloadPopup from "@/components/AppDownloadPopup";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import PromotionNotification from "@/components/PromotionNotification";
 import PageTracker from "@/components/PageTracker";
 import Index from "./pages/Index";
 import Help from "./pages/Help";
@@ -48,6 +49,7 @@ const App = () => (
         <Sonner />
         <InstallPrompt />
         <AppDownloadPopup />
+        <PromotionNotification />
         <BrowserRouter>
           <PageTracker />
           <Routes>

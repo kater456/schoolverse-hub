@@ -15,21 +15,12 @@ const Login = () => {
   const navigate = useNavigate();
   const { signIn, user, userRole, isLoading: authLoading } = useAuth();
 
-  // Redirect after login based on role
+  // Redirect after login — all users go to landing page
   useEffect(() => {
-    if (!authLoading && user && userRole) {
-      const role = userRole.role;
-      if (role === "super_admin") {
-        navigate("/admin", { replace: true });
-      } else if (role === "admin" || role === "sub_admin") {
-        navigate("/sub-admin", { replace: true });
-      } else if (role === "vendor") {
-        navigate("/vendor-dashboard", { replace: true });
-      } else {
-        navigate("/browse", { replace: true });
-      }
+    if (!authLoading && user) {
+      navigate("/", { replace: true });
     }
-  }, [user, userRole, authLoading, navigate]);
+  }, [user, authLoading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

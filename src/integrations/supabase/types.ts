@@ -217,6 +217,7 @@ export type Database = {
           allow_registrations: boolean | null
           created_at: string
           email_notifications: boolean | null
+          featured_reels_enabled: boolean | null
           id: string
           maintenance_mode: boolean | null
           platform_name: string | null
@@ -228,6 +229,7 @@ export type Database = {
           allow_registrations?: boolean | null
           created_at?: string
           email_notifications?: boolean | null
+          featured_reels_enabled?: boolean | null
           id?: string
           maintenance_mode?: boolean | null
           platform_name?: string | null
@@ -239,6 +241,7 @@ export type Database = {
           allow_registrations?: boolean | null
           created_at?: string
           email_notifications?: boolean | null
+          featured_reels_enabled?: boolean | null
           id?: string
           maintenance_mode?: boolean | null
           platform_name?: string | null
@@ -572,6 +575,7 @@ export type Database = {
           assigned_school_id: string | null
           created_at: string
           id: string
+          promotion_notified: boolean | null
           role: Database["public"]["Enums"]["app_role"]
           school_id: string | null
           user_id: string
@@ -580,6 +584,7 @@ export type Database = {
           assigned_school_id?: string | null
           created_at?: string
           id?: string
+          promotion_notified?: boolean | null
           role: Database["public"]["Enums"]["app_role"]
           school_id?: string | null
           user_id: string
@@ -588,6 +593,7 @@ export type Database = {
           assigned_school_id?: string | null
           created_at?: string
           id?: string
+          promotion_notified?: boolean | null
           role?: Database["public"]["Enums"]["app_role"]
           school_id?: string | null
           user_id?: string

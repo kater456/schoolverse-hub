@@ -10,6 +10,7 @@ export interface PlatformSettings {
   allow_registrations: boolean;
   maintenance_mode: boolean;
   email_notifications: boolean;
+  featured_reels_enabled: boolean;
   created_at: string;
   updated_at: string;
 }

@@ -70,19 +70,7 @@ const SearchFilters = ({
           </SelectContent>
         </Select>
 
-        <Select value={selectedLocation} onValueChange={onLocationChange}>
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="All Locations" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Locations</SelectItem>
-            {locations.map((loc) => (
-              <SelectItem key={loc.id} value={loc.id}>
-                {loc.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {/* Location filter removed — users search by school only, vendor cards show small locations */}
       </div>
     </div>
   );
