@@ -54,10 +54,14 @@ const VendorProfile = () => {
         const primary = data.vendor_images?.find((img: any) => img.is_primary);
         setSelectedImage(primary?.image_url || data.vendor_images?.[0]?.image_url || null);
 
-        // Track view
-        await supabase.from("vendor_views").insert({
-          vendor_id: id, viewer_id: user?.id || null, school_id: data.schools?.id || null,
-        } as any);
+        // Track view only once per session per vendor
+        const viewKey = `vendor_viewed_${id}`;
+        if (!sessionStorage.getItem(viewKey)) {
+          await supabase.from("vendor_views").insert({
+            vendor_id: id, viewer_id: user?.id || null, school_id: data.schools?.id || null,
+          } as any);
+          sessionStorage.setItem(viewKey, "1");
+        }
 
         // Fetch engagement data
         const [viewsRes, likesRes, userLike, commentsRes, ratingsRes] = await Promise.all([
@@ -76,11 +80,9 @@ const VendorProfile = () => {
         const allRatings = ratingsRes.data || [];
         setRatings(allRatings);
 
-        // Calculate Amazon-style rating distribution
         if (allRatings.length > 0) {
           const avg = allRatings.reduce((sum: number, r: any) => sum + r.rating, 0) / allRatings.length;
           setAvgRating(avg);
-
           const dist = [0, 0, 0, 0, 0];
           allRatings.forEach((r: any) => { if (r.rating >= 1 && r.rating <= 5) dist[r.rating - 1]++; });
           setRatingDistribution(dist);
@@ -94,7 +96,6 @@ const VendorProfile = () => {
             setHasRated(true);
           }
 
-          // Check if user has a completed transaction with this vendor
           const { data: txn } = await supabase
             .from("transactions")
             .select("id")
