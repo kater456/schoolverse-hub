@@ -135,6 +135,18 @@ const Settings = () => {
                   }
                 />
               </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Activate Featured Reels Payment</Label>
+                  <p className="text-sm text-muted-foreground">When enabled, users can pay to feature their reels</p>
+                </div>
+                <Switch
+                  checked={formData.featured_reels_enabled}
+                  onCheckedChange={(checked) =>
+                    setFormData({ ...formData, featured_reels_enabled: checked })
+                  }
+                />
+              </div>
             </CardContent>
           </Card>
 
