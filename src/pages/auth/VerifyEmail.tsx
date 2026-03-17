@@ -90,10 +90,22 @@ const VerifyEmail = () => {
   };
 
   const handleResend = () => {
-    toast({
-      title: "Code resent",
-      description: "A new verification code has been sent to your email.",
-    });
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email,
+      });
+      if (error) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+      } else {
+        toast({
+          title: "Code resent",
+          description: "A new verification code has been sent to your email.",
+        });
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to resend code", variant: "destructive" });
+    }
   };
 
   if (isVerified) {
