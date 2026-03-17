@@ -1,16 +1,32 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X, ShoppingBag, Search, Film, LogOut } from "lucide-react";
+import { Menu, X, ShoppingBag, Search, Film, LogOut, Plus } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { user, userRole, signOut } = useAuth();
+  const [isApprovedVendor, setIsApprovedVendor] = useState(false);
 
   const role = userRole?.role as string;
   const vendorDashLink = role === "vendor" ? "/vendor-dashboard" : null;
   const subAdminLink = role === "sub_admin" || role === "admin" ? "/sub-admin" : null;
+
+  useEffect(() => {
+    if (!user) { setIsApprovedVendor(false); return; }
+    const check = async () => {
+      const { data } = await supabase
+        .from("vendors")
+        .select("id, is_approved")
+        .eq("user_id", user.id)
+        .eq("is_approved", true)
+        .maybeSingle();
+      setIsApprovedVendor(!!data);
+    };
+    check();
+  }, [user]);
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-border/50">
@@ -44,9 +60,15 @@ const Navbar = () => {
           <div className="hidden md:flex items-center gap-3">
             {user ? (
               <>
-                <Button variant="outline" size="sm" asChild>
-                  <Link to="/register-vendor">Sell on Campus</Link>
-                </Button>
+                {isApprovedVendor ? (
+                  <Button variant="outline" size="sm" asChild>
+                    <Link to="/vendor-dashboard"><Plus className="h-4 w-4 mr-1" />Add Product</Link>
+                  </Button>
+                ) : (
+                  <Button variant="outline" size="sm" asChild>
+                    <Link to="/register-vendor">Sell on Campus</Link>
+                  </Button>
+                )}
                 <Button variant="ghost" size="icon" onClick={signOut}>
                   <LogOut className="h-4 w-4" />
                 </Button>
@@ -85,9 +107,15 @@ const Navbar = () => {
               <div className="flex flex-col gap-2 mt-4 px-4">
                 {user ? (
                   <>
-                    <Button variant="outline" asChild className="w-full" onClick={() => setIsOpen(false)}>
-                      <Link to="/register-vendor">Sell on Campus</Link>
-                    </Button>
+                    {isApprovedVendor ? (
+                      <Button variant="outline" asChild className="w-full" onClick={() => setIsOpen(false)}>
+                        <Link to="/vendor-dashboard"><Plus className="h-4 w-4 mr-1" />Add Product</Link>
+                      </Button>
+                    ) : (
+                      <Button variant="outline" asChild className="w-full" onClick={() => setIsOpen(false)}>
+                        <Link to="/register-vendor">Sell on Campus</Link>
+                      </Button>
+                    )}
                     <Button variant="ghost" className="w-full" onClick={() => { signOut(); setIsOpen(false); }}>Sign Out</Button>
                   </>
                 ) : (

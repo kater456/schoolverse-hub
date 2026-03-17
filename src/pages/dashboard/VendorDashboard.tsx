@@ -4,12 +4,15 @@ import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link } from "react-router-dom";
 import {
   Eye, Heart, MessageSquare, Phone, ShoppingBag,
   BarChart3, Star, LogOut, Film, Loader2, CreditCard, CheckCircle, Package,
 } from "lucide-react";
 import FeaturedPaymentModal from "@/components/vendor/FeaturedPaymentModal";
+import VendorProductManager from "@/components/vendor/VendorProductManager";
+import VendorVideoManager from "@/components/vendor/VendorVideoManager";
 
 const VendorDashboard = () => {
   const { user, signOut } = useAuth();
@@ -54,7 +57,6 @@ const VendorDashboard = () => {
       .from("transactions")
       .update({ vendor_marked_delivered: true } as any)
       .eq("id", txnId);
-
     if (!error) {
       setTransactions((prev) =>
         prev.map((t) => t.id === txnId ? { ...t, vendor_marked_delivered: true, status: "delivered" } : t)
@@ -144,104 +146,125 @@ const VendorDashboard = () => {
           ))}
         </div>
 
-        {/* Transactions - Mark as delivered */}
-        <Card className="border-border/50">
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Package className="h-4 w-4" /> Recent Transactions
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {transactions.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">No transactions yet</p>
-            ) : (
-              <div className="space-y-3">
-                {transactions.map((t: any) => (
-                  <div key={t.id} className="flex items-center justify-between border-b border-border/50 pb-3 last:border-0">
-                    <div>
-                      <span className="text-sm font-medium text-foreground">Transaction #{t.id.slice(0, 8)}</span>
-                      <div className="flex gap-2 mt-1">
-                        <Badge variant={t.status === "completed" ? "default" : t.status === "delivered" ? "secondary" : "outline"} className="text-xs">
-                          {t.status}
-                        </Badge>
-                        {t.customer_confirmed && <Badge variant="outline" className="text-xs text-success">Customer Confirmed</Badge>}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {!t.vendor_marked_delivered && t.status === "pending" && (
-                        <Button size="sm" onClick={() => markDelivered(t.id)} className="bg-success text-success-foreground hover:bg-success/90">
-                          <CheckCircle className="h-3 w-3 mr-1" /> Mark Delivered
-                        </Button>
-                      )}
-                      {t.vendor_marked_delivered && !t.customer_confirmed && (
-                        <span className="text-xs text-muted-foreground">Awaiting customer confirmation</span>
-                      )}
-                      {t.status === "completed" && (
-                        <span className="text-xs text-success font-medium">✓ Completed</span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {/* Tabbed Content */}
+        <Tabs defaultValue="products" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="products"><Package className="h-4 w-4 mr-1" />Products</TabsTrigger>
+            <TabsTrigger value="reels"><Film className="h-4 w-4 mr-1" />Reels</TabsTrigger>
+            <TabsTrigger value="orders"><ShoppingBag className="h-4 w-4 mr-1" />Orders</TabsTrigger>
+            <TabsTrigger value="engagement"><BarChart3 className="h-4 w-4 mr-1" />Insights</TabsTrigger>
+          </TabsList>
 
-        <div className="grid lg:grid-cols-2 gap-6">
-          <Card className="border-border/50">
-            <CardHeader><CardTitle className="text-base flex items-center gap-2"><MessageSquare className="h-4 w-4" /> Recent Comments</CardTitle></CardHeader>
-            <CardContent>
-              {recentComments.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4 text-center">No comments yet</p>
-              ) : (
-                <div className="space-y-3">
-                  {recentComments.map((c: any) => (
-                    <div key={c.id} className="border-b border-border/50 pb-3 last:border-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm font-medium text-foreground">
-                          {(c.profiles as any)?.first_name || "User"} {(c.profiles as any)?.last_name || ""}
-                        </span>
-                        <span className="text-xs text-muted-foreground">{new Date(c.created_at).toLocaleDateString()}</span>
-                      </div>
-                      <p className="text-sm text-muted-foreground">{c.content}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <TabsContent value="products">
+            <VendorProductManager vendorId={vendor.id} schoolId={vendor.school_id} />
+          </TabsContent>
 
-          <Card className="border-border/50">
-            <CardHeader><CardTitle className="text-base flex items-center gap-2"><BarChart3 className="h-4 w-4" /> Business Visibility</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                {statCards.map((s) => {
-                  const maxVal = Math.max(...statCards.map((x) => x.value), 1);
-                  const pct = (s.value / maxVal) * 100;
-                  return (
-                    <div key={s.title}>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="text-muted-foreground">{s.title}</span>
-                        <span className="font-medium">{s.value}</span>
+          <TabsContent value="reels">
+            <VendorVideoManager vendorId={vendor.id} reelsEnabled={vendor.reels_enabled || false} />
+          </TabsContent>
+
+          <TabsContent value="orders">
+            <Card className="border-border/50">
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Package className="h-4 w-4" /> Recent Transactions
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {transactions.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">No transactions yet</p>
+                ) : (
+                  <div className="space-y-3">
+                    {transactions.map((t: any) => (
+                      <div key={t.id} className="flex items-center justify-between border-b border-border/50 pb-3 last:border-0">
+                        <div>
+                          <span className="text-sm font-medium text-foreground">Transaction #{t.id.slice(0, 8)}</span>
+                          <div className="flex gap-2 mt-1">
+                            <Badge variant={t.status === "completed" ? "default" : t.status === "delivered" ? "secondary" : "outline"} className="text-xs">
+                              {t.status}
+                            </Badge>
+                            {t.customer_confirmed && <Badge variant="outline" className="text-xs text-success">Customer Confirmed</Badge>}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {!t.vendor_marked_delivered && t.status === "pending" && (
+                            <Button size="sm" onClick={() => markDelivered(t.id)} className="bg-success text-success-foreground hover:bg-success/90">
+                              <CheckCircle className="h-3 w-3 mr-1" /> Mark Delivered
+                            </Button>
+                          )}
+                          {t.vendor_marked_delivered && !t.customer_confirmed && (
+                            <span className="text-xs text-muted-foreground">Awaiting customer confirmation</span>
+                          )}
+                          {t.status === "completed" && (
+                            <span className="text-xs text-success font-medium">✓ Completed</span>
+                          )}
+                        </div>
                       </div>
-                      <div className="h-2 bg-muted rounded-full overflow-hidden">
-                        <div className="h-full bg-accent rounded-full transition-all" style={{ width: `${pct}%` }} />
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="engagement">
+            <div className="grid lg:grid-cols-2 gap-6">
+              <Card className="border-border/50">
+                <CardHeader><CardTitle className="text-base flex items-center gap-2"><MessageSquare className="h-4 w-4" /> Recent Comments</CardTitle></CardHeader>
+                <CardContent>
+                  {recentComments.length === 0 ? (
+                    <p className="text-sm text-muted-foreground py-4 text-center">No comments yet</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {recentComments.map((c: any) => (
+                        <div key={c.id} className="border-b border-border/50 pb-3 last:border-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-sm font-medium text-foreground">
+                              {(c.profiles as any)?.first_name || "User"} {(c.profiles as any)?.last_name || ""}
+                            </span>
+                            <span className="text-xs text-muted-foreground">{new Date(c.created_at).toLocaleDateString()}</span>
+                          </div>
+                          <p className="text-sm text-muted-foreground">{c.content}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card className="border-border/50">
+                <CardHeader><CardTitle className="text-base flex items-center gap-2"><BarChart3 className="h-4 w-4" /> Business Visibility</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    {statCards.map((s) => {
+                      const maxVal = Math.max(...statCards.map((x) => x.value), 1);
+                      const pct = (s.value / maxVal) * 100;
+                      return (
+                        <div key={s.title}>
+                          <div className="flex justify-between text-sm mb-1">
+                            <span className="text-muted-foreground">{s.title}</span>
+                            <span className="font-medium">{s.value}</span>
+                          </div>
+                          <div className="h-2 bg-muted rounded-full overflow-hidden">
+                            <div className="h-full bg-accent rounded-full transition-all" style={{ width: `${pct}%` }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {vendor.reels_enabled && (
+                    <div className="pt-2 border-t border-border/50">
+                      <div className="flex items-center gap-2 text-sm">
+                        <Film className="h-4 w-4 text-accent" />
+                        <span className="text-foreground font-medium">Reels Access Enabled</span>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-              {vendor.reels_enabled && (
-                <div className="pt-2 border-t border-border/50">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Film className="h-4 w-4 text-accent" />
-                    <span className="text-foreground font-medium">Reels Access Enabled</span>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        </Tabs>
       </main>
 
       <FeaturedPaymentModal open={showFeaturedModal} onOpenChange={setShowFeaturedModal}
