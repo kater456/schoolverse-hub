@@ -45,29 +45,51 @@ const SignUp = () => {
 
     setIsLoading(true);
 
-    const { error } = await signUp(
-      formData.email,
-      formData.password,
-      formData.firstName,
-      formData.lastName
-    );
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          emailRedirectTo: window.location.origin,
+          data: { first_name: formData.firstName, last_name: formData.lastName },
+        },
+      });
 
-    setIsLoading(false);
+      setIsLoading(false);
 
-    if (error) {
+      if (error) {
+        toast({
+          title: "Sign up failed",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Supabase returns a user with empty identities array for already-confirmed emails
+      if (data?.user && data.user.identities && data.user.identities.length === 0) {
+        toast({
+          title: "Account already exists",
+          description: "This email is already registered and verified. Please sign in instead.",
+          variant: "destructive",
+        });
+        navigate("/login");
+        return;
+      }
+
+      toast({
+        title: "Verification email sent!",
+        description: "Please check your email to verify your account.",
+      });
+      navigate("/verify-email", { state: { email: formData.email } });
+    } catch (err: any) {
+      setIsLoading(false);
       toast({
         title: "Sign up failed",
-        description: error.message,
+        description: err.message || "An unexpected error occurred.",
         variant: "destructive",
       });
-      return;
     }
-
-    toast({
-      title: "Verification email sent!",
-      description: "Please check your email to verify your account.",
-    });
-    navigate("/verify-email", { state: { email: formData.email } });
   };
 
   return (
