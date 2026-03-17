@@ -8,7 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { Link } from "react-router-dom";
 import {
   Eye, Heart, MessageSquare, Phone, ShoppingBag,
-  Users, LogOut, Film, Loader2, TrendingUp, Star, Calendar,
+  Users, LogOut, Film, Loader2, Star, Calendar, Check, X,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -17,98 +17,134 @@ const SubAdminDashboard = () => {
   const { toast } = useToast();
   const [school, setSchool] = useState<any>(null);
   const [stats, setStats] = useState({
-    totalVendors: 0, totalViews: 0, totalLikes: 0,
+    totalVendors: 0, pendingVendors: 0, totalViews: 0, totalLikes: 0,
     totalComments: 0, totalContacts: 0,
   });
   const [vendors, setVendors] = useState<any[]>([]);
   const [monthlyPerformance, setMonthlyPerformance] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
+  const getAssignedSchoolId = () => {
+    return (userRole as any)?.assigned_school_id || (userRole as any)?.school_id;
+  };
+
+  const fetchData = async () => {
     if (!user || !userRole) return;
-    const fetchData = async () => {
-      const assignedSchoolId = (userRole as any).assigned_school_id || (userRole as any).school_id;
-      if (assignedSchoolId) {
-        const { data: s } = await supabase
-          .from("schools")
-          .select("*")
-          .eq("id", assignedSchoolId)
-          .single();
-        setSchool(s);
-      }
+    const assignedSchoolId = getAssignedSchoolId();
 
-      const vendorQuery = assignedSchoolId
-        ? supabase.from("vendors").select("id, business_name, category, is_approved, reels_enabled").eq("school_id", assignedSchoolId)
-        : supabase.from("vendors").select("id, business_name, category, is_approved, reels_enabled");
-      
-      const { data: vendorData } = await vendorQuery;
-      setVendors(vendorData || []);
-      const vendorIds = (vendorData || []).map((v: any) => v.id);
+    if (assignedSchoolId) {
+      const { data: s } = await supabase
+        .from("schools").select("*").eq("id", assignedSchoolId).single();
+      setSchool(s);
+    }
 
-      if (vendorIds.length > 0) {
-        const [views, likes, comments, contacts] = await Promise.all([
-          supabase.from("vendor_views").select("id", { count: "exact", head: true }).in("vendor_id", vendorIds),
-          supabase.from("vendor_likes").select("id", { count: "exact", head: true }).in("vendor_id", vendorIds),
-          supabase.from("vendor_comments").select("id", { count: "exact", head: true }).in("vendor_id", vendorIds),
-          supabase.from("vendor_contacts").select("id", { count: "exact", head: true }).in("vendor_id", vendorIds),
-        ]);
+    // Fetch ALL vendors (including unapproved) for admin management
+    const vendorQuery = assignedSchoolId
+      ? supabase.from("vendors").select("id, business_name, category, is_approved, is_active, reels_enabled, contact_number, description").eq("school_id", assignedSchoolId)
+      : supabase.from("vendors").select("id, business_name, category, is_approved, is_active, reels_enabled, contact_number, description");
 
-        setStats({
-          totalVendors: vendorData?.length || 0,
-          totalViews: views.count || 0,
-          totalLikes: likes.count || 0,
-          totalComments: comments.count || 0,
-          totalContacts: contacts.count || 0,
-        });
+    const { data: vendorData } = await vendorQuery;
+    setVendors(vendorData || []);
+    const vendorIds = (vendorData || []).map((v: any) => v.id);
+    const pendingCount = (vendorData || []).filter((v: any) => !v.is_approved).length;
 
-        // Monthly performance per vendor (this month)
-        const startOfMonth = new Date();
-        startOfMonth.setDate(1);
-        startOfMonth.setHours(0, 0, 0, 0);
+    if (vendorIds.length > 0) {
+      const [views, likes, comments, contacts] = await Promise.all([
+        supabase.from("vendor_views").select("id", { count: "exact", head: true }).in("vendor_id", vendorIds),
+        supabase.from("vendor_likes").select("id", { count: "exact", head: true }).in("vendor_id", vendorIds),
+        supabase.from("vendor_comments").select("id", { count: "exact", head: true }).in("vendor_id", vendorIds),
+        supabase.from("vendor_contacts").select("id", { count: "exact", head: true }).in("vendor_id", vendorIds),
+      ]);
 
-        const [monthViews, monthContacts, monthRatings] = await Promise.all([
-          supabase.from("vendor_views").select("vendor_id").in("vendor_id", vendorIds).gte("created_at", startOfMonth.toISOString()),
-          supabase.from("vendor_contacts").select("vendor_id").in("vendor_id", vendorIds).gte("created_at", startOfMonth.toISOString()),
-          supabase.from("vendor_ratings").select("vendor_id, rating").in("vendor_id", vendorIds),
-        ]);
+      setStats({
+        totalVendors: vendorData?.length || 0,
+        pendingVendors: pendingCount,
+        totalViews: views.count || 0,
+        totalLikes: likes.count || 0,
+        totalComments: comments.count || 0,
+        totalContacts: contacts.count || 0,
+      });
 
-        const perfMap = new Map<string, { views: number; contacts: number; avgRating: number; ratingCount: number }>();
-        vendorIds.forEach((vid: string) => perfMap.set(vid, { views: 0, contacts: 0, avgRating: 0, ratingCount: 0 }));
+      // Monthly performance
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
 
-        (monthViews.data || []).forEach((v: any) => {
-          const p = perfMap.get(v.vendor_id);
-          if (p) p.views++;
-        });
-        (monthContacts.data || []).forEach((c: any) => {
-          const p = perfMap.get(c.vendor_id);
-          if (p) p.contacts++;
-        });
-        (monthRatings.data || []).forEach((r: any) => {
-          const p = perfMap.get(r.vendor_id);
-          if (p) { p.avgRating = ((p.avgRating * p.ratingCount) + r.rating) / (p.ratingCount + 1); p.ratingCount++; }
-        });
+      const [monthViews, monthContacts, monthRatings] = await Promise.all([
+        supabase.from("vendor_views").select("vendor_id").in("vendor_id", vendorIds).gte("created_at", startOfMonth.toISOString()),
+        supabase.from("vendor_contacts").select("vendor_id").in("vendor_id", vendorIds).gte("created_at", startOfMonth.toISOString()),
+        supabase.from("vendor_ratings").select("vendor_id, rating").in("vendor_id", vendorIds),
+      ]);
 
-        const perf = (vendorData || []).map((v: any) => ({
-          ...v,
-          ...(perfMap.get(v.id) || { views: 0, contacts: 0, avgRating: 0, ratingCount: 0 }),
-        })).sort((a: any, b: any) => b.views - a.views);
+      const perfMap = new Map<string, { views: number; contacts: number; avgRating: number; ratingCount: number }>();
+      vendorIds.forEach((vid: string) => perfMap.set(vid, { views: 0, contacts: 0, avgRating: 0, ratingCount: 0 }));
 
-        setMonthlyPerformance(perf);
-      } else {
-        setStats({ totalVendors: 0, totalViews: 0, totalLikes: 0, totalComments: 0, totalContacts: 0 });
-      }
+      (monthViews.data || []).forEach((v: any) => {
+        const p = perfMap.get(v.vendor_id);
+        if (p) p.views++;
+      });
+      (monthContacts.data || []).forEach((c: any) => {
+        const p = perfMap.get(c.vendor_id);
+        if (p) p.contacts++;
+      });
+      (monthRatings.data || []).forEach((r: any) => {
+        const p = perfMap.get(r.vendor_id);
+        if (p) { p.avgRating = ((p.avgRating * p.ratingCount) + r.rating) / (p.ratingCount + 1); p.ratingCount++; }
+      });
 
-      setIsLoading(false);
-    };
+      const perf = (vendorData || []).filter((v: any) => v.is_approved).map((v: any) => ({
+        ...v,
+        ...(perfMap.get(v.id) || { views: 0, contacts: 0, avgRating: 0, ratingCount: 0 }),
+      })).sort((a: any, b: any) => b.views - a.views);
+
+      setMonthlyPerformance(perf);
+    } else {
+      setStats({ totalVendors: 0, pendingVendors: 0, totalViews: 0, totalLikes: 0, totalComments: 0, totalContacts: 0 });
+    }
+
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
     fetchData();
   }, [user, userRole]);
 
-  const toggleReels = async (vendorId: string, currentState: boolean) => {
-    const { error } = await supabase
-      .from("vendors")
-      .update({ reels_enabled: !currentState })
-      .eq("id", vendorId);
+  const approveVendor = async (vendorId: string) => {
+    const { error } = await supabase.from("vendors").update({ is_approved: true }).eq("id", vendorId);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      // Log activity
+      await supabase.from("admin_activity_log").insert({
+        admin_id: user!.id,
+        action: "Approved vendor",
+        target_type: "vendor",
+        target_id: vendorId,
+      } as any);
+      toast({ title: "Vendor approved!" });
+      setVendors((prev) => prev.map((v) => v.id === vendorId ? { ...v, is_approved: true } : v));
+      setStats((prev) => ({ ...prev, pendingVendors: prev.pendingVendors - 1 }));
+    }
+  };
 
+  const deactivateVendor = async (vendorId: string) => {
+    const { error } = await supabase.from("vendors").update({ is_active: false }).eq("id", vendorId);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      await supabase.from("admin_activity_log").insert({
+        admin_id: user!.id,
+        action: "Deactivated vendor",
+        target_type: "vendor",
+        target_id: vendorId,
+      } as any);
+      toast({ title: "Vendor deactivated" });
+      setVendors((prev) => prev.map((v) => v.id === vendorId ? { ...v, is_active: false } : v));
+    }
+  };
+
+  const toggleReels = async (vendorId: string, currentState: boolean) => {
+    const { error } = await supabase.from("vendors").update({ reels_enabled: !currentState }).eq("id", vendorId);
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
@@ -118,10 +154,7 @@ const SubAdminDashboard = () => {
         target_type: "vendor",
         target_id: vendorId,
       } as any);
-
-      setVendors((prev) =>
-        prev.map((v) => v.id === vendorId ? { ...v, reels_enabled: !currentState } : v)
-      );
+      setVendors((prev) => prev.map((v) => v.id === vendorId ? { ...v, reels_enabled: !currentState } : v));
       toast({ title: currentState ? "Reels access revoked" : "Reels access granted" });
     }
   };
@@ -135,12 +168,14 @@ const SubAdminDashboard = () => {
   }
 
   const currentMonth = new Date().toLocaleString("default", { month: "long", year: "numeric" });
+  const pendingVendors = vendors.filter((v) => !v.is_approved && v.is_active);
+  const approvedVendors = vendors.filter((v) => v.is_approved && v.is_active);
 
   const statCards = [
     { title: "Total Businesses", value: stats.totalVendors, icon: ShoppingBag, color: "text-primary" },
+    { title: "Pending Approval", value: stats.pendingVendors, icon: Users, color: "text-warning" },
     { title: "Total Views", value: stats.totalViews, icon: Eye, color: "text-accent" },
     { title: "Total Likes", value: stats.totalLikes, icon: Heart, color: "text-destructive" },
-    { title: "Total Comments", value: stats.totalComments, icon: MessageSquare, color: "text-primary" },
     { title: "Total Contacts", value: stats.totalContacts, icon: Phone, color: "text-success" },
   ];
 
@@ -169,7 +204,7 @@ const SubAdminDashboard = () => {
             {school ? school.name : "Campus"} Dashboard
           </h1>
           <p className="text-sm text-muted-foreground">
-            Monitor all businesses and activity in your assigned campus
+            Monitor and manage all businesses in your assigned campus
           </p>
         </div>
 
@@ -186,6 +221,38 @@ const SubAdminDashboard = () => {
             </Card>
           ))}
         </div>
+
+        {/* Pending Vendor Approvals */}
+        {pendingVendors.length > 0 && (
+          <Card className="border-warning/30 bg-warning/5">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2 text-warning">
+                <Users className="h-4 w-4" /> Pending Vendor Approvals ({pendingVendors.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {pendingVendors.map((v) => (
+                  <div key={v.id} className="flex items-center justify-between border-b border-border/50 pb-3 last:border-0">
+                    <div>
+                      <span className="text-sm font-medium text-foreground">{v.business_name}</span>
+                      <span className="text-xs text-muted-foreground ml-2">{v.category}</span>
+                      {v.description && <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{v.description}</p>}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button size="sm" className="bg-success text-success-foreground hover:bg-success/90" onClick={() => approveVendor(v.id)}>
+                        <Check className="h-3 w-3 mr-1" /> Approve
+                      </Button>
+                      <Button size="sm" variant="destructive" onClick={() => deactivateVendor(v.id)}>
+                        <X className="h-3 w-3 mr-1" /> Reject
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Monthly Performance */}
         <Card className="border-border/50">
@@ -222,24 +289,23 @@ const SubAdminDashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Vendors List */}
+        {/* Approved Vendors List */}
         <Card className="border-border/50">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
-              <Users className="h-4 w-4" /> Businesses in Territory
+              <Users className="h-4 w-4" /> Approved Businesses ({approvedVendors.length})
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {vendors.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">No businesses registered yet</p>
+            {approvedVendors.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">No approved businesses yet</p>
             ) : (
               <div className="space-y-3">
-                {vendors.map((v) => (
+                {approvedVendors.map((v) => (
                   <div key={v.id} className="flex items-center justify-between border-b border-border/50 pb-3 last:border-0">
                     <div>
                       <span className="text-sm font-medium text-foreground">{v.business_name}</span>
                       <span className="text-xs text-muted-foreground ml-2">{v.category}</span>
-                      {!v.is_approved && <Badge variant="secondary" className="ml-2 text-xs">Pending</Badge>}
                     </div>
                     <div className="flex items-center gap-2">
                       {v.reels_enabled && (
@@ -255,6 +321,9 @@ const SubAdminDashboard = () => {
                       >
                         <Film className="h-3 w-3 mr-1" />
                         {v.reels_enabled ? "Revoke Reels" : "Grant Reels"}
+                      </Button>
+                      <Button size="sm" variant="ghost" className="text-destructive text-xs" onClick={() => deactivateVendor(v.id)}>
+                        <X className="h-3 w-3 mr-1" /> Remove
                       </Button>
                     </div>
                   </div>
