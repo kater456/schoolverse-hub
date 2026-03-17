@@ -49,6 +49,7 @@ const App = () => (
         <Sonner />
         <InstallPrompt />
         <AppDownloadPopup />
+        <PromotionNotification />
         <BrowserRouter>
           <PageTracker />
           <Routes>
