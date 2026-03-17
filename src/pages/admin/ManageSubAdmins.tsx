@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import AdminLayout from "@/components/layout/AdminLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,12 +14,23 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useSchools } from "@/hooks/useSchools";
 import { Plus, Loader2, UserCog, Activity, Trash2 } from "lucide-react";
 
+interface SubAdminRow {
+  id: string;
+  user_id: string;
+  role: string;
+  assigned_school_id: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  is_active: boolean;
+  school_name: string | null;
+}
+
 const ManageSubAdmins = () => {
   const { session } = useAuth();
-  const [subAdmins, setSubAdmins] = useState<any[]>([]);
+  const [subAdmins, setSubAdmins] = useState<SubAdminRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
-  const [selectedAdmin, setSelectedAdmin] = useState<any>(null);
+  const [selectedAdmin, setSelectedAdmin] = useState<SubAdminRow | null>(null);
   const [activityLog, setActivityLog] = useState<any[]>([]);
   const [email, setEmail] = useState("");
   const [selectedSchool, setSelectedSchool] = useState("");
@@ -29,23 +40,59 @@ const ManageSubAdmins = () => {
   const { toast } = useToast();
 
   const fetchSubAdmins = async () => {
-    const { data } = await supabase
+    setIsLoading(true);
+    // Fetch user_roles for sub_admin and admin roles
+    const { data: roles } = await supabase
       .from("user_roles")
-      .select("*, profiles:user_id(first_name, last_name, user_id, is_active), schools:assigned_school_id(name)")
+      .select("id, user_id, role, assigned_school_id")
       .in("role", ["sub_admin", "admin"] as any[]);
-    setSubAdmins(data || []);
+
+    if (!roles || roles.length === 0) {
+      setSubAdmins([]);
+      setIsLoading(false);
+      return;
+    }
+
+    // Fetch profiles and schools separately to avoid FK join issues
+    const userIds = roles.map((r) => r.user_id);
+    const schoolIds = roles.map((r) => r.assigned_school_id).filter(Boolean) as string[];
+
+    const [profilesRes, schoolsRes] = await Promise.all([
+      supabase.from("profiles").select("user_id, first_name, last_name, is_active").in("user_id", userIds),
+      schoolIds.length > 0
+        ? supabase.from("schools").select("id, name").in("id", schoolIds)
+        : Promise.resolve({ data: [] }),
+    ]);
+
+    const profileMap = new Map((profilesRes.data || []).map((p: any) => [p.user_id, p]));
+    const schoolMap = new Map((schoolsRes.data || []).map((s: any) => [s.id, s.name]));
+
+    const merged: SubAdminRow[] = roles.map((r) => {
+      const profile = profileMap.get(r.user_id);
+      return {
+        id: r.id,
+        user_id: r.user_id,
+        role: r.role,
+        assigned_school_id: r.assigned_school_id,
+        first_name: profile?.first_name || null,
+        last_name: profile?.last_name || null,
+        is_active: profile?.is_active !== false,
+        school_name: r.assigned_school_id ? schoolMap.get(r.assigned_school_id) || null : null,
+      };
+    });
+
+    setSubAdmins(merged);
     setIsLoading(false);
   };
 
   useEffect(() => { fetchSubAdmins(); }, []);
 
-  const viewActivity = async (adminId: string) => {
-    const admin = subAdmins.find((a) => a.user_id === adminId);
+  const viewActivity = async (admin: SubAdminRow) => {
     setSelectedAdmin(admin);
     const { data } = await supabase
       .from("admin_activity_log")
       .select("*")
-      .eq("admin_id", adminId)
+      .eq("admin_id", admin.user_id)
       .order("created_at", { ascending: false })
       .limit(20);
     setActivityLog(data || []);
@@ -57,12 +104,10 @@ const ManageSubAdmins = () => {
       return;
     }
     setCreating(true);
-
     try {
       const { data, error } = await supabase.functions.invoke("manage-sub-admin", {
         body: { action: "create", email, school_id: selectedSchool, role: selectedRole },
       });
-
       if (error) throw error;
       if (!data.success) {
         toast({ title: "Error", description: data.message, variant: "destructive" });
@@ -165,21 +210,21 @@ const ManageSubAdmins = () => {
                   {subAdmins.map((sa) => (
                     <TableRow key={sa.id}>
                       <TableCell className="font-medium">
-                        {(sa.profiles as any)?.first_name || "—"} {(sa.profiles as any)?.last_name || ""}
+                        {sa.first_name || "—"} {sa.last_name || ""}
                       </TableCell>
                       <TableCell>
                         <Badge variant={sa.role === "admin" ? "default" : "secondary"}>
                           {sa.role === "admin" ? "Admin" : "Sub-Admin"}
                         </Badge>
                       </TableCell>
-                      <TableCell>{(sa.schools as any)?.name || "All schools"}</TableCell>
+                      <TableCell>{sa.school_name || "All schools"}</TableCell>
                       <TableCell>
-                        <Badge variant={(sa.profiles as any)?.is_active !== false ? "default" : "secondary"}>
-                          {(sa.profiles as any)?.is_active !== false ? "Active" : "Inactive"}
+                        <Badge variant={sa.is_active ? "default" : "secondary"}>
+                          {sa.is_active ? "Active" : "Inactive"}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right space-x-1">
-                        <Button size="sm" variant="ghost" onClick={() => viewActivity(sa.user_id)}>
+                        <Button size="sm" variant="ghost" onClick={() => viewActivity(sa)}>
                           <Activity className="h-4 w-4 mr-1" /> Activity
                         </Button>
                         <Button size="sm" variant="ghost" className="text-destructive" onClick={() => removeRole(sa.user_id)}>
@@ -205,7 +250,7 @@ const ManageSubAdmins = () => {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <UserCog className="h-5 w-5" />
-                Activity: {(selectedAdmin?.profiles as any)?.first_name} {(selectedAdmin?.profiles as any)?.last_name}
+                Activity: {selectedAdmin?.first_name} {selectedAdmin?.last_name}
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-3">
