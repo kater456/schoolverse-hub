@@ -50,20 +50,42 @@ const VerifyEmail = () => {
 
     setIsLoading(true);
 
-    // Simulating API call
-    setTimeout(() => {
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        email,
+        token: code,
+        type: "signup",
+      });
+
       setIsLoading(false);
+
+      if (error) {
+        toast({
+          title: "Verification failed",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
       setIsVerified(true);
       toast({
-        title: "Email verified!",
-        description: "Your account has been activated successfully.",
+        title: "Email verified successfully!",
+        description: "Welcome to EduMarket!",
       });
-      
-      // Redirect to login after a brief delay
+
+      // Redirect to landing page after a brief delay
       setTimeout(() => {
-        navigate("/login");
+        navigate("/");
       }, 2000);
-    }, 1500);
+    } catch (err: any) {
+      setIsLoading(false);
+      toast({
+        title: "Error",
+        description: err.message || "Verification failed",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleResend = () => {
