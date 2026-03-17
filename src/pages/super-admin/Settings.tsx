@@ -31,6 +31,7 @@ const Settings = () => {
         allow_registrations: settings.allow_registrations ?? true,
         maintenance_mode: settings.maintenance_mode ?? false,
         email_notifications: settings.email_notifications ?? true,
+        featured_reels_enabled: settings.featured_reels_enabled ?? false,
       });
     }
   });
