@@ -1,0 +1,1 @@
+UPDATE public.platform_settings SET support_email = 'campusmarket24@gmail.com' WHERE id IS NOT NULL;
