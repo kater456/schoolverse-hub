@@ -138,7 +138,7 @@ const VerifyEmail = () => {
             <GraduationCap className="h-5 w-5 text-primary-foreground" />
           </div>
           <span className="font-display text-xl font-bold text-foreground">
-            EduMarket
+            Campus Market
           </span>
         </Link>
 
