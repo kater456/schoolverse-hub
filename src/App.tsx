@@ -52,6 +52,7 @@ const App = () => (
         <AppDownloadPopup />
         <PromotionNotification />
         <BrowserRouter>
+          <ScrollToTop />
           <PageTracker />
           <Routes>
             <Route path="/" element={<Index />} />

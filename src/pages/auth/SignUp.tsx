@@ -288,7 +288,7 @@ const SignUp = () => {
             {/* Testimonial */}
             <div className="bg-primary-foreground/10 backdrop-blur-sm rounded-2xl p-6 border border-primary-foreground/20">
               <p className="text-primary-foreground/90 italic mb-4">
-                "EduMarket transformed how we manage our school store. Sales are up
+                "Campus Market transformed how we manage our school store. Sales are up
                 40% and parents love the convenience."
               </p>
               <div className="flex items-center justify-center gap-3">

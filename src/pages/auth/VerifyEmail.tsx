@@ -72,7 +72,7 @@ const VerifyEmail = () => {
       setIsVerified(true);
       toast({
         title: "Email verified successfully!",
-        description: "Welcome to EduMarket!",
+        description: "Welcome to Campus Market!",
       });
 
       // Redirect to landing page after a brief delay

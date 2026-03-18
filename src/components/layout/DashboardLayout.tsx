@@ -101,7 +101,7 @@ const DashboardLayout = ({ children, userRole = "school_admin" }: DashboardLayou
             </div>
             {!sidebarCollapsed && (
               <span className="font-display text-lg font-bold text-sidebar-foreground">
-                EduMarket
+                Campus Market
               </span>
             )}
           </Link>

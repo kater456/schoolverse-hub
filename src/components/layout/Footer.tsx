@@ -130,7 +130,7 @@ const Footer = () => {
         <div className="mt-12 pt-8 border-t border-primary-foreground/10">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-sm text-primary-foreground/60">
-              © {new Date().getFullYear()} EduMarket. All rights reserved.
+              © {new Date().getFullYear()} Campus Market. All rights reserved.
             </p>
             <div className="flex items-center gap-6">
               <Link

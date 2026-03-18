@@ -40,7 +40,7 @@ const VideoSection = ({ youtubeUrl }: VideoSectionProps) => {
             {hasVideo && showVideo ? (
               <iframe
                 src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`}
-                title="EduMarket Demo Video"
+                title="Campus Market Demo Video"
                 className="absolute inset-0 w-full h-full"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen

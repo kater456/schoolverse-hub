@@ -203,7 +203,7 @@ const Help = () => {
               </div>
               <div className="flex items-center gap-2">
                 <Mail className="h-4 w-4 text-primary" />
-                <span>Calebworks2@gmail.com</span>
+                <span>campusmarket24@gmail.com</span>
               </div>
             </div>
           </div>

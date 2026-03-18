@@ -198,7 +198,7 @@ const Index = () => {
           <div className="container mx-auto max-w-2xl text-center">
             <h2 className="text-2xl md:text-3xl font-bold mb-4">Ready to reach your campus?</h2>
             <p className="text-muted-foreground mb-8">
-              Join hundreds of student entrepreneurs already selling on EduMarket.
+              Join hundreds of student entrepreneurs already selling on Campus Market.
             </p>
             <Button size="lg" className="bg-orange-500 text-white hover:bg-orange-600 font-semibold" asChild>
               <Link to="/register-vendor">

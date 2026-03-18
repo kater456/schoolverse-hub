@@ -81,7 +81,7 @@ const AppDownloadPopup = () => {
           </div>
           <div>
             <p className="text-sm font-semibold text-foreground mb-1">
-              Get the EduMarket App
+              Get the Campus Market App
             </p>
             <p className="text-xs text-muted-foreground mb-3">
               {isIOS

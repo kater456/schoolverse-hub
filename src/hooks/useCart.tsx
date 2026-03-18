@@ -28,7 +28,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   });
 
   useEffect(() => {
-    localStorage.setItem("edumarket-cart", JSON.stringify(items));
+    localStorage.setItem("campusmarket-cart", JSON.stringify(items));
   }, [items]);
 
   const addToCart = (item: Omit<CartItem, "quantity">) => {

@@ -56,7 +56,7 @@ const Login = () => {
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/80 shadow-md">
               <GraduationCap className="h-5 w-5 text-primary-foreground" />
             </div>
-            <span className="font-display text-xl font-bold text-foreground">EduMarket</span>
+            <span className="font-display text-xl font-bold text-foreground">Campus Market</span>
           </Link>
 
           <div className="mb-8">

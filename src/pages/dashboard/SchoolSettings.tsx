@@ -162,7 +162,7 @@ const SchoolSettings = () => {
                 />
               </div>
               <p className="text-sm text-muted-foreground">
-                Your portal will be available at: {formData.subdomain || "yourschool"}.edumarket.com
+                Your portal will be available at: {formData.subdomain || "yourschool"}.campusmarket.com
               </p>
             </CardContent>
           </Card>

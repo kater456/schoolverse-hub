@@ -20,8 +20,8 @@ export default defineConfig(({ mode }) => ({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "placeholder.svg"],
       manifest: {
-        name: "EduMarket - School Marketplace",
-        short_name: "EduMarket",
+        name: "Campus Market - School Marketplace",
+        short_name: "Campus Market",
         description: "The all-in-one marketplace platform for schools",
         theme_color: "#1e3a5f",
         background_color: "#ffffff",

@@ -78,7 +78,7 @@ const InstallPrompt = () => {
             <Smartphone className="h-6 w-6 text-primary-foreground" />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-foreground">Install EduMarket App</h3>
+            <h3 className="font-semibold text-foreground">Install Campus Market App</h3>
             <p className="text-sm text-muted-foreground mt-1">
               {isIOS
                 ? "Tap the share button, then 'Add to Home Screen'"
