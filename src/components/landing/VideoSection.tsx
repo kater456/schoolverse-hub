@@ -27,7 +27,7 @@ const VideoSection = ({ youtubeUrl }: VideoSectionProps) => {
             See How It Works
           </span>
           <h2 className="font-display text-3xl sm:text-4xl font-bold text-foreground mb-4">
-            Watch EduMarket in Action
+            Watch Campus Market in Action
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Discover how school administrators use EduMarket to manage their marketplace,
