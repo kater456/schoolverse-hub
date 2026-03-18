@@ -119,7 +119,7 @@ const VerifyEmail = () => {
             Email Verified!
           </h1>
           <p className="text-muted-foreground mb-6">
-            Your account has been successfully verified. Welcome to EduMarket!
+            Your account has been successfully verified. Welcome to Campus Market!
           </p>
           <div className="flex justify-center">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
