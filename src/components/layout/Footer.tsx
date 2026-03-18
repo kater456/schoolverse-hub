@@ -35,7 +35,7 @@ const Footer = () => {
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent shadow-md">
                 <GraduationCap className="h-5 w-5 text-accent-foreground" />
               </div>
-              <span className="font-display text-xl font-bold">EduMarket</span>
+              <span className="font-display text-xl font-bold">Campus Market</span>
             </Link>
             <p className="text-primary-foreground/70 mb-6 max-w-xs">
               Empowering schools with modern marketplace solutions. Connect,
