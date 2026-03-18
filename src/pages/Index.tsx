@@ -76,7 +76,7 @@ const Index = () => {
         {/* Approved Schools */}
         <section className="py-16 px-4 bg-muted/30">
           <div className="container mx-auto">
-            <h2 className="text-2xl md:text-3xl font-bold text-center mb-2">Schools on EduMarket</h2>
+            <h2 className="text-2xl md:text-3xl font-bold text-center mb-2">Schools on Campus Market</h2>
             <p className="text-muted-foreground text-center mb-8">Verified campuses currently on the platform</p>
             {loadingSchools ? (
               <div className="flex justify-center py-8">
