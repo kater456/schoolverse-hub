@@ -30,7 +30,7 @@ const VideoSection = ({ youtubeUrl }: VideoSectionProps) => {
             Watch Campus Market in Action
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Discover how school administrators use EduMarket to manage their marketplace,
+            Discover how school administrators use Campus Market to manage their marketplace,
             track orders, and serve their community.
           </p>
         </div>
