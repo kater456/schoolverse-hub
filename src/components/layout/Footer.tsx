@@ -35,7 +35,7 @@ const Footer = () => {
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent shadow-md">
                 <GraduationCap className="h-5 w-5 text-accent-foreground" />
               </div>
-              <span className="font-display text-xl font-bold">EduMarket</span>
+              <span className="font-display text-xl font-bold">Campus Market</span>
             </Link>
             <p className="text-primary-foreground/70 mb-6 max-w-xs">
               Empowering schools with modern marketplace solutions. Connect,
@@ -44,7 +44,7 @@ const Footer = () => {
             <div className="space-y-3">
               <div className="flex items-center gap-3 text-sm text-primary-foreground/70">
                 <Mail className="h-4 w-4 text-accent" />
-                <span>Calebworks2@gmail.com</span>
+                <span>campusmarket24@gmail.com</span>
               </div>
               <div className="flex items-center gap-3 text-sm text-primary-foreground/70">
                 <Phone className="h-4 w-4 text-accent" />
@@ -130,7 +130,7 @@ const Footer = () => {
         <div className="mt-12 pt-8 border-t border-primary-foreground/10">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-sm text-primary-foreground/60">
-              © {new Date().getFullYear()} EduMarket. All rights reserved.
+              © {new Date().getFullYear()} Campus Market. All rights reserved.
             </p>
             <div className="flex items-center gap-6">
               <Link

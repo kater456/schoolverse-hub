@@ -51,7 +51,7 @@ const Help = () => {
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary shadow-md">
               <GraduationCap className="h-5 w-5 text-primary-foreground" />
             </div>
-            <span className="font-display text-lg font-bold text-foreground">EduMarket</span>
+            <span className="font-display text-lg font-bold text-foreground">Campus Market</span>
           </Link>
           <Link to="/">
             <Button variant="ghost">
@@ -203,7 +203,7 @@ const Help = () => {
               </div>
               <div className="flex items-center gap-2">
                 <Mail className="h-4 w-4 text-primary" />
-                <span>Calebworks2@gmail.com</span>
+                <span>campusmarket24@gmail.com</span>
               </div>
             </div>
           </div>

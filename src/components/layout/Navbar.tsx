@@ -36,7 +36,7 @@ const Navbar = () => {
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-accent to-accent/80 shadow-md">
               <ShoppingBag className="h-5 w-5 text-accent-foreground" />
             </div>
-            <span className="font-display text-xl font-bold text-foreground">EduMarket</span>
+            <span className="font-display text-lg sm:text-xl font-bold text-foreground">Campus Market</span>
           </Link>
 
           <div className="hidden md:flex items-center gap-6">

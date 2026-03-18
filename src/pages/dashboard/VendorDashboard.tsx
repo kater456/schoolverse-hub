@@ -102,7 +102,7 @@ const VendorDashboard = () => {
             <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center">
               <ShoppingBag className="h-4 w-4 text-accent-foreground" />
             </div>
-            <span className="font-bold text-foreground">EduMarket</span>
+            <span className="font-bold text-foreground">Campus Market</span>
           </Link>
           <Badge variant="secondary" className="text-xs">Vendor</Badge>
         </div>

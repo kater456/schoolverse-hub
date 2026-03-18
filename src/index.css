@@ -5,7 +5,7 @@
 @tailwind utilities;
 
 /* 
-  EduMarket Design System
+  Campus Market Design System
   A professional multi-tenant school marketplace platform
   Color Palette: Deep Navy, Warm Amber, Clean Grays
 */
@@ -146,6 +146,19 @@
 
   html {
     scroll-behavior: smooth;
+    font-size: 14px;
+  }
+
+  @media (min-width: 640px) {
+    html {
+      font-size: 15px;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    html {
+      font-size: 16px;
+    }
   }
 
   body {

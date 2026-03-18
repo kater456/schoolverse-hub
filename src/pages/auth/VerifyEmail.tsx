@@ -72,7 +72,7 @@ const VerifyEmail = () => {
       setIsVerified(true);
       toast({
         title: "Email verified successfully!",
-        description: "Welcome to EduMarket!",
+        description: "Welcome to Campus Market!",
       });
 
       // Redirect to landing page after a brief delay
@@ -119,7 +119,7 @@ const VerifyEmail = () => {
             Email Verified!
           </h1>
           <p className="text-muted-foreground mb-6">
-            Your account has been successfully verified. Welcome to EduMarket!
+            Your account has been successfully verified. Welcome to Campus Market!
           </p>
           <div className="flex justify-center">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -138,7 +138,7 @@ const VerifyEmail = () => {
             <GraduationCap className="h-5 w-5 text-primary-foreground" />
           </div>
           <span className="font-display text-xl font-bold text-foreground">
-            EduMarket
+            Campus Market
           </span>
         </Link>
 

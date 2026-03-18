@@ -104,7 +104,7 @@ const SignUp = () => {
               <GraduationCap className="h-5 w-5 text-primary-foreground" />
             </div>
             <span className="font-display text-xl font-bold text-foreground">
-              EduMarket
+              Campus Market
             </span>
           </Link>
 
@@ -279,7 +279,7 @@ const SignUp = () => {
         <div className="relative z-10 flex flex-col items-center justify-center p-12 text-center">
           <div className="max-w-md">
             <h2 className="font-display text-4xl font-bold text-primary-foreground mb-6">
-              Join Campus Entrepreneurs on EduMarket
+              Join Campus Entrepreneurs on Campus Market
             </h2>
             <p className="text-primary-foreground/70 text-lg mb-8">
               Create your account in minutes. List your business, reach students, and grow your campus hustle.
@@ -288,7 +288,7 @@ const SignUp = () => {
             {/* Testimonial */}
             <div className="bg-primary-foreground/10 backdrop-blur-sm rounded-2xl p-6 border border-primary-foreground/20">
               <p className="text-primary-foreground/90 italic mb-4">
-                "EduMarket transformed how we manage our school store. Sales are up
+                "Campus Market transformed how we manage our school store. Sales are up
                 40% and parents love the convenience."
               </p>
               <div className="flex items-center justify-center gap-3">

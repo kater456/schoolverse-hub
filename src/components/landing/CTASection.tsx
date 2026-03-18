@@ -31,7 +31,7 @@ const CTASection = () => {
 
           {/* Description */}
           <p className="text-lg lg:text-xl text-primary-foreground/70 mb-10 max-w-2xl mx-auto">
-            Join hundreds of schools already using EduMarket to manage their
+            Join hundreds of schools already using Campus Market to manage their
             portals and marketplaces. Start your free trial today.
           </p>
 
