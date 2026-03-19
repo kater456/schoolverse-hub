@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import FloatingIcons from "@/components/landing/FloatingIcons";
 import { ArrowRight, Play, CheckCircle2, School, ShoppingCart, Users } from "lucide-react";
 
 const HeroSection = () => {
