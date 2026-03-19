@@ -42,18 +42,18 @@ const Footer = () => {
               sell, and grow your educational community.
             </p>
             <div className="space-y-3">
-              <div className="flex items-center gap-3 text-sm text-primary-foreground/70">
+              <a href="mailto:campusmarket24@gmail.com" className="flex items-center gap-3 text-sm text-primary-foreground/70 hover:text-accent transition-colors">
                 <Mail className="h-4 w-4 text-accent" />
                 <span>campusmarket24@gmail.com</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm text-primary-foreground/70">
+              </a>
+              <a href="tel:+2349016103308" className="flex items-center gap-3 text-sm text-primary-foreground/70 hover:text-accent transition-colors">
                 <Phone className="h-4 w-4 text-accent" />
                 <span>+234 9016103308</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm text-primary-foreground/70">
+              </a>
+              <a href="https://wa.me/2349016103308" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-sm text-primary-foreground/70 hover:text-accent transition-colors">
                 <MapPin className="h-4 w-4 text-accent" />
-                <span>Your Campus</span>
-              </div>
+                <span>WhatsApp Contact</span>
+              </a>
             </div>
           </div>
 
