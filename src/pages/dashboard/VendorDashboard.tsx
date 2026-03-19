@@ -4,11 +4,16 @@ import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Link } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 import {
   Eye, Heart, MessageSquare, Phone, ShoppingBag,
   BarChart3, Star, LogOut, Film, Loader2, CreditCard, CheckCircle, Package,
+  User, Camera, Save,
 } from "lucide-react";
 import FeaturedPaymentModal from "@/components/vendor/FeaturedPaymentModal";
 import VendorProductManager from "@/components/vendor/VendorProductManager";
