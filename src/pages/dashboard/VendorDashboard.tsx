@@ -237,10 +237,11 @@ const VendorDashboard = () => {
 
         {/* Tabbed Content */}
         <Tabs defaultValue="products" className="space-y-4">
-          <TabsList>
+          <TabsList className="flex-wrap">
             <TabsTrigger value="products"><Package className="h-4 w-4 mr-1" />Products</TabsTrigger>
             <TabsTrigger value="reels"><Film className="h-4 w-4 mr-1" />Reels</TabsTrigger>
             <TabsTrigger value="orders"><ShoppingBag className="h-4 w-4 mr-1" />Orders</TabsTrigger>
+            <TabsTrigger value="profile"><User className="h-4 w-4 mr-1" />Profile</TabsTrigger>
             <TabsTrigger value="engagement"><BarChart3 className="h-4 w-4 mr-1" />Insights</TabsTrigger>
           </TabsList>
 
