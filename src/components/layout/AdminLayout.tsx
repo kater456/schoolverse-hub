@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import {
   LayoutDashboard, Users, GraduationCap, MapPin, Star,
-  LogOut, ShoppingBag, BarChart3, UserCog,
+  LogOut, ShoppingBag, BarChart3, UserCog, Megaphone,
 } from "lucide-react";
 
 const navItems = [
@@ -13,6 +13,7 @@ const navItems = [
   { href: "/admin/schools", label: "Schools", icon: GraduationCap },
   { href: "/admin/locations", label: "Campus Locations", icon: MapPin },
   { href: "/admin/featured", label: "Featured", icon: Star },
+  { href: "/admin/ads", label: "Ads", icon: Megaphone },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/admin/sub-admins", label: "Sub-Admins", icon: UserCog },
 ];
