@@ -212,6 +212,39 @@ export type Database = {
           },
         ]
       }
+      platform_ads: {
+        Row: {
+          created_at: string
+          display_duration: number
+          id: string
+          is_active: boolean
+          media_type: string
+          media_url: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_duration?: number
+          id?: string
+          is_active?: boolean
+          media_type?: string
+          media_url: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_duration?: number
+          id?: string
+          is_active?: boolean
+          media_type?: string
+          media_url?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       platform_settings: {
         Row: {
           allow_registrations: boolean | null
@@ -691,6 +724,32 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "vendor_comments_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendor_contact_edits: {
+        Row: {
+          edited_at: string
+          id: string
+          vendor_id: string
+        }
+        Insert: {
+          edited_at?: string
+          id?: string
+          vendor_id: string
+        }
+        Update: {
+          edited_at?: string
+          id?: string
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_contact_edits_vendor_id_fkey"
             columns: ["vendor_id"]
             isOneToOne: false
             referencedRelation: "vendors"
