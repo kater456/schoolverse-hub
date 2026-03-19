@@ -34,6 +34,7 @@ import ManageVendors from "./pages/admin/ManageVendors";
 import ManageSchools from "./pages/admin/ManageSchools";
 import ManageCampusLocations from "./pages/admin/ManageCampusLocations";
 import ManageFeatured from "./pages/admin/ManageFeatured";
+import ManageAds from "./pages/admin/ManageAds";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import ManageSubAdmins from "./pages/admin/ManageSubAdmins";
 
