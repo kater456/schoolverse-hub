@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import {
   LayoutDashboard, Users, GraduationCap, MapPin, Star,
-  LogOut, ShoppingBag, BarChart3, UserCog,
+  LogOut, ShoppingBag, BarChart3, UserCog, Megaphone,
 } from "lucide-react";
 
 const navItems = [
@@ -13,6 +13,7 @@ const navItems = [
   { href: "/admin/schools", label: "Schools", icon: GraduationCap },
   { href: "/admin/locations", label: "Campus Locations", icon: MapPin },
   { href: "/admin/featured", label: "Featured", icon: Star },
+  { href: "/admin/ads", label: "Ads", icon: Megaphone },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/admin/sub-admins", label: "Sub-Admins", icon: UserCog },
 ];
@@ -29,7 +30,7 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
             <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center">
               <ShoppingBag className="h-4 w-4 text-sidebar-primary-foreground" />
             </div>
-            <span className="font-bold text-sidebar-foreground">EduMarket</span>
+            <span className="font-bold text-sidebar-foreground">Campus Market</span>
           </Link>
         </div>
         <nav className="flex-1 p-3 space-y-1">

@@ -10,6 +10,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import PromotionNotification from "@/components/PromotionNotification";
 import PageTracker from "@/components/PageTracker";
 import ScrollToTop from "@/components/ScrollToTop";
+import AdPopup from "@/components/AdPopup";
 import Index from "./pages/Index";
 import Help from "./pages/Help";
 import Browse from "./pages/Browse";
@@ -33,6 +34,7 @@ import ManageVendors from "./pages/admin/ManageVendors";
 import ManageSchools from "./pages/admin/ManageSchools";
 import ManageCampusLocations from "./pages/admin/ManageCampusLocations";
 import ManageFeatured from "./pages/admin/ManageFeatured";
+import ManageAds from "./pages/admin/ManageAds";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import ManageSubAdmins from "./pages/admin/ManageSubAdmins";
 
@@ -51,6 +53,7 @@ const App = () => (
         <InstallPrompt />
         <AppDownloadPopup />
         <PromotionNotification />
+        <AdPopup />
         <BrowserRouter>
           <ScrollToTop />
           <PageTracker />
@@ -86,6 +89,9 @@ const App = () => (
             } />
             <Route path="/admin/featured" element={
               <ProtectedRoute allowedRoles={["super_admin"]}><ManageFeatured /></ProtectedRoute>
+            } />
+            <Route path="/admin/ads" element={
+              <ProtectedRoute allowedRoles={["super_admin"]}><ManageAds /></ProtectedRoute>
             } />
             <Route path="/admin/analytics" element={
               <ProtectedRoute allowedRoles={["super_admin"]}><AdminAnalytics /></ProtectedRoute>

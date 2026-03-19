@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { Search, ShoppingBag, Star, Users, ArrowRight, GraduationCap, Loader2 } from "lucide-react";
+import FloatingIcons from "@/components/landing/FloatingIcons";
 import { CATEGORIES } from "@/lib/constants";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -48,7 +49,8 @@ const Index = () => {
       <Navbar />
       <main>
         {/* Hero */}
-        <section className="pt-24 pb-16 px-4 bg-gradient-hero text-primary-foreground">
+        <section className="relative pt-24 pb-16 px-4 bg-gradient-hero text-primary-foreground overflow-hidden">
+          <FloatingIcons />
           <div className="container mx-auto text-center max-w-3xl">
             <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-4">
               Your Campus <span className="text-gradient">Marketplace</span>

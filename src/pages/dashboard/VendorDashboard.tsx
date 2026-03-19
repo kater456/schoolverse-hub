@@ -4,11 +4,16 @@ import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Link } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 import {
   Eye, Heart, MessageSquare, Phone, ShoppingBag,
   BarChart3, Star, LogOut, Film, Loader2, CreditCard, CheckCircle, Package,
+  User, Camera, Save,
 } from "lucide-react";
 import FeaturedPaymentModal from "@/components/vendor/FeaturedPaymentModal";
 import VendorProductManager from "@/components/vendor/VendorProductManager";
@@ -16,12 +21,18 @@ import VendorVideoManager from "@/components/vendor/VendorVideoManager";
 
 const VendorDashboard = () => {
   const { user, signOut } = useAuth();
+  const { toast } = useToast();
   const [vendor, setVendor] = useState<any>(null);
   const [stats, setStats] = useState({ views: 0, likes: 0, comments: 0, contacts: 0 });
   const [recentComments, setRecentComments] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showFeaturedModal, setShowFeaturedModal] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [editContact, setEditContact] = useState("");
+  const [contactEditsThisMonth, setContactEditsThisMonth] = useState(0);
+  const [savingContact, setSavingContact] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -34,6 +45,27 @@ const VendorDashboard = () => {
 
       if (!v) { setIsLoading(false); return; }
       setVendor(v);
+      setEditContact(v.contact_number || "");
+
+      // Get vendor primary image as avatar
+      const { data: primaryImg } = await supabase
+        .from("vendor_images")
+        .select("image_url")
+        .eq("vendor_id", v.id)
+        .eq("is_primary", true)
+        .maybeSingle();
+      setAvatarUrl(primaryImg?.image_url || null);
+
+      // Count contact edits this month
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+      const { count: editsCount } = await supabase
+        .from("vendor_contact_edits")
+        .select("id", { count: "exact", head: true })
+        .eq("vendor_id", v.id)
+        .gte("edited_at", startOfMonth.toISOString()) as any;
+      setContactEditsThisMonth(editsCount || 0);
 
       const [views, likes, comments, contacts, txns, cmts] = await Promise.all([
         supabase.from("vendor_views").select("id", { count: "exact", head: true }).eq("vendor_id", v.id),
@@ -51,6 +83,44 @@ const VendorDashboard = () => {
     };
     fetchData();
   }, [user]);
+
+  const uploadAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !vendor) return;
+    setUploadingAvatar(true);
+    const ext = file.name.split(".").pop();
+    const path = `avatars/${vendor.id}.${ext}`;
+    await supabase.storage.from("vendor-media").upload(path, file, { upsert: true });
+    const { data: urlData } = supabase.storage.from("vendor-media").getPublicUrl(path);
+
+    // Set as primary image or insert new
+    const { data: existing } = await supabase.from("vendor_images").select("id").eq("vendor_id", vendor.id).eq("is_primary", true).maybeSingle();
+    if (existing) {
+      await supabase.from("vendor_images").update({ image_url: urlData.publicUrl } as any).eq("id", existing.id);
+    } else {
+      await supabase.from("vendor_images").insert({ vendor_id: vendor.id, image_url: urlData.publicUrl, is_primary: true } as any);
+    }
+    setAvatarUrl(urlData.publicUrl + "?t=" + Date.now());
+    setUploadingAvatar(false);
+    toast({ title: "Profile photo updated!" });
+  };
+
+  const saveContact = async () => {
+    if (!vendor) return;
+    if (contactEditsThisMonth >= 3) {
+      toast({ title: "Edit limit reached", description: "You can only edit your contact 3 times per month.", variant: "destructive" });
+      return;
+    }
+    setSavingContact(true);
+    const { error } = await supabase.from("vendors").update({ contact_number: editContact.trim() } as any).eq("id", vendor.id);
+    if (!error) {
+      await supabase.from("vendor_contact_edits").insert({ vendor_id: vendor.id } as any);
+      setContactEditsThisMonth((c) => c + 1);
+      setVendor({ ...vendor, contact_number: editContact.trim() });
+      toast({ title: "Contact updated!" });
+    }
+    setSavingContact(false);
+  };
 
   const markDelivered = async (txnId: string) => {
     const { error } = await supabase
@@ -119,18 +189,37 @@ const VendorDashboard = () => {
         </div>
       </header>
 
-      <main className="p-6 max-w-6xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">{vendor.business_name}</h1>
-            <p className="text-muted-foreground text-sm">
+      <main className="p-4 sm:p-6 max-w-6xl mx-auto space-y-6">
+        <div className="flex items-center gap-4">
+          {/* Vendor Avatar */}
+          <div className="relative group">
+            <Avatar className="h-16 w-16 border-2 border-accent">
+              {avatarUrl ? (
+                <AvatarImage src={avatarUrl} alt={vendor.business_name} />
+              ) : null}
+              <AvatarFallback className="bg-accent/10 text-accent text-lg">
+                {vendor.business_name?.charAt(0) || "V"}
+              </AvatarFallback>
+            </Avatar>
+            <label className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+              {uploadingAvatar ? (
+                <Loader2 className="h-5 w-5 text-white animate-spin" />
+              ) : (
+                <Camera className="h-5 w-5 text-white" />
+              )}
+              <input type="file" accept="image/*" className="hidden" onChange={uploadAvatar} disabled={uploadingAvatar} />
+            </label>
+          </div>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">{vendor.business_name}</h1>
+            <p className="text-muted-foreground text-xs sm:text-sm">
               {vendor.category} · {vendor.schools?.name}
               {vendor.campus_locations?.name && ` · ${vendor.campus_locations.name}`}
             </p>
           </div>
-          <div className="flex gap-2">
-            {activeFeatured && <Badge className="bg-accent text-accent-foreground"><Star className="h-3 w-3 mr-1" /> Featured</Badge>}
-            {vendor.is_approved ? <Badge className="bg-success text-success-foreground">Approved</Badge> : <Badge variant="secondary">Pending Approval</Badge>}
+          <div className="flex gap-2 flex-shrink-0">
+            {activeFeatured && <Badge className="bg-accent text-accent-foreground hidden sm:flex"><Star className="h-3 w-3 mr-1" /> Featured</Badge>}
+            {vendor.is_approved ? <Badge className="bg-success text-success-foreground">Approved</Badge> : <Badge variant="secondary">Pending</Badge>}
           </div>
         </div>
 
@@ -148,10 +237,11 @@ const VendorDashboard = () => {
 
         {/* Tabbed Content */}
         <Tabs defaultValue="products" className="space-y-4">
-          <TabsList>
+          <TabsList className="flex-wrap">
             <TabsTrigger value="products"><Package className="h-4 w-4 mr-1" />Products</TabsTrigger>
             <TabsTrigger value="reels"><Film className="h-4 w-4 mr-1" />Reels</TabsTrigger>
             <TabsTrigger value="orders"><ShoppingBag className="h-4 w-4 mr-1" />Orders</TabsTrigger>
+            <TabsTrigger value="profile"><User className="h-4 w-4 mr-1" />Profile</TabsTrigger>
             <TabsTrigger value="engagement"><BarChart3 className="h-4 w-4 mr-1" />Insights</TabsTrigger>
           </TabsList>
 
@@ -161,6 +251,58 @@ const VendorDashboard = () => {
 
           <TabsContent value="reels">
             <VendorVideoManager vendorId={vendor.id} reelsEnabled={vendor.reels_enabled || false} />
+          </TabsContent>
+
+          <TabsContent value="profile">
+            <Card className="border-border/50">
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <User className="h-4 w-4" /> Profile Settings
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <Label>Business Name</Label>
+                  <Input value={vendor.business_name} disabled className="bg-muted" />
+                  <p className="text-xs text-muted-foreground">Contact admin to change your business name.</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Contact Number</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={editContact}
+                      onChange={(e) => setEditContact(e.target.value)}
+                      placeholder="+234..."
+                      disabled={contactEditsThisMonth >= 3}
+                    />
+                    <Button
+                      size="sm"
+                      onClick={saveContact}
+                      disabled={savingContact || contactEditsThisMonth >= 3 || editContact === vendor.contact_number}
+                    >
+                      {savingContact ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+                      Save
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {contactEditsThisMonth >= 3
+                      ? "You've reached the maximum 3 edits this month."
+                      : `${3 - contactEditsThisMonth} edit(s) remaining this month.`}
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Category</Label>
+                  <Input value={vendor.category} disabled className="bg-muted" />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Description</Label>
+                  <Input value={vendor.description || "No description"} disabled className="bg-muted" />
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="orders">

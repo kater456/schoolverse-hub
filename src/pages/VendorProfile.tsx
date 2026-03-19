@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -236,7 +237,13 @@ const VendorProfile = () => {
 
             {/* Info */}
             <div>
-              <h1 className="text-2xl font-bold text-foreground mb-2">{vendor.business_name}</h1>
+              <div className="flex items-center gap-3 mb-2">
+                <Avatar className="h-12 w-12 border-2 border-accent">
+                  {selectedImage ? <AvatarImage src={selectedImage} alt={vendor.business_name} /> : null}
+                  <AvatarFallback className="bg-accent/10 text-accent">{vendor.business_name?.charAt(0) || "V"}</AvatarFallback>
+                </Avatar>
+                <h1 className="text-xl sm:text-2xl font-bold text-foreground">{vendor.business_name}</h1>
+              </div>
               <div className="flex flex-wrap gap-2 mb-4">
                 <Badge variant="secondary">{vendor.category}</Badge>
                 {vendor.schools?.name && <Badge variant="outline">🎓 {vendor.schools.name}</Badge>}

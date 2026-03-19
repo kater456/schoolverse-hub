@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import FloatingIcons from "@/components/landing/FloatingIcons";
 import { ArrowRight, Play, CheckCircle2, School, ShoppingCart, Users } from "lucide-react";
 
 const HeroSection = () => {
@@ -17,6 +18,7 @@ const HeroSection = () => {
 
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden">
+      <FloatingIcons />
       {/* Background Gradient */}
       <div className="absolute inset-0 bg-gradient-hero" />
       
