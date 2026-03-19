@@ -84,6 +84,44 @@ const VendorDashboard = () => {
     fetchData();
   }, [user]);
 
+  const uploadAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !vendor) return;
+    setUploadingAvatar(true);
+    const ext = file.name.split(".").pop();
+    const path = `avatars/${vendor.id}.${ext}`;
+    await supabase.storage.from("vendor-media").upload(path, file, { upsert: true });
+    const { data: urlData } = supabase.storage.from("vendor-media").getPublicUrl(path);
+
+    // Set as primary image or insert new
+    const { data: existing } = await supabase.from("vendor_images").select("id").eq("vendor_id", vendor.id).eq("is_primary", true).maybeSingle();
+    if (existing) {
+      await supabase.from("vendor_images").update({ image_url: urlData.publicUrl } as any).eq("id", existing.id);
+    } else {
+      await supabase.from("vendor_images").insert({ vendor_id: vendor.id, image_url: urlData.publicUrl, is_primary: true } as any);
+    }
+    setAvatarUrl(urlData.publicUrl + "?t=" + Date.now());
+    setUploadingAvatar(false);
+    toast({ title: "Profile photo updated!" });
+  };
+
+  const saveContact = async () => {
+    if (!vendor) return;
+    if (contactEditsThisMonth >= 3) {
+      toast({ title: "Edit limit reached", description: "You can only edit your contact 3 times per month.", variant: "destructive" });
+      return;
+    }
+    setSavingContact(true);
+    const { error } = await supabase.from("vendors").update({ contact_number: editContact.trim() } as any).eq("id", vendor.id);
+    if (!error) {
+      await supabase.from("vendor_contact_edits").insert({ vendor_id: vendor.id } as any);
+      setContactEditsThisMonth((c) => c + 1);
+      setVendor({ ...vendor, contact_number: editContact.trim() });
+      toast({ title: "Contact updated!" });
+    }
+    setSavingContact(false);
+  };
+
   const markDelivered = async (txnId: string) => {
     const { error } = await supabase
       .from("transactions")
