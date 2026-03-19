@@ -53,6 +53,7 @@ const App = () => (
         <InstallPrompt />
         <AppDownloadPopup />
         <PromotionNotification />
+        <AdPopup />
         <BrowserRouter>
           <ScrollToTop />
           <PageTracker />
