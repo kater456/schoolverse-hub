@@ -21,12 +21,18 @@ import VendorVideoManager from "@/components/vendor/VendorVideoManager";
 
 const VendorDashboard = () => {
   const { user, signOut } = useAuth();
+  const { toast } = useToast();
   const [vendor, setVendor] = useState<any>(null);
   const [stats, setStats] = useState({ views: 0, likes: 0, comments: 0, contacts: 0 });
   const [recentComments, setRecentComments] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showFeaturedModal, setShowFeaturedModal] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [editContact, setEditContact] = useState("");
+  const [contactEditsThisMonth, setContactEditsThisMonth] = useState(0);
+  const [savingContact, setSavingContact] = useState(false);
 
   useEffect(() => {
     if (!user) return;
