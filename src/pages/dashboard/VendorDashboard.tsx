@@ -189,18 +189,37 @@ const VendorDashboard = () => {
         </div>
       </header>
 
-      <main className="p-6 max-w-6xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">{vendor.business_name}</h1>
-            <p className="text-muted-foreground text-sm">
+      <main className="p-4 sm:p-6 max-w-6xl mx-auto space-y-6">
+        <div className="flex items-center gap-4">
+          {/* Vendor Avatar */}
+          <div className="relative group">
+            <Avatar className="h-16 w-16 border-2 border-accent">
+              {avatarUrl ? (
+                <AvatarImage src={avatarUrl} alt={vendor.business_name} />
+              ) : null}
+              <AvatarFallback className="bg-accent/10 text-accent text-lg">
+                {vendor.business_name?.charAt(0) || "V"}
+              </AvatarFallback>
+            </Avatar>
+            <label className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+              {uploadingAvatar ? (
+                <Loader2 className="h-5 w-5 text-white animate-spin" />
+              ) : (
+                <Camera className="h-5 w-5 text-white" />
+              )}
+              <input type="file" accept="image/*" className="hidden" onChange={uploadAvatar} disabled={uploadingAvatar} />
+            </label>
+          </div>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">{vendor.business_name}</h1>
+            <p className="text-muted-foreground text-xs sm:text-sm">
               {vendor.category} · {vendor.schools?.name}
               {vendor.campus_locations?.name && ` · ${vendor.campus_locations.name}`}
             </p>
           </div>
-          <div className="flex gap-2">
-            {activeFeatured && <Badge className="bg-accent text-accent-foreground"><Star className="h-3 w-3 mr-1" /> Featured</Badge>}
-            {vendor.is_approved ? <Badge className="bg-success text-success-foreground">Approved</Badge> : <Badge variant="secondary">Pending Approval</Badge>}
+          <div className="flex gap-2 flex-shrink-0">
+            {activeFeatured && <Badge className="bg-accent text-accent-foreground hidden sm:flex"><Star className="h-3 w-3 mr-1" /> Featured</Badge>}
+            {vendor.is_approved ? <Badge className="bg-success text-success-foreground">Approved</Badge> : <Badge variant="secondary">Pending</Badge>}
           </div>
         </div>
 
