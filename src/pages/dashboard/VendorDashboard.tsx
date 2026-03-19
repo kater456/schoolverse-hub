@@ -45,6 +45,27 @@ const VendorDashboard = () => {
 
       if (!v) { setIsLoading(false); return; }
       setVendor(v);
+      setEditContact(v.contact_number || "");
+
+      // Get vendor primary image as avatar
+      const { data: primaryImg } = await supabase
+        .from("vendor_images")
+        .select("image_url")
+        .eq("vendor_id", v.id)
+        .eq("is_primary", true)
+        .maybeSingle();
+      setAvatarUrl(primaryImg?.image_url || null);
+
+      // Count contact edits this month
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+      const { count: editsCount } = await supabase
+        .from("vendor_contact_edits")
+        .select("id", { count: "exact", head: true })
+        .eq("vendor_id", v.id)
+        .gte("edited_at", startOfMonth.toISOString()) as any;
+      setContactEditsThisMonth(editsCount || 0);
 
       const [views, likes, comments, contacts, txns, cmts] = await Promise.all([
         supabase.from("vendor_views").select("id", { count: "exact", head: true }).eq("vendor_id", v.id),
