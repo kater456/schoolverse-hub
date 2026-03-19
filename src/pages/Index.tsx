@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { Search, ShoppingBag, Star, Users, ArrowRight, GraduationCap, Loader2 } from "lucide-react";
+import FloatingIcons from "@/components/landing/FloatingIcons";
 import { CATEGORIES } from "@/lib/constants";
 import { supabase } from "@/integrations/supabase/client";
 
