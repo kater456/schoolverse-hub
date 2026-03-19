@@ -253,6 +253,58 @@ const VendorDashboard = () => {
             <VendorVideoManager vendorId={vendor.id} reelsEnabled={vendor.reels_enabled || false} />
           </TabsContent>
 
+          <TabsContent value="profile">
+            <Card className="border-border/50">
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <User className="h-4 w-4" /> Profile Settings
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <Label>Business Name</Label>
+                  <Input value={vendor.business_name} disabled className="bg-muted" />
+                  <p className="text-xs text-muted-foreground">Contact admin to change your business name.</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Contact Number</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={editContact}
+                      onChange={(e) => setEditContact(e.target.value)}
+                      placeholder="+234..."
+                      disabled={contactEditsThisMonth >= 3}
+                    />
+                    <Button
+                      size="sm"
+                      onClick={saveContact}
+                      disabled={savingContact || contactEditsThisMonth >= 3 || editContact === vendor.contact_number}
+                    >
+                      {savingContact ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+                      Save
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {contactEditsThisMonth >= 3
+                      ? "You've reached the maximum 3 edits this month."
+                      : `${3 - contactEditsThisMonth} edit(s) remaining this month.`}
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Category</Label>
+                  <Input value={vendor.category} disabled className="bg-muted" />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Description</Label>
+                  <Input value={vendor.description || "No description"} disabled className="bg-muted" />
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="orders">
             <Card className="border-border/50">
               <CardHeader>
