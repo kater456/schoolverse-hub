@@ -10,6 +10,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import PromotionNotification from "@/components/PromotionNotification";
 import PageTracker from "@/components/PageTracker";
 import ScrollToTop from "@/components/ScrollToTop";
+import AdPopup from "@/components/AdPopup";
 import Index from "./pages/Index";
 import Help from "./pages/Help";
 import Browse from "./pages/Browse";
