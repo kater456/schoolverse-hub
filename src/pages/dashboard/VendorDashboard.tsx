@@ -34,54 +34,71 @@ const VendorDashboard = () => {
   const [contactEditsThisMonth, setContactEditsThisMonth] = useState(0);
   const [savingContact, setSavingContact] = useState(false);
 
+  const fetchVendorData = async () => {
+    if (!user) return;
+    const { data: v } = await supabase
+      .from("vendors")
+      .select("*, schools(name), campus_locations(name), featured_listings(*)")
+      .eq("user_id", user.id)
+      .single();
+
+    if (!v) { setIsLoading(false); return; }
+    setVendor(v);
+    setEditContact(v.contact_number || "");
+
+    const { data: primaryImg } = await supabase
+      .from("vendor_images")
+      .select("image_url")
+      .eq("vendor_id", v.id)
+      .eq("is_primary", true)
+      .maybeSingle();
+    setAvatarUrl(primaryImg?.image_url || null);
+
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+    const { count: editsCount } = await supabase
+      .from("vendor_contact_edits")
+      .select("id", { count: "exact", head: true })
+      .eq("vendor_id", v.id)
+      .gte("edited_at", startOfMonth.toISOString()) as any;
+    setContactEditsThisMonth(editsCount || 0);
+
+    const [views, likes, comments, contacts, txns, cmts] = await Promise.all([
+      supabase.from("vendor_views").select("id", { count: "exact", head: true }).eq("vendor_id", v.id),
+      supabase.from("vendor_likes").select("id", { count: "exact", head: true }).eq("vendor_id", v.id),
+      supabase.from("vendor_comments").select("id", { count: "exact", head: true }).eq("vendor_id", v.id),
+      supabase.from("vendor_contacts").select("id", { count: "exact", head: true }).eq("vendor_id", v.id),
+      supabase.from("transactions").select("*").eq("vendor_id", v.id).order("created_at", { ascending: false }).limit(10),
+      supabase.from("vendor_comments").select("*, profiles:user_id(first_name, last_name)").eq("vendor_id", v.id).order("created_at", { ascending: false }).limit(5),
+    ]);
+
+    setStats({ views: views.count || 0, likes: likes.count || 0, comments: comments.count || 0, contacts: contacts.count || 0 });
+    setTransactions(txns.data || []);
+    setRecentComments(cmts.data || []);
+    setIsLoading(false);
+  };
+
   useEffect(() => {
     if (!user) return;
-    const fetchData = async () => {
-      const { data: v } = await supabase
-        .from("vendors")
-        .select("*, schools(name), campus_locations(name), featured_listings(*)")
-        .eq("user_id", user.id)
-        .single();
+    fetchVendorData();
 
-      if (!v) { setIsLoading(false); return; }
-      setVendor(v);
-      setEditContact(v.contact_number || "");
+    // Realtime: listen for vendor approval updates
+    const channel = supabase
+      .channel("vendor-dashboard-realtime")
+      .on("postgres_changes", {
+        event: "UPDATE",
+        schema: "public",
+        table: "vendors",
+        filter: `user_id=eq.${user.id}`,
+      }, (payload) => {
+        if (payload.new) {
+          setVendor((prev: any) => prev ? { ...prev, ...payload.new } : prev);
+        }
+      })
+      .subscribe();
 
-      // Get vendor primary image as avatar
-      const { data: primaryImg } = await supabase
-        .from("vendor_images")
-        .select("image_url")
-        .eq("vendor_id", v.id)
-        .eq("is_primary", true)
-        .maybeSingle();
-      setAvatarUrl(primaryImg?.image_url || null);
-
-      // Count contact edits this month
-      const startOfMonth = new Date();
-      startOfMonth.setDate(1);
-      startOfMonth.setHours(0, 0, 0, 0);
-      const { count: editsCount } = await supabase
-        .from("vendor_contact_edits")
-        .select("id", { count: "exact", head: true })
-        .eq("vendor_id", v.id)
-        .gte("edited_at", startOfMonth.toISOString()) as any;
-      setContactEditsThisMonth(editsCount || 0);
-
-      const [views, likes, comments, contacts, txns, cmts] = await Promise.all([
-        supabase.from("vendor_views").select("id", { count: "exact", head: true }).eq("vendor_id", v.id),
-        supabase.from("vendor_likes").select("id", { count: "exact", head: true }).eq("vendor_id", v.id),
-        supabase.from("vendor_comments").select("id", { count: "exact", head: true }).eq("vendor_id", v.id),
-        supabase.from("vendor_contacts").select("id", { count: "exact", head: true }).eq("vendor_id", v.id),
-        supabase.from("transactions").select("*").eq("vendor_id", v.id).order("created_at", { ascending: false }).limit(10),
-        supabase.from("vendor_comments").select("*, profiles:user_id(first_name, last_name)").eq("vendor_id", v.id).order("created_at", { ascending: false }).limit(5),
-      ]);
-
-      setStats({ views: views.count || 0, likes: likes.count || 0, comments: comments.count || 0, contacts: contacts.count || 0 });
-      setTransactions(txns.data || []);
-      setRecentComments(cmts.data || []);
-      setIsLoading(false);
-    };
-    fetchData();
+    return () => { supabase.removeChannel(channel); };
   }, [user]);
 
   const uploadAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
