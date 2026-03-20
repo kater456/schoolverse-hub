@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { Search, ShoppingBag, Star, Users, ArrowRight, GraduationCap, Loader2 } from "lucide-react";
@@ -42,7 +43,35 @@ const Index = () => {
       setLoadingSchools(false);
     };
     fetchSchools();
+
+    // Realtime: listen for vendor/ad changes
+    const channel = supabase
+      .channel("homepage-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "vendors" }, () => {
+        fetchSchools();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "platform_ads" }, () => {
+        // Ad popup handles its own state; this is for future homepage ad banners
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, []);
+
+  const howItWorks = [
+    {
+      title: "Sign Up",
+      description: "Create your account in seconds. Choose your school and get started on the platform.",
+    },
+    {
+      title: "List Your Business",
+      description: "Add photos, description, pricing, and contact info. Complete payment to activate your vendor space.",
+    },
+    {
+      title: "Get Discovered",
+      description: "Students on your campus can find your business, view your products, and contact you directly.",
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-background">
@@ -56,7 +85,7 @@ const Index = () => {
               Your Campus <span className="text-gradient">Marketplace</span>
             </h1>
             <p className="text-lg md:text-xl text-primary-foreground/80 mb-8 max-w-2xl mx-auto">
-              Discover student businesses, buy &amp; sell within your university community. Free to list, easy to find.
+              Discover student businesses, buy &amp; sell within your university community.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 text-base" asChild>
@@ -131,67 +160,27 @@ const Index = () => {
           </div>
         </section>
 
-        {/* How It Works */}
+        {/* How It Works - Interactive Accordion */}
         <section className="py-16 px-4 bg-muted/50">
-          <div className="container mx-auto max-w-4xl">
-            <h2 className="text-2xl md:text-3xl font-bold text-center mb-12">How It Works</h2>
-            <div className="grid md:grid-cols-3 gap-8">
-              {[
-                { icon: <Users className="h-8 w-8" />, title: "Sign Up Free", desc: "Create your account in seconds. No fees for basic listings." },
-                { icon: <ShoppingBag className="h-8 w-8" />, title: "List Your Business", desc: "Add photos, description, pricing, and contact info. Get discovered by students." },
-                { icon: <Star className="h-8 w-8" />, title: "Go Featured", desc: "Pay to appear at the top of search results and unlock Reels access." },
-              ].map((step, i) => (
-                <div key={i} className="text-center">
-                  <div className="w-16 h-16 rounded-2xl bg-accent/10 text-accent flex items-center justify-center mx-auto mb-4">
-                    {step.icon}
-                  </div>
-                  <h3 className="text-lg font-semibold mb-2">{step.title}</h3>
-                  <p className="text-sm text-muted-foreground">{step.desc}</p>
-                </div>
+          <div className="container mx-auto max-w-2xl">
+            <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">How It Works</h2>
+            <Accordion type="single" collapsible defaultValue="step-0" className="space-y-3">
+              {howItWorks.map((step, i) => (
+                <AccordionItem key={i} value={`step-${i}`} className="bg-card border border-border/50 rounded-xl px-6">
+                  <AccordionTrigger className="text-base font-semibold hover:no-underline">
+                    <span className="flex items-center gap-3">
+                      <span className="flex items-center justify-center w-8 h-8 rounded-full bg-accent text-accent-foreground text-sm font-bold">
+                        {i + 1}
+                      </span>
+                      {step.title}
+                    </span>
+                  </AccordionTrigger>
+                  <AccordionContent className="text-muted-foreground pb-4">
+                    {step.description}
+                  </AccordionContent>
+                </AccordionItem>
               ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Pricing */}
-        <section className="py-16 px-4" id="pricing">
-          <div className="container mx-auto max-w-4xl">
-            <h2 className="text-2xl md:text-3xl font-bold text-center mb-2">Go Pro</h2>
-            <p className="text-muted-foreground text-center mb-10">Boost your visibility and reach more customers</p>
-            <div className="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto">
-              {/* Top Listing Only */}
-              <Card className="border-accent/30 relative">
-                <CardContent className="p-6">
-                  <h3 className="text-lg font-bold mb-1">Top Listing</h3>
-                  <p className="text-sm text-muted-foreground mb-4">Appear at the top of search results for 7 days</p>
-                  <div className="space-y-1 mb-4">
-                    <p className="text-2xl font-bold text-foreground">🇳🇬 ₦1,000</p>
-                    <p className="text-lg font-semibold text-foreground">🇬🇭 GH₵12</p>
-                  </div>
-                  <Button className="w-full bg-accent text-accent-foreground hover:bg-accent/90" asChild>
-                    <Link to="/vendor-dashboard">Activate Now</Link>
-                  </Button>
-                </CardContent>
-              </Card>
-
-              {/* Top Listing + Reels */}
-              <Card className="border-orange-500/50 relative ring-2 ring-orange-500/20">
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <span className="bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full">BEST VALUE</span>
-                </div>
-                <CardContent className="p-6 pt-8">
-                  <h3 className="text-lg font-bold mb-1">Top Listing + Reels</h3>
-                  <p className="text-sm text-muted-foreground mb-4">Top search + upload short video reels for 7 days</p>
-                  <div className="space-y-1 mb-4">
-                    <p className="text-2xl font-bold text-foreground">🇳🇬 ₦2,000</p>
-                    <p className="text-lg font-semibold text-foreground">🇬🇭 GH₵24</p>
-                  </div>
-                  <Button className="w-full bg-orange-500 text-white hover:bg-orange-600" asChild>
-                    <Link to="/vendor-dashboard">Activate Now</Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
+            </Accordion>
           </div>
         </section>
 
