@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import ThemeToggle from "@/components/ThemeToggle";
 import {
   LayoutDashboard, Users, GraduationCap, MapPin, Star,
   LogOut, ShoppingBag, BarChart3, UserCog, Megaphone,
