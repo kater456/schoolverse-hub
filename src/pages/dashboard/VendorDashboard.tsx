@@ -170,6 +170,35 @@ const VendorDashboard = () => {
     );
   }
 
+  if (!vendor.is_approved) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center space-y-4 max-w-md px-4">
+          <div className="w-16 h-16 rounded-full bg-accent/10 flex items-center justify-center mx-auto">
+            <CreditCard className="h-8 w-8 text-accent" />
+          </div>
+          <h2 className="text-xl font-semibold">Your account is pending approval</h2>
+          <p className="text-muted-foreground">
+            Please complete payment to gain access to your vendor dashboard. Once payment is verified by admin, your account will be activated automatically.
+          </p>
+          <div className="bg-muted/50 p-4 rounded-lg text-left">
+            <p className="text-sm font-medium mb-2">Payment Details:</p>
+            <p className="text-sm text-muted-foreground">
+              🇳🇬 Nigeria: ₦1,200 → 09016103308 (OP Katia Cafe)<br />
+              🇬🇭 Ghana: GH₵15 → 0550588437 (Joseph Nabuja)
+            </p>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            This page will update automatically once you're approved.
+          </p>
+          <Button variant="outline" asChild>
+            <Link to="/">Back to Home</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   const activeFeatured = vendor.featured_listings?.find(
     (f: any) => f.payment_status === "confirmed" && new Date(f.ends_at) > new Date()
   );
