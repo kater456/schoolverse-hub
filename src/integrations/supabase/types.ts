@@ -1039,6 +1039,7 @@ export type Database = {
           campus_location_id: string | null
           category: string
           contact_number: string | null
+          country: string | null
           created_at: string
           description: string | null
           id: string
@@ -1055,6 +1056,7 @@ export type Database = {
           campus_location_id?: string | null
           category: string
           contact_number?: string | null
+          country?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -1071,6 +1073,7 @@ export type Database = {
           campus_location_id?: string | null
           category?: string
           contact_number?: string | null
+          country?: string | null
           created_at?: string
           description?: string | null
           id?: string
