@@ -18,6 +18,9 @@ import {
 import FeaturedPaymentModal from "@/components/vendor/FeaturedPaymentModal";
 import VendorProductManager from "@/components/vendor/VendorProductManager";
 import VendorVideoManager from "@/components/vendor/VendorVideoManager";
+import ThemeToggle from "@/components/ThemeToggle";
+import VendorProductManager from "@/components/vendor/VendorProductManager";
+import VendorVideoManager from "@/components/vendor/VendorVideoManager";
 
 const VendorDashboard = () => {
   const { user, signOut } = useAuth();
