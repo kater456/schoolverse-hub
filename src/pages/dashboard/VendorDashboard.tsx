@@ -18,6 +18,7 @@ import {
 import FeaturedPaymentModal from "@/components/vendor/FeaturedPaymentModal";
 import VendorProductManager from "@/components/vendor/VendorProductManager";
 import VendorVideoManager from "@/components/vendor/VendorVideoManager";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const VendorDashboard = () => {
   const { user, signOut } = useAuth();
@@ -34,54 +35,71 @@ const VendorDashboard = () => {
   const [contactEditsThisMonth, setContactEditsThisMonth] = useState(0);
   const [savingContact, setSavingContact] = useState(false);
 
+  const fetchVendorData = async () => {
+    if (!user) return;
+    const { data: v } = await supabase
+      .from("vendors")
+      .select("*, schools(name), campus_locations(name), featured_listings(*)")
+      .eq("user_id", user.id)
+      .single();
+
+    if (!v) { setIsLoading(false); return; }
+    setVendor(v);
+    setEditContact(v.contact_number || "");
+
+    const { data: primaryImg } = await supabase
+      .from("vendor_images")
+      .select("image_url")
+      .eq("vendor_id", v.id)
+      .eq("is_primary", true)
+      .maybeSingle();
+    setAvatarUrl(primaryImg?.image_url || null);
+
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+    const { count: editsCount } = await supabase
+      .from("vendor_contact_edits")
+      .select("id", { count: "exact", head: true })
+      .eq("vendor_id", v.id)
+      .gte("edited_at", startOfMonth.toISOString()) as any;
+    setContactEditsThisMonth(editsCount || 0);
+
+    const [views, likes, comments, contacts, txns, cmts] = await Promise.all([
+      supabase.from("vendor_views").select("id", { count: "exact", head: true }).eq("vendor_id", v.id),
+      supabase.from("vendor_likes").select("id", { count: "exact", head: true }).eq("vendor_id", v.id),
+      supabase.from("vendor_comments").select("id", { count: "exact", head: true }).eq("vendor_id", v.id),
+      supabase.from("vendor_contacts").select("id", { count: "exact", head: true }).eq("vendor_id", v.id),
+      supabase.from("transactions").select("*").eq("vendor_id", v.id).order("created_at", { ascending: false }).limit(10),
+      supabase.from("vendor_comments").select("*, profiles:user_id(first_name, last_name)").eq("vendor_id", v.id).order("created_at", { ascending: false }).limit(5),
+    ]);
+
+    setStats({ views: views.count || 0, likes: likes.count || 0, comments: comments.count || 0, contacts: contacts.count || 0 });
+    setTransactions(txns.data || []);
+    setRecentComments(cmts.data || []);
+    setIsLoading(false);
+  };
+
   useEffect(() => {
     if (!user) return;
-    const fetchData = async () => {
-      const { data: v } = await supabase
-        .from("vendors")
-        .select("*, schools(name), campus_locations(name), featured_listings(*)")
-        .eq("user_id", user.id)
-        .single();
+    fetchVendorData();
 
-      if (!v) { setIsLoading(false); return; }
-      setVendor(v);
-      setEditContact(v.contact_number || "");
+    // Realtime: listen for vendor approval updates
+    const channel = supabase
+      .channel("vendor-dashboard-realtime")
+      .on("postgres_changes", {
+        event: "UPDATE",
+        schema: "public",
+        table: "vendors",
+        filter: `user_id=eq.${user.id}`,
+      }, (payload) => {
+        if (payload.new) {
+          setVendor((prev: any) => prev ? { ...prev, ...payload.new } : prev);
+        }
+      })
+      .subscribe();
 
-      // Get vendor primary image as avatar
-      const { data: primaryImg } = await supabase
-        .from("vendor_images")
-        .select("image_url")
-        .eq("vendor_id", v.id)
-        .eq("is_primary", true)
-        .maybeSingle();
-      setAvatarUrl(primaryImg?.image_url || null);
-
-      // Count contact edits this month
-      const startOfMonth = new Date();
-      startOfMonth.setDate(1);
-      startOfMonth.setHours(0, 0, 0, 0);
-      const { count: editsCount } = await supabase
-        .from("vendor_contact_edits")
-        .select("id", { count: "exact", head: true })
-        .eq("vendor_id", v.id)
-        .gte("edited_at", startOfMonth.toISOString()) as any;
-      setContactEditsThisMonth(editsCount || 0);
-
-      const [views, likes, comments, contacts, txns, cmts] = await Promise.all([
-        supabase.from("vendor_views").select("id", { count: "exact", head: true }).eq("vendor_id", v.id),
-        supabase.from("vendor_likes").select("id", { count: "exact", head: true }).eq("vendor_id", v.id),
-        supabase.from("vendor_comments").select("id", { count: "exact", head: true }).eq("vendor_id", v.id),
-        supabase.from("vendor_contacts").select("id", { count: "exact", head: true }).eq("vendor_id", v.id),
-        supabase.from("transactions").select("*").eq("vendor_id", v.id).order("created_at", { ascending: false }).limit(10),
-        supabase.from("vendor_comments").select("*, profiles:user_id(first_name, last_name)").eq("vendor_id", v.id).order("created_at", { ascending: false }).limit(5),
-      ]);
-
-      setStats({ views: views.count || 0, likes: likes.count || 0, comments: comments.count || 0, contacts: contacts.count || 0 });
-      setTransactions(txns.data || []);
-      setRecentComments(cmts.data || []);
-      setIsLoading(false);
-    };
-    fetchData();
+    return () => { supabase.removeChannel(channel); };
   }, [user]);
 
   const uploadAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -153,6 +171,35 @@ const VendorDashboard = () => {
     );
   }
 
+  if (!vendor.is_approved) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center space-y-4 max-w-md px-4">
+          <div className="w-16 h-16 rounded-full bg-accent/10 flex items-center justify-center mx-auto">
+            <CreditCard className="h-8 w-8 text-accent" />
+          </div>
+          <h2 className="text-xl font-semibold">Your account is pending approval</h2>
+          <p className="text-muted-foreground">
+            Please complete payment to gain access to your vendor dashboard. Once payment is verified by admin, your account will be activated automatically.
+          </p>
+          <div className="bg-muted/50 p-4 rounded-lg text-left">
+            <p className="text-sm font-medium mb-2">Payment Details:</p>
+            <p className="text-sm text-muted-foreground">
+              🇳🇬 Nigeria: ₦1,200 → 09016103308 (OP Katia Cafe)<br />
+              🇬🇭 Ghana: GH₵15 → 0550588437 (Joseph Nabuja)
+            </p>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            This page will update automatically once you're approved.
+          </p>
+          <Button variant="outline" asChild>
+            <Link to="/">Back to Home</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   const activeFeatured = vendor.featured_listings?.find(
     (f: any) => f.payment_status === "confirmed" && new Date(f.ends_at) > new Date()
   );
@@ -186,6 +233,7 @@ const VendorDashboard = () => {
             </Button>
           )}
           <Button variant="ghost" size="icon" onClick={signOut}><LogOut className="h-4 w-4" /></Button>
+          <ThemeToggle />
         </div>
       </header>
 

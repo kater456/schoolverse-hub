@@ -26,12 +26,24 @@ const vendorSchema = z.object({
   contact_number: z.string().min(5, "Contact number is required").max(20),
   school_id: z.string().min(1, "School is required"),
   campus_location_id: z.string().optional(),
+  country: z.string().min(1, "Country is required"),
   full_name: z.string().min(2, "Full name is required").max(100),
   residential_location: z.string().min(2, "Residential location is required").max(200),
   personal_contact: z.string().min(5, "Personal contact is required").max(20),
 });
 
 type VendorFormData = z.infer<typeof vendorSchema>;
+
+const PAYMENT_INFO = {
+  Nigeria: {
+    amount: "₦1,200",
+    details: "Account Number: 09016103308\nAccount Name: OP Katia Cafe",
+  },
+  Ghana: {
+    amount: "GH₵15",
+    details: "MoMo Number: 0550588437\nName: Joseph Nabuja",
+  },
+};
 
 const VendorRegistration = () => {
   const { user } = useAuth();
@@ -49,13 +61,16 @@ const VendorRegistration = () => {
     resolver: zodResolver(vendorSchema),
     defaultValues: {
       business_name: "", category: "", description: "", contact_number: "",
-      school_id: "", campus_location_id: "", full_name: "",
+      school_id: "", campus_location_id: "", country: "Nigeria", full_name: "",
       residential_location: "", personal_contact: "",
     },
   });
 
   const watchSchool = form.watch("school_id");
+  const watchCountry = form.watch("country");
   useEffect(() => { setSelectedSchoolId(watchSchool); }, [watchSchool]);
+
+  const paymentInfo = PAYMENT_INFO[watchCountry as keyof typeof PAYMENT_INFO] || PAYMENT_INFO.Nigeria;
 
   const uploadFile = async (file: File, path: string) => {
     const { data, error } = await supabase.storage.from("vendor-media").upload(path, file, { upsert: true });
@@ -75,7 +90,6 @@ const VendorRegistration = () => {
     setIsSubmitting(true);
 
     try {
-      // 1. Create vendor listing (pending approval)
       const { data: vendor, error: vendorError } = await supabase
         .from("vendors")
         .insert({
@@ -86,14 +100,14 @@ const VendorRegistration = () => {
           contact_number: data.contact_number,
           school_id: data.school_id,
           campus_location_id: data.campus_location_id || null,
+          country: data.country,
           is_approved: false,
-        })
+        } as any)
         .select()
         .single();
 
       if (vendorError) throw vendorError;
 
-      // 2. Upload vendor photo, ID document & create private details
       let vendorPhotoUrl = null;
       if (vendorPhoto) {
         vendorPhotoUrl = await uploadFile(vendorPhoto, `${user.id}/vendor-photo-${Date.now()}`);
@@ -117,7 +131,6 @@ const VendorRegistration = () => {
 
       if (privateError) throw privateError;
 
-      // 3. Upload product images
       for (let i = 0; i < productImages.length; i++) {
         const url = await uploadFile(productImages[i], `${user.id}/product-${Date.now()}-${i}`);
         await supabase.from("vendor_images").insert({
@@ -125,14 +138,13 @@ const VendorRegistration = () => {
         });
       }
 
-      // 4. Assign vendor role
       await supabase.from("user_roles").upsert({
         user_id: user.id, role: "vendor" as any, school_id: data.school_id,
       });
 
       toast({
         title: "Registration submitted!",
-        description: "Your listing is pending admin approval. You'll be notified once approved.",
+        description: "Your listing is pending approval. Complete payment to activate your vendor space.",
       });
 
       navigate("/vendor-dashboard");
@@ -151,6 +163,22 @@ const VendorRegistration = () => {
           <h1 className="text-3xl font-bold mb-2">Register Your Business</h1>
           <p className="text-muted-foreground mb-8">List your products or services on your campus marketplace. Your registration will be reviewed by the campus admin.</p>
 
+          {/* Payment Info Banner */}
+          <Card className="mb-6 border-accent/50 bg-accent/5">
+            <CardContent className="p-4">
+              <h3 className="font-semibold text-foreground mb-2">💳 Registration Fee: {paymentInfo.amount}</h3>
+              <p className="text-sm text-muted-foreground mb-2">
+                To activate your vendor space, complete payment to:
+              </p>
+              <pre className="text-sm bg-muted/50 p-3 rounded-lg whitespace-pre-wrap font-mono text-foreground">
+                {paymentInfo.details}
+              </pre>
+              <p className="text-xs text-muted-foreground mt-2">
+                After registration, your account will be activated once payment is verified by admin.
+              </p>
+            </CardContent>
+          </Card>
+
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               {/* Public Info */}
@@ -160,6 +188,19 @@ const VendorRegistration = () => {
                   <CardDescription>This info will be visible to all users.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {/* Country Selection */}
+                  <FormField control={form.control} name="country" render={({ field }) => (
+                    <FormItem><FormLabel>Country</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl><SelectTrigger><SelectValue placeholder="Select country" /></SelectTrigger></FormControl>
+                        <SelectContent>
+                          <SelectItem value="Nigeria">🇳🇬 Nigeria</SelectItem>
+                          <SelectItem value="Ghana">🇬🇭 Ghana</SelectItem>
+                        </SelectContent>
+                      </Select><FormMessage />
+                    </FormItem>
+                  )} />
+
                   <FormField control={form.control} name="business_name" render={({ field }) => (
                     <FormItem><FormLabel>Business Name</FormLabel><FormControl><Input placeholder="e.g. Jane's Smoothies" {...field} /></FormControl><FormMessage /></FormItem>
                   )} />
@@ -247,7 +288,6 @@ const VendorRegistration = () => {
                     </div>
                   </div>
 
-                  {/* Valid ID Upload */}
                   <div>
                     <Label className="flex items-center gap-1">
                       Valid ID Document <span className="text-destructive">*</span>

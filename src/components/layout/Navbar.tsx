@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Menu, X, ShoppingBag, Search, Film, LogOut, Plus } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -26,6 +27,23 @@ const Navbar = () => {
       setIsApprovedVendor(!!data);
     };
     check();
+
+    // Listen for realtime vendor approval
+    const channel = supabase
+      .channel("vendor-approval-navbar")
+      .on("postgres_changes", {
+        event: "UPDATE",
+        schema: "public",
+        table: "vendors",
+        filter: `user_id=eq.${user.id}`,
+      }, (payload) => {
+        if (payload.new?.is_approved) {
+          setIsApprovedVendor(true);
+        }
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [user]);
 
   return (
@@ -58,6 +76,7 @@ const Navbar = () => {
           </div>
 
           <div className="hidden md:flex items-center gap-3">
+            <ThemeToggle />
             {user ? (
               <>
                 {isApprovedVendor ? (
@@ -79,15 +98,18 @@ const Navbar = () => {
                   <Link to="/login">Sign In</Link>
                 </Button>
                 <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90" asChild>
-                  <Link to="/signup">Get Started</Link>
+                  <Link to="/signup">Sign Up</Link>
                 </Button>
               </>
             )}
           </div>
 
-          <button onClick={() => setIsOpen(!isOpen)} className="md:hidden p-2 rounded-lg hover:bg-secondary transition-colors">
-            {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
+          <div className="flex items-center gap-2 md:hidden">
+            <ThemeToggle />
+            <button onClick={() => setIsOpen(!isOpen)} className="p-2 rounded-lg hover:bg-secondary transition-colors">
+              {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
+          </div>
         </div>
 
         {isOpen && (
@@ -121,7 +143,7 @@ const Navbar = () => {
                 ) : (
                   <>
                     <Button variant="outline" asChild className="w-full"><Link to="/login">Sign In</Link></Button>
-                    <Button className="w-full bg-accent text-accent-foreground hover:bg-accent/90" asChild><Link to="/signup">Get Started</Link></Button>
+                    <Button className="w-full bg-accent text-accent-foreground hover:bg-accent/90" asChild><Link to="/signup">Sign Up</Link></Button>
                   </>
                 )}
               </div>

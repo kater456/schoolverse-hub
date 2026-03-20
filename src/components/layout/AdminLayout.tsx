@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import ThemeToggle from "@/components/ThemeToggle";
 import {
   LayoutDashboard, Users, GraduationCap, MapPin, Star,
   LogOut, ShoppingBag, BarChart3, UserCog, Megaphone,
@@ -53,7 +54,11 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
             );
           })}
         </nav>
-        <div className="p-3 border-t border-sidebar-border">
+        <div className="p-3 border-t border-sidebar-border space-y-1">
+          <div className="flex items-center justify-between px-3 py-1">
+            <span className="text-xs text-sidebar-foreground/50">Theme</span>
+            <ThemeToggle />
+          </div>
           <Button variant="ghost" className="w-full justify-start gap-2 text-sidebar-foreground/70" onClick={signOut}>
             <LogOut className="h-4 w-4" />
             Sign Out
