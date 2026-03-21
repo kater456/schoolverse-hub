@@ -248,6 +248,7 @@ const VendorProfile = () => {
                     <ShieldCheck className="h-3 w-3 mr-1" /> Verified
                   </Badge>
                 )}
+              </div>
               <div className="flex flex-wrap gap-2 mb-4">
                 <Badge variant="secondary">{vendor.category}</Badge>
                 {vendor.schools?.name && <Badge variant="outline">🎓 {vendor.schools.name}</Badge>}
