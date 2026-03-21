@@ -311,55 +311,96 @@ const VendorDashboard = () => {
           </TabsContent>
 
           <TabsContent value="profile">
-            <Card className="border-border/50">
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <User className="h-4 w-4" /> Profile Settings
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <Label>Business Name</Label>
-                  <Input value={vendor.business_name} disabled className="bg-muted" />
-                  <p className="text-xs text-muted-foreground">Contact admin to change your business name.</p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Contact Number</Label>
-                  <div className="flex gap-2">
+            <div className="space-y-6">
+              {/* Share Link & QR Code */}
+              <Card className="border-border/50">
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Share2 className="h-4 w-4" /> Share Your Business
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center gap-2">
                     <Input
-                      value={editContact}
-                      onChange={(e) => setEditContact(e.target.value)}
-                      placeholder="+234..."
-                      disabled={contactEditsThisMonth >= 3}
+                      value={`${window.location.origin}/vendor/${vendor.id}`}
+                      readOnly
+                      className="bg-muted text-sm"
                     />
-                    <Button
-                      size="sm"
-                      onClick={saveContact}
-                      disabled={savingContact || contactEditsThisMonth >= 3 || editContact === vendor.contact_number}
-                    >
-                      {savingContact ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
-                      Save
+                    <Button size="sm" variant="outline" onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/vendor/${vendor.id}`);
+                      toast({ title: "Link copied!" });
+                    }}>
+                      <Copy className="h-4 w-4" />
                     </Button>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    {contactEditsThisMonth >= 3
-                      ? "You've reached the maximum 3 edits this month."
-                      : `${3 - contactEditsThisMonth} edit(s) remaining this month.`}
-                  </p>
-                </div>
+                  <div className="flex flex-col items-center gap-2 p-4 bg-white rounded-lg border border-border/50">
+                    <QRCodeSVG
+                      value={`${window.location.origin}/vendor/${vendor.id}`}
+                      size={160}
+                      level="M"
+                      includeMargin
+                    />
+                    <p className="text-xs text-muted-foreground">Scan to visit your business page</p>
+                  </div>
+                </CardContent>
+              </Card>
 
-                <div className="space-y-2">
-                  <Label>Category</Label>
-                  <Input value={vendor.category} disabled className="bg-muted" />
-                </div>
+              {/* Profile Settings */}
+              <Card className="border-border/50">
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <User className="h-4 w-4" /> Profile Settings
+                    {vendor.is_verified && (
+                      <Badge className="bg-primary/10 text-primary text-xs ml-2">
+                        <ShieldCheck className="h-3 w-3 mr-1" /> Verified
+                      </Badge>
+                    )}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-2">
+                    <Label>Business Name</Label>
+                    <Input value={vendor.business_name} disabled className="bg-muted" />
+                    <p className="text-xs text-muted-foreground">Contact admin to change your business name.</p>
+                  </div>
 
-                <div className="space-y-2">
-                  <Label>Description</Label>
-                  <Input value={vendor.description || "No description"} disabled className="bg-muted" />
-                </div>
-              </CardContent>
-            </Card>
+                  <div className="space-y-2">
+                    <Label>Contact Number</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        value={editContact}
+                        onChange={(e) => setEditContact(e.target.value)}
+                        placeholder="+234..."
+                        disabled={contactEditsThisMonth >= 3}
+                      />
+                      <Button
+                        size="sm"
+                        onClick={saveContact}
+                        disabled={savingContact || contactEditsThisMonth >= 3 || editContact === vendor.contact_number}
+                      >
+                        {savingContact ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+                        Save
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {contactEditsThisMonth >= 3
+                        ? "You've reached the maximum 3 edits this month."
+                        : `${3 - contactEditsThisMonth} edit(s) remaining this month.`}
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Category</Label>
+                    <Input value={vendor.category} disabled className="bg-muted" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Description</Label>
+                    <Input value={vendor.description || "No description"} disabled className="bg-muted" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="orders">
