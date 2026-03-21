@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { MapPin, Phone, MessageCircle, Heart, MessageSquare, Eye, Send, Loader2, Star } from "lucide-react";
+import { MapPin, Phone, MessageCircle, Heart, MessageSquare, Eye, Send, Loader2, Star, ShieldCheck } from "lucide-react";
 
 const VendorProfile = () => {
   const { id } = useParams<{ id: string }>();
