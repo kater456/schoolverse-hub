@@ -77,7 +77,7 @@ const VerifyEmail = () => {
 
       // Redirect to landing page after a brief delay
       setTimeout(() => {
-        navigate("/");
+        navigate("/login");
       }, 2000);
     } catch (err: any) {
       setIsLoading(false);
