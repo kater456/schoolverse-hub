@@ -13,8 +13,9 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Eye, Heart, MessageSquare, Phone, ShoppingBag,
   BarChart3, Star, LogOut, Film, Loader2, CreditCard, CheckCircle, Package,
-  User, Camera, Save,
+  User, Camera, Save, Share2, QrCode, ShieldCheck, Copy,
 } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import FeaturedPaymentModal from "@/components/vendor/FeaturedPaymentModal";
 import VendorProductManager from "@/components/vendor/VendorProductManager";
 import VendorVideoManager from "@/components/vendor/VendorVideoManager";
