@@ -243,7 +243,11 @@ const VendorProfile = () => {
                   <AvatarFallback className="bg-accent/10 text-accent">{vendor.business_name?.charAt(0) || "V"}</AvatarFallback>
                 </Avatar>
                 <h1 className="text-xl sm:text-2xl font-bold text-foreground">{vendor.business_name}</h1>
-              </div>
+                {vendor.is_verified && (
+                  <Badge className="bg-primary/10 text-primary text-xs">
+                    <ShieldCheck className="h-3 w-3 mr-1" /> Verified
+                  </Badge>
+                )}
               <div className="flex flex-wrap gap-2 mb-4">
                 <Badge variant="secondary">{vendor.category}</Badge>
                 {vendor.schools?.name && <Badge variant="outline">🎓 {vendor.schools.name}</Badge>}
