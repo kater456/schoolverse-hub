@@ -253,6 +253,7 @@ export type Database = {
           featured_reels_enabled: boolean | null
           id: string
           maintenance_mode: boolean | null
+          paystack_required: boolean | null
           platform_name: string | null
           support_email: string | null
           support_phone: string | null
@@ -265,6 +266,7 @@ export type Database = {
           featured_reels_enabled?: boolean | null
           id?: string
           maintenance_mode?: boolean | null
+          paystack_required?: boolean | null
           platform_name?: string | null
           support_email?: string | null
           support_phone?: string | null
@@ -277,6 +279,7 @@ export type Database = {
           featured_reels_enabled?: boolean | null
           id?: string
           maintenance_mode?: boolean | null
+          paystack_required?: boolean | null
           platform_name?: string | null
           support_email?: string | null
           support_phone?: string | null
@@ -1045,6 +1048,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           is_approved: boolean | null
+          is_verified: boolean | null
           messaging_enabled: boolean | null
           reels_enabled: boolean | null
           school_id: string
@@ -1062,6 +1066,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_approved?: boolean | null
+          is_verified?: boolean | null
           messaging_enabled?: boolean | null
           reels_enabled?: boolean | null
           school_id: string
@@ -1079,6 +1084,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_approved?: boolean | null
+          is_verified?: boolean | null
           messaging_enabled?: boolean | null
           reels_enabled?: boolean | null
           school_id?: string
