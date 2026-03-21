@@ -3,10 +3,14 @@ import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/layout/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, ShoppingBag, Star, Clock, DollarSign, TrendingUp, Activity } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { Users, ShoppingBag, Star, Clock, DollarSign, TrendingUp, Activity, CreditCard } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 const AdminDashboard = () => {
+  const { toast } = useToast();
   const [stats, setStats] = useState({
     totalVendors: 0,
     pendingVendors: 0,
@@ -16,15 +20,18 @@ const AdminDashboard = () => {
   });
   const [userGrowth, setUserGrowth] = useState<any[]>([]);
   const [activityFeed, setActivityFeed] = useState<any[]>([]);
+  const [paystackRequired, setPaystackRequired] = useState(false);
+  const [settingsId, setSettingsId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchAll = async () => {
-      const [vendors, pending, featured, profiles, activityLog] = await Promise.all([
+      const [vendors, pending, featured, profiles, activityLog, platformSettings] = await Promise.all([
         supabase.from("vendors").select("id", { count: "exact", head: true }),
         supabase.from("vendors").select("id", { count: "exact", head: true }).eq("is_approved", false),
         supabase.from("featured_listings").select("amount", { count: "exact" }).eq("payment_status", "confirmed"),
         supabase.from("profiles").select("created_at").order("created_at", { ascending: true }),
         supabase.from("admin_activity_log").select("*").order("created_at", { ascending: false }).limit(15),
+        supabase.from("platform_settings").select("id, paystack_required").single(),
       ]);
 
       const activeCount = (vendors.count || 0) - (pending.count || 0);
@@ -38,7 +45,11 @@ const AdminDashboard = () => {
         revenue,
       });
 
-      // Build user growth data by month
+      if (platformSettings.data) {
+        setPaystackRequired((platformSettings.data as any).paystack_required || false);
+        setSettingsId(platformSettings.data.id);
+      }
+
       const monthMap = new Map<string, number>();
       (profiles.data || []).forEach((p: any) => {
         const d = new Date(p.created_at);
@@ -54,11 +65,24 @@ const AdminDashboard = () => {
         return { month: label, users: cumulative, newUsers: count };
       });
       setUserGrowth(growthData);
-
       setActivityFeed(activityLog.data || []);
     };
     fetchAll();
   }, []);
+
+  const togglePaystack = async (enabled: boolean) => {
+    if (!settingsId) return;
+    const { error } = await supabase
+      .from("platform_settings")
+      .update({ paystack_required: enabled } as any)
+      .eq("id", settingsId);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      setPaystackRequired(enabled);
+      toast({ title: enabled ? "Paystack payment enabled" : "Paystack payment disabled", description: enabled ? "Nigerian vendors will now pay via Paystack during registration." : "Payment requirement removed from signup flow." });
+    }
+  };
 
   const cards = [
     { title: "Total Vendors", value: stats.totalVendors, icon: Users, color: "text-primary" },
@@ -79,6 +103,21 @@ const AdminDashboard = () => {
   return (
     <AdminLayout>
       <h1 className="text-2xl font-bold mb-6">Admin Dashboard</h1>
+
+      {/* Paystack Control */}
+      <Card className="border-border/50 mb-6">
+        <CardContent className="p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <CreditCard className="h-5 w-5 text-primary" />
+            <div>
+              <Label className="text-sm font-medium">Paystack Auto-Payment (Nigeria)</Label>
+              <p className="text-xs text-muted-foreground">When enabled, Nigerian vendors must pay ₦1,200 via Paystack during registration for instant activation.</p>
+            </div>
+          </div>
+          <Switch checked={paystackRequired} onCheckedChange={togglePaystack} />
+        </CardContent>
+      </Card>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         {cards.map((card) => (
           <Card key={card.title} className="border-border/50">
@@ -94,7 +133,6 @@ const AdminDashboard = () => {
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6 mt-6">
-        {/* User Growth Area Chart */}
         <Card className="border-border/50">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
@@ -116,14 +154,7 @@ const AdminDashboard = () => {
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
                   <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--background))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px",
-                      fontSize: "12px",
-                    }}
-                  />
+                  <Tooltip contentStyle={{ backgroundColor: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }} />
                   <Area type="monotone" dataKey="users" stroke="hsl(var(--accent))" fillOpacity={1} fill="url(#colorUsers)" strokeWidth={2} />
                 </AreaChart>
               </ResponsiveContainer>
@@ -131,7 +162,6 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Activity Feed */}
         <Card className="border-border/50">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">

@@ -37,22 +37,18 @@ const Index = () => {
       const { data } = await supabase
         .from("schools")
         .select("id, name, logo_url, address")
-        .or("payment_confirmed.eq.true,trial_ends_at.gt.now()")
         .order("name");
       setSchools(data || []);
       setLoadingSchools(false);
     };
     fetchSchools();
 
-    // Realtime: listen for vendor/ad changes
     const channel = supabase
       .channel("homepage-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "vendors" }, () => {
         fetchSchools();
       })
-      .on("postgres_changes", { event: "*", schema: "public", table: "platform_ads" }, () => {
-        // Ad popup handles its own state; this is for future homepage ad banners
-      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "platform_ads" }, () => {})
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
@@ -104,11 +100,11 @@ const Index = () => {
           </div>
         </section>
 
-        {/* Approved Schools */}
+        {/* All Schools */}
         <section className="py-16 px-4 bg-muted/30">
           <div className="container mx-auto">
             <h2 className="text-2xl md:text-3xl font-bold text-center mb-2">Schools on Campus Market</h2>
-            <p className="text-muted-foreground text-center mb-8">Verified campuses currently on the platform</p>
+            <p className="text-muted-foreground text-center mb-8">Campuses currently on the platform</p>
             {loadingSchools ? (
               <div className="flex justify-center py-8">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -160,7 +156,7 @@ const Index = () => {
           </div>
         </section>
 
-        {/* How It Works - Interactive Accordion */}
+        {/* How It Works */}
         <section className="py-16 px-4 bg-muted/50">
           <div className="container mx-auto max-w-2xl">
             <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">How It Works</h2>

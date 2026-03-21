@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { MapPin, Phone, MessageCircle, Heart, MessageSquare, Eye, Send, Loader2, Star } from "lucide-react";
+import { MapPin, Phone, MessageCircle, Heart, MessageSquare, Eye, Send, Loader2, Star, ShieldCheck } from "lucide-react";
 
 const VendorProfile = () => {
   const { id } = useParams<{ id: string }>();
@@ -243,6 +243,11 @@ const VendorProfile = () => {
                   <AvatarFallback className="bg-accent/10 text-accent">{vendor.business_name?.charAt(0) || "V"}</AvatarFallback>
                 </Avatar>
                 <h1 className="text-xl sm:text-2xl font-bold text-foreground">{vendor.business_name}</h1>
+                {vendor.is_verified && (
+                  <Badge className="bg-primary/10 text-primary text-xs">
+                    <ShieldCheck className="h-3 w-3 mr-1" /> Verified
+                  </Badge>
+                )}
               </div>
               <div className="flex flex-wrap gap-2 mb-4">
                 <Badge variant="secondary">{vendor.category}</Badge>

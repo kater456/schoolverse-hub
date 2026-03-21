@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { CATEGORIES } from "@/lib/constants";
-import { Loader2, Upload, FileCheck } from "lucide-react";
+import { Loader2, Upload, FileCheck, ShieldCheck } from "lucide-react";
 
 const vendorSchema = z.object({
   business_name: z.string().min(2, "Business name is required").max(100),
@@ -37,13 +37,15 @@ type VendorFormData = z.infer<typeof vendorSchema>;
 const PAYMENT_INFO = {
   Nigeria: {
     amount: "₦1,200",
-    details: "Account Number: 09016103308\nAccount Name: OP Katia Cafe",
+    details: "Bank: OPay\nAccount Number: 09016103308\nAccount Name: Kater Akase",
   },
   Ghana: {
-    amount: "GH₵15",
-    details: "MoMo Number: 0550588437\nName: Joseph Nabuja",
+    amount: "Free",
+    details: "No payment required for Ghana vendors at this time.",
   },
 };
+
+const MAX_ID_SIZE_MB = 5;
 
 const VendorRegistration = () => {
   const { user } = useAuth();
@@ -79,14 +81,18 @@ const VendorRegistration = () => {
     return urlData.publicUrl;
   };
 
-  const onSubmit = async (data: VendorFormData) => {
-    if (!user) return;
-
-    if (!idDocument) {
-      toast({ title: "ID Required", description: "Please upload a valid ID document.", variant: "destructive" });
+  const handleIdDocumentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > MAX_ID_SIZE_MB * 1024 * 1024) {
+      toast({ title: "File too large", description: `ID document must be under ${MAX_ID_SIZE_MB}MB.`, variant: "destructive" });
       return;
     }
+    setIdDocument(file);
+  };
 
+  const onSubmit = async (data: VendorFormData) => {
+    if (!user) return;
     setIsSubmitting(true);
 
     try {
@@ -144,7 +150,9 @@ const VendorRegistration = () => {
 
       toast({
         title: "Registration submitted!",
-        description: "Your listing is pending approval. Complete payment to activate your vendor space.",
+        description: data.country === "Ghana"
+          ? "Your listing is pending approval by the campus admin."
+          : "Your listing is pending approval. Complete payment to activate your vendor space.",
       });
 
       navigate("/vendor-dashboard");
@@ -163,21 +171,34 @@ const VendorRegistration = () => {
           <h1 className="text-3xl font-bold mb-2">Register Your Business</h1>
           <p className="text-muted-foreground mb-8">List your products or services on your campus marketplace. Your registration will be reviewed by the campus admin.</p>
 
-          {/* Payment Info Banner */}
-          <Card className="mb-6 border-accent/50 bg-accent/5">
-            <CardContent className="p-4">
-              <h3 className="font-semibold text-foreground mb-2">💳 Registration Fee: {paymentInfo.amount}</h3>
-              <p className="text-sm text-muted-foreground mb-2">
-                To activate your vendor space, complete payment to:
-              </p>
-              <pre className="text-sm bg-muted/50 p-3 rounded-lg whitespace-pre-wrap font-mono text-foreground">
-                {paymentInfo.details}
-              </pre>
-              <p className="text-xs text-muted-foreground mt-2">
-                After registration, your account will be activated once payment is verified by admin.
-              </p>
-            </CardContent>
-          </Card>
+          {/* Payment Info Banner - only for Nigeria */}
+          {watchCountry === "Nigeria" && (
+            <Card className="mb-6 border-accent/50 bg-accent/5">
+              <CardContent className="p-4">
+                <h3 className="font-semibold text-foreground mb-2">💳 Registration Fee: {paymentInfo.amount}</h3>
+                <p className="text-sm text-muted-foreground mb-2">
+                  To activate your vendor space, complete payment to:
+                </p>
+                <pre className="text-sm bg-muted/50 p-3 rounded-lg whitespace-pre-wrap font-mono text-foreground">
+                  {paymentInfo.details}
+                </pre>
+                <p className="text-xs text-muted-foreground mt-2">
+                  After registration, your account will be activated once payment is verified by admin.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
+          {watchCountry === "Ghana" && (
+            <Card className="mb-6 border-success/50 bg-success/5">
+              <CardContent className="p-4">
+                <h3 className="font-semibold text-foreground mb-2">🇬🇭 Ghana — Free Registration</h3>
+                <p className="text-sm text-muted-foreground">
+                  No payment is required for Ghana vendors at this time. Your account will be reviewed and activated by the campus admin.
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -290,9 +311,11 @@ const VendorRegistration = () => {
 
                   <div>
                     <Label className="flex items-center gap-1">
-                      Valid ID Document <span className="text-destructive">*</span>
+                      <ShieldCheck className="h-4 w-4 text-primary" />
+                      Valid ID Document
+                      <span className="text-xs text-muted-foreground ml-1">(Optional — required for Verified Badge)</span>
                     </Label>
-                    <p className="text-xs text-muted-foreground mb-2">Upload a clear photo of your student ID, national ID, or any government-issued ID</p>
+                    <p className="text-xs text-muted-foreground mb-2">Upload a clear photo of your student ID, national ID, or any government-issued ID (max {MAX_ID_SIZE_MB}MB)</p>
                     <div className="mt-1">
                       <label className={`flex items-center justify-center gap-2 border-2 border-dashed rounded-lg p-4 cursor-pointer transition-colors ${
                         idDocument ? "border-success bg-success/5" : "border-border hover:border-accent"
@@ -300,10 +323,10 @@ const VendorRegistration = () => {
                         {idDocument ? (
                           <><FileCheck className="h-4 w-4 text-success" /><span className="text-sm text-success font-medium">{idDocument.name}</span></>
                         ) : (
-                          <><Upload className="h-4 w-4 text-muted-foreground" /><span className="text-sm text-muted-foreground">Upload valid ID</span></>
+                          <><Upload className="h-4 w-4 text-muted-foreground" /><span className="text-sm text-muted-foreground">Upload valid ID (optional)</span></>
                         )}
                         <input type="file" accept="image/*,.pdf" className="hidden"
-                          onChange={(e) => setIdDocument(e.target.files?.[0] || null)} />
+                          onChange={handleIdDocumentChange} />
                       </label>
                     </div>
                   </div>
@@ -320,7 +343,7 @@ const VendorRegistration = () => {
 
               <Button type="submit" size="lg" className="w-full bg-accent text-accent-foreground hover:bg-accent/90" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Submit for Approval
+                Sign Up
               </Button>
             </form>
           </Form>

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Check, X, Eye, Loader2, Star, FileText } from "lucide-react";
+import { Check, X, Eye, Loader2, Star, FileText, ShieldCheck, Globe } from "lucide-react";
 
 const ManageVendors = () => {
   const { vendors, isLoading, refetch } = useAllVendors();
@@ -35,6 +35,16 @@ const ManageVendors = () => {
     }
   };
 
+  const toggleVerified = async (id: string, currentStatus: boolean) => {
+    const { error } = await supabase.from("vendors").update({ is_verified: !currentStatus } as any).eq("id", id);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: !currentStatus ? "Vendor verified" : "Verification removed" });
+      refetch();
+    }
+  };
+
   const privateDetails = selectedVendor?.vendor_private_details?.[0];
 
   return (
@@ -50,6 +60,7 @@ const ManageVendors = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Business</TableHead>
+                  <TableHead>Country</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead>School</TableHead>
                   <TableHead>ID Verified</TableHead>
@@ -62,7 +73,18 @@ const ManageVendors = () => {
                   const pd = v.vendor_private_details?.[0];
                   return (
                     <TableRow key={v.id}>
-                      <TableCell className="font-medium">{v.business_name}</TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-1">
+                          {v.business_name}
+                          {v.is_verified && <ShieldCheck className="h-4 w-4 text-primary" />}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-xs">
+                          <Globe className="h-3 w-3 mr-1" />
+                          {v.country || "Nigeria"}
+                        </Badge>
+                      </TableCell>
                       <TableCell>{v.category}</TableCell>
                       <TableCell>{v.schools?.name || "—"}</TableCell>
                       <TableCell>
@@ -86,6 +108,12 @@ const ManageVendors = () => {
                             <Check className="h-4 w-4" />
                           </Button>
                         )}
+                        {v.is_active && pd?.id_document_url && (
+                          <Button size="icon" variant="ghost" className="text-primary" onClick={() => toggleVerified(v.id, !!v.is_verified)}
+                            title={v.is_verified ? "Remove verification" : "Grant verified badge"}>
+                            <ShieldCheck className="h-4 w-4" />
+                          </Button>
+                        )}
                         {v.is_active && (
                           <Button size="icon" variant="ghost" className="text-destructive" onClick={() => removeVendor(v.id)}>
                             <X className="h-4 w-4" />
@@ -96,7 +124,7 @@ const ManageVendors = () => {
                   );
                 })}
                 {vendors.length === 0 && (
-                  <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No vendors yet</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No vendors yet</TableCell></TableRow>
                 )}
               </TableBody>
             </Table>
@@ -105,18 +133,20 @@ const ManageVendors = () => {
       )}
 
       <Dialog open={!!selectedVendor} onOpenChange={() => setSelectedVendor(null)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{selectedVendor?.business_name}</DialogTitle></DialogHeader>
           {selectedVendor && (
             <div className="space-y-4">
               <div>
                 <h4 className="font-semibold text-sm mb-1">Public Info</h4>
                 <div className="text-sm space-y-1 text-muted-foreground">
+                  <p><strong>Country:</strong> {selectedVendor.country || "Nigeria"}</p>
                   <p><strong>Category:</strong> {selectedVendor.category}</p>
                   <p><strong>Description:</strong> {selectedVendor.description || "—"}</p>
                   <p><strong>Contact:</strong> {selectedVendor.contact_number}</p>
                   <p><strong>School:</strong> {selectedVendor.schools?.name}</p>
                   <p><strong>Location:</strong> {selectedVendor.campus_locations?.name || "—"}</p>
+                  <p><strong>Verified:</strong> {selectedVendor.is_verified ? "✅ Yes" : "❌ No"}</p>
                 </div>
               </div>
 
