@@ -173,6 +173,7 @@ const VendorDashboard = () => {
   }
 
   if (!vendor.is_approved) {
+    const vendorCountry = vendor.country || "Nigeria";
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4 max-w-md px-4">
@@ -181,15 +182,22 @@ const VendorDashboard = () => {
           </div>
           <h2 className="text-xl font-semibold">Your account is pending approval</h2>
           <p className="text-muted-foreground">
-            Please complete payment to gain access to your vendor dashboard. Once payment is verified by admin, your account will be activated automatically.
+            {vendorCountry === "Ghana"
+              ? "Your registration is being reviewed by the campus admin. You'll get access once approved."
+              : "Please complete payment to gain access to your vendor dashboard. Once payment is verified by admin, your account will be activated automatically."
+            }
           </p>
-          <div className="bg-muted/50 p-4 rounded-lg text-left">
-            <p className="text-sm font-medium mb-2">Payment Details:</p>
-            <p className="text-sm text-muted-foreground">
-              🇳🇬 Nigeria: ₦1,200 → 09016103308 (OP Katia Cafe)<br />
-              🇬🇭 Ghana: GH₵15 → 0550588437 (Joseph Nabuja)
-            </p>
-          </div>
+          {vendorCountry === "Nigeria" && (
+            <div className="bg-muted/50 p-4 rounded-lg text-left">
+              <p className="text-sm font-medium mb-2">Payment Details:</p>
+              <p className="text-sm text-muted-foreground">
+                🇳🇬 Nigeria: ₦1,200<br />
+                Bank: OPay<br />
+                Account Number: 09016103308<br />
+                Account Name: Kater Akase
+              </p>
+            </div>
+          )}
           <p className="text-xs text-muted-foreground">
             This page will update automatically once you're approved.
           </p>
