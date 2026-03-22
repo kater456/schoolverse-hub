@@ -208,6 +208,18 @@ const SubAdminDashboard = () => {
           </p>
         </div>
 
+        <Tabs defaultValue="overview">
+          <TabsList>
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="vendors">Manage Vendors</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="vendors" className="mt-4">
+            <ManageVendorsSubAdmin />
+          </TabsContent>
+
+          <TabsContent value="overview" className="mt-4 space-y-6">
+
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
           {statCards.map((s) => (
             <Card key={s.title} className="border-border/50">
