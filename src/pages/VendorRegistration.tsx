@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { CATEGORIES } from "@/lib/constants";
-import { Loader2, Upload, FileCheck, ShieldCheck } from "lucide-react";
+import { Loader2, Upload, FileCheck, ShieldCheck, CheckCircle2 } from "lucide-react";
 
 const vendorSchema = z.object({
   business_name: z.string().min(2, "Business name is required").max(100),
@@ -53,6 +53,8 @@ const VendorRegistration = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasExistingApplication, setHasExistingApplication] = useState(false);
+  const [isCheckingExisting, setIsCheckingExisting] = useState(true);
   const [selectedSchoolId, setSelectedSchoolId] = useState<string>("");
   const { locations } = useCampusLocations(selectedSchoolId || undefined);
   const [productImages, setProductImages] = useState<File[]>([]);
@@ -67,6 +69,19 @@ const VendorRegistration = () => {
       residential_location: "", personal_contact: "",
     },
   });
+
+  // Check if user already has a vendor application
+  useEffect(() => {
+    const checkExisting = async () => {
+      if (!user) { setIsCheckingExisting(false); return; }
+      const { data } = await supabase.from("vendors").select("id").eq("user_id", user.id).limit(1);
+      if (data && data.length > 0) {
+        setHasExistingApplication(true);
+      }
+      setIsCheckingExisting(false);
+    };
+    checkExisting();
+  }, [user]);
 
   const watchSchool = form.watch("school_id");
   const watchCountry = form.watch("country");
@@ -148,20 +163,53 @@ const VendorRegistration = () => {
         user_id: user.id, role: "vendor" as any, school_id: data.school_id,
       });
 
-      toast({
-        title: "Registration submitted!",
-        description: data.country === "Ghana"
-          ? "Your listing is pending approval by the campus admin."
-          : "Your listing is pending approval. Complete payment to activate your vendor space.",
-      });
+      setHasExistingApplication(true);
 
-      navigate("/vendor-dashboard");
+      toast({
+        title: "Request sent!",
+        description: "Your vendor application has been submitted successfully. It is now pending admin approval.",
+      });
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  if (isCheckingExisting) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="flex items-center justify-center pt-32">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
+
+  // Already submitted — show success
+  if (hasExistingApplication) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main className="pt-20 pb-16 px-4">
+          <div className="container mx-auto max-w-lg text-center">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-success/20 mb-6 mt-12">
+              <CheckCircle2 className="h-10 w-10 text-success" />
+            </div>
+            <h1 className="text-3xl font-bold mb-4 text-foreground">Request Sent!</h1>
+            <p className="text-muted-foreground mb-6">
+              Your vendor application has been submitted and is pending approval by the campus admin.
+              You'll get access to your vendor dashboard once approved.
+            </p>
+            <Button onClick={() => navigate("/")} variant="outline">
+              Back to Home
+            </Button>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -171,20 +219,13 @@ const VendorRegistration = () => {
           <h1 className="text-3xl font-bold mb-2">Register Your Business</h1>
           <p className="text-muted-foreground mb-8">List your products or services on your campus marketplace. Your registration will be reviewed by the campus admin.</p>
 
-          {/* Payment Info Banner - only for Nigeria */}
           {watchCountry === "Nigeria" && (
             <Card className="mb-6 border-accent/50 bg-accent/5">
               <CardContent className="p-4">
                 <h3 className="font-semibold text-foreground mb-2">💳 Registration Fee: {paymentInfo.amount}</h3>
-                <p className="text-sm text-muted-foreground mb-2">
-                  To activate your vendor space, complete payment to:
-                </p>
-                <pre className="text-sm bg-muted/50 p-3 rounded-lg whitespace-pre-wrap font-mono text-foreground">
-                  {paymentInfo.details}
-                </pre>
-                <p className="text-xs text-muted-foreground mt-2">
-                  After registration, your account will be activated once payment is verified by admin.
-                </p>
+                <p className="text-sm text-muted-foreground mb-2">To activate your vendor space, complete payment to:</p>
+                <pre className="text-sm bg-muted/50 p-3 rounded-lg whitespace-pre-wrap font-mono text-foreground">{paymentInfo.details}</pre>
+                <p className="text-xs text-muted-foreground mt-2">After registration, your account will be activated once payment is verified by admin.</p>
               </CardContent>
             </Card>
           )}
@@ -193,23 +234,19 @@ const VendorRegistration = () => {
             <Card className="mb-6 border-success/50 bg-success/5">
               <CardContent className="p-4">
                 <h3 className="font-semibold text-foreground mb-2">🇬🇭 Ghana — Free Registration</h3>
-                <p className="text-sm text-muted-foreground">
-                  No payment is required for Ghana vendors at this time. Your account will be reviewed and activated by the campus admin.
-                </p>
+                <p className="text-sm text-muted-foreground">No payment is required for Ghana vendors at this time. Your account will be reviewed and activated by the campus admin.</p>
               </CardContent>
             </Card>
           )}
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              {/* Public Info */}
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">Business Information</CardTitle>
                   <CardDescription>This info will be visible to all users.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* Country Selection */}
                   <FormField control={form.control} name="country" render={({ field }) => (
                     <FormItem><FormLabel>Country</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
@@ -221,7 +258,6 @@ const VendorRegistration = () => {
                       </Select><FormMessage />
                     </FormItem>
                   )} />
-
                   <FormField control={form.control} name="business_name" render={({ field }) => (
                     <FormItem><FormLabel>Business Name</FormLabel><FormControl><Input placeholder="e.g. Jane's Smoothies" {...field} /></FormControl><FormMessage /></FormItem>
                   )} />
@@ -257,8 +293,6 @@ const VendorRegistration = () => {
                       </FormItem>
                     )} />
                   )}
-
-                  {/* Product Images */}
                   <div>
                     <Label>Product Photos</Label>
                     <div className="mt-2">
@@ -284,31 +318,26 @@ const VendorRegistration = () => {
                 </CardContent>
               </Card>
 
-              {/* Private Info */}
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">Private Information</CardTitle>
-                  <CardDescription>This info is only visible to campus admins for verification. Not shown publicly.</CardDescription>
+                  <CardDescription>This info is only visible to campus admins for verification.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <FormField control={form.control} name="full_name" render={({ field }) => (
                     <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input placeholder="Your full legal name" {...field} /></FormControl><FormMessage /></FormItem>
                   )} />
-
                   <div>
                     <Label>Your Photo</Label>
                     <div className="mt-2">
                       <label className="flex items-center justify-center gap-2 border-2 border-dashed border-border rounded-lg p-4 cursor-pointer hover:border-accent transition-colors">
                         <Upload className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">
-                          {vendorPhoto ? vendorPhoto.name : "Upload your photo"}
-                        </span>
+                        <span className="text-sm text-muted-foreground">{vendorPhoto ? vendorPhoto.name : "Upload your photo"}</span>
                         <input type="file" accept="image/*" className="hidden"
                           onChange={(e) => setVendorPhoto(e.target.files?.[0] || null)} />
                       </label>
                     </div>
                   </div>
-
                   <div>
                     <Label className="flex items-center gap-1">
                       <ShieldCheck className="h-4 w-4 text-primary" />
@@ -325,16 +354,13 @@ const VendorRegistration = () => {
                         ) : (
                           <><Upload className="h-4 w-4 text-muted-foreground" /><span className="text-sm text-muted-foreground">Upload valid ID (optional)</span></>
                         )}
-                        <input type="file" accept="image/*,.pdf" className="hidden"
-                          onChange={handleIdDocumentChange} />
+                        <input type="file" accept="image/*,.pdf" className="hidden" onChange={handleIdDocumentChange} />
                       </label>
                     </div>
                   </div>
-
                   <FormField control={form.control} name="residential_location" render={({ field }) => (
                     <FormItem><FormLabel>Where You Stay</FormLabel><FormControl><Input placeholder="e.g. Hilltop Hostel, Room 24" {...field} /></FormControl><FormMessage /></FormItem>
                   )} />
-
                   <FormField control={form.control} name="personal_contact" render={({ field }) => (
                     <FormItem><FormLabel>Personal Contact (admin only)</FormLabel><FormControl><Input placeholder="Personal phone number" {...field} /></FormControl><FormMessage /></FormItem>
                   )} />
@@ -343,7 +369,7 @@ const VendorRegistration = () => {
 
               <Button type="submit" size="lg" className="w-full bg-accent text-accent-foreground hover:bg-accent/90" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Sign Up
+                Submit Application
               </Button>
             </form>
           </Form>

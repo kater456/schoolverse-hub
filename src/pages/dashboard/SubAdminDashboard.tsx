@@ -344,6 +344,8 @@ const SubAdminDashboard = () => {
             )}
           </CardContent>
         </Card>
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );
