@@ -11,6 +11,8 @@ import {
   Users, LogOut, Film, Loader2, Star, Calendar, Check, X,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ManageVendorsSubAdmin from "@/pages/admin/ManageVendorsSubAdmin";
 
 const SubAdminDashboard = () => {
   const { user, userRole, signOut } = useAuth();
