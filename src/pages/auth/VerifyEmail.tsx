@@ -17,12 +17,9 @@ const VerifyEmail = () => {
 
   const handleOtpChange = (index: number, value: string) => {
     if (value.length > 1) return;
-    
     const newOtp = [...otp];
     newOtp[index] = value;
     setOtp(newOtp);
-
-    // Auto-focus next input
     if (value && index < 5) {
       const nextInput = document.getElementById(`otp-${index + 1}`);
       nextInput?.focus();
@@ -39,69 +36,42 @@ const VerifyEmail = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const code = otp.join("");
-    
     if (code.length !== 6) {
-      toast({
-        title: "Invalid code",
-        description: "Please enter the complete 6-digit code.",
-        variant: "destructive",
-      });
+      toast({ title: "Invalid code", description: "Please enter the complete 6-digit code.", variant: "destructive" });
       return;
     }
 
     setIsLoading(true);
-
     try {
-      const { data, error } = await supabase.auth.verifyOtp({
-        email,
-        token: code,
-        type: "signup",
-      });
-
+      const { error } = await supabase.auth.verifyOtp({ email, token: code, type: "signup" });
       setIsLoading(false);
 
       if (error) {
-        toast({
-          title: "Verification failed",
-          description: error.message,
-          variant: "destructive",
-        });
+        toast({ title: "Verification failed", description: error.message, variant: "destructive" });
         return;
       }
 
+      // Sign out so user must login fresh
+      await supabase.auth.signOut();
       setIsVerified(true);
-      toast({
-        title: "Email verified successfully!",
-        description: "Welcome to Campus Market!",
-      });
+      toast({ title: "Email verified!", description: "Your email has been verified. Please proceed to login." });
 
-      // Redirect to landing page after a brief delay
       setTimeout(() => {
-        navigate("/login");
-      }, 2000);
+        navigate("/login", { state: { verified: true } });
+      }, 2500);
     } catch (err: any) {
       setIsLoading(false);
-      toast({
-        title: "Error",
-        description: err.message || "Verification failed",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: err.message || "Verification failed", variant: "destructive" });
     }
   };
 
   const handleResend = async () => {
     try {
-      const { error } = await supabase.auth.resend({
-        type: "signup",
-        email,
-      });
+      const { error } = await supabase.auth.resend({ type: "signup", email });
       if (error) {
         toast({ title: "Error", description: error.message, variant: "destructive" });
       } else {
-        toast({
-          title: "Code resent",
-          description: "A new verification code has been sent to your email.",
-        });
+        toast({ title: "Code resent", description: "A new verification code has been sent to your email." });
       }
     } catch {
       toast({ title: "Error", description: "Failed to resend code", variant: "destructive" });
@@ -118,12 +88,18 @@ const VerifyEmail = () => {
           <h1 className="font-display text-3xl font-bold text-foreground mb-4">
             Email Verified!
           </h1>
-          <p className="text-muted-foreground mb-6">
-            Your account has been successfully verified. Welcome to Campus Market!
+          <p className="text-muted-foreground mb-4">
+            Your email has been successfully verified.
           </p>
-          <div className="flex justify-center">
+          <p className="text-sm font-medium text-primary">
+            Redirecting you to login...
+          </p>
+          <div className="flex justify-center mt-4">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
+          <Link to="/login" className="mt-4 inline-block text-sm text-primary hover:underline font-semibold">
+            Proceed to Login →
+          </Link>
         </div>
       </div>
     );
@@ -132,35 +108,32 @@ const VerifyEmail = () => {
   return (
     <div className="min-h-screen flex items-center justify-center p-8 bg-background">
       <div className="w-full max-w-md">
-        {/* Logo */}
         <Link to="/" className="flex items-center justify-center gap-2 mb-8">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/80 shadow-md">
             <GraduationCap className="h-5 w-5 text-primary-foreground" />
           </div>
-          <span className="font-display text-xl font-bold text-foreground">
-            Campus Market
-          </span>
+          <span className="font-display text-xl font-bold text-foreground">Campus Market</span>
         </Link>
 
-        {/* Icon */}
         <div className="flex justify-center mb-6">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10">
             <Mail className="h-8 w-8 text-primary" />
           </div>
         </div>
 
-        {/* Header */}
         <div className="text-center mb-8">
           <h1 className="font-display text-3xl font-bold text-foreground mb-2">
             Verify your email
           </h1>
-          <p className="text-muted-foreground">
-            We've sent a 6-digit code to{" "}
+          <p className="text-muted-foreground mb-2">
+            A verification code has been sent to{" "}
             <span className="font-medium text-foreground">{email}</span>
+          </p>
+          <p className="text-sm text-primary font-medium">
+            📧 Please check your email inbox (and spam folder) for the 6-digit code, then enter it below.
           </p>
         </div>
 
-        {/* OTP Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="flex justify-center gap-3">
             {otp.map((digit, index) => (
@@ -179,47 +152,26 @@ const VerifyEmail = () => {
             ))}
           </div>
 
-          <Button
-            type="submit"
-            variant="hero"
-            size="lg"
-            className="w-full"
-            disabled={isLoading}
-          >
+          <Button type="submit" variant="hero" size="lg" className="w-full" disabled={isLoading}>
             {isLoading ? (
-              <>
-                <Loader2 className="h-5 w-5 animate-spin" />
-                Verifying...
-              </>
+              <><Loader2 className="h-5 w-5 animate-spin" /> Verifying...</>
             ) : (
-              <>
-                Verify Email
-                <ArrowRight className="h-5 w-5" />
-              </>
+              <>Verify Email <ArrowRight className="h-5 w-5" /></>
             )}
           </Button>
         </form>
 
-        {/* Resend */}
         <div className="mt-6 text-center">
           <p className="text-sm text-muted-foreground">
             Didn't receive the code?{" "}
-            <button
-              type="button"
-              onClick={handleResend}
-              className="font-semibold text-primary hover:underline"
-            >
+            <button type="button" onClick={handleResend} className="font-semibold text-primary hover:underline">
               Resend
             </button>
           </p>
         </div>
 
-        {/* Back to Signup */}
         <div className="mt-8 text-center">
-          <Link
-            to="/signup"
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
+          <Link to="/signup" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             ← Back to signup
           </Link>
         </div>

@@ -7,10 +7,12 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Users, ShoppingBag, Star, Clock, DollarSign, TrendingUp, Activity, CreditCard } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 const AdminDashboard = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [stats, setStats] = useState({
     totalVendors: 0,
     pendingVendors: 0,
@@ -85,10 +87,10 @@ const AdminDashboard = () => {
   };
 
   const cards = [
-    { title: "Total Vendors", value: stats.totalVendors, icon: Users, color: "text-primary" },
-    { title: "Pending Approval", value: stats.pendingVendors, icon: Clock, color: "text-orange-500" },
-    { title: "Active Listings", value: stats.activeListings, icon: ShoppingBag, color: "text-success" },
-    { title: "Featured Listings", value: stats.featuredListings, icon: Star, color: "text-accent" },
+    { title: "Total Vendors", value: stats.totalVendors, icon: Users, color: "text-primary", href: "/admin/vendors" },
+    { title: "Pending Approval", value: stats.pendingVendors, icon: Clock, color: "text-orange-500", href: "/admin/vendors" },
+    { title: "Active Listings", value: stats.activeListings, icon: ShoppingBag, color: "text-success", href: "/admin/vendors" },
+    { title: "Featured Listings", value: stats.featuredListings, icon: Star, color: "text-accent", href: "/admin/featured" },
     { title: "Revenue (₦)", value: `₦${stats.revenue.toLocaleString()}`, icon: DollarSign, color: "text-success" },
   ];
 
@@ -120,7 +122,8 @@ const AdminDashboard = () => {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         {cards.map((card) => (
-          <Card key={card.title} className="border-border/50">
+          <Card key={card.title} className={`border-border/50 ${card.href ? "cursor-pointer hover:border-primary/50 transition-colors" : ""}`}
+            onClick={() => card.href && navigate(card.href)}>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">{card.title}</CardTitle>
               <card.icon className={`h-4 w-4 ${card.color}`} />

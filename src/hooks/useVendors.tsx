@@ -15,7 +15,6 @@ export interface Vendor {
   is_active: boolean;
   created_at: string;
   updated_at: string;
-  // Joined data
   school_name?: string;
   campus_location_name?: string;
   images?: { id: string; image_url: string; is_primary: boolean }[];
@@ -49,15 +48,9 @@ export const useVendors = (options?: UseVendorsOptions) => {
       .eq("is_active", true)
       .order("created_at", { ascending: false });
 
-    if (options?.schoolId) {
-      query = query.eq("school_id", options.schoolId);
-    }
-    if (options?.category) {
-      query = query.eq("category", options.category);
-    }
-    if (options?.campusLocationId) {
-      query = query.eq("campus_location_id", options.campusLocationId);
-    }
+    if (options?.schoolId) query = query.eq("school_id", options.schoolId);
+    if (options?.category) query = query.eq("category", options.category);
+    if (options?.campusLocationId) query = query.eq("campus_location_id", options.campusLocationId);
     if (options?.searchQuery) {
       query = query.or(`business_name.ilike.%${options.searchQuery}%,description.ilike.%${options.searchQuery}%,category.ilike.%${options.searchQuery}%`);
     }
@@ -65,7 +58,6 @@ export const useVendors = (options?: UseVendorsOptions) => {
     const { data, error } = await query;
 
     if (!error && data) {
-      // Check featured status for each vendor
       const vendorsWithFeatured = await Promise.all(
         data.map(async (v: any) => {
           const { data: featuredData } = await supabase.rpc("is_vendor_featured", { _vendor_id: v.id });
@@ -79,7 +71,6 @@ export const useVendors = (options?: UseVendorsOptions) => {
         })
       );
 
-      // Sort: featured first
       vendorsWithFeatured.sort((a, b) => {
         if (a.is_featured && !b.is_featured) return -1;
         if (!a.is_featured && b.is_featured) return 1;
@@ -112,7 +103,9 @@ export const useAllVendors = () => {
         schools(name),
         campus_locations(name),
         vendor_images(id, image_url, is_primary),
-        vendor_private_details(*)
+        vendor_private_details(*),
+        vendor_ratings(rating),
+        vendor_comments(id)
       `)
       .order("created_at", { ascending: false });
 
