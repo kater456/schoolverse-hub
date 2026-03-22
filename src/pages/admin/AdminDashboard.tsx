@@ -85,10 +85,10 @@ const AdminDashboard = () => {
   };
 
   const cards = [
-    { title: "Total Vendors", value: stats.totalVendors, icon: Users, color: "text-primary" },
-    { title: "Pending Approval", value: stats.pendingVendors, icon: Clock, color: "text-orange-500" },
-    { title: "Active Listings", value: stats.activeListings, icon: ShoppingBag, color: "text-success" },
-    { title: "Featured Listings", value: stats.featuredListings, icon: Star, color: "text-accent" },
+    { title: "Total Vendors", value: stats.totalVendors, icon: Users, color: "text-primary", href: "/admin/vendors" },
+    { title: "Pending Approval", value: stats.pendingVendors, icon: Clock, color: "text-orange-500", href: "/admin/vendors" },
+    { title: "Active Listings", value: stats.activeListings, icon: ShoppingBag, color: "text-success", href: "/admin/vendors" },
+    { title: "Featured Listings", value: stats.featuredListings, icon: Star, color: "text-accent", href: "/admin/featured" },
     { title: "Revenue (₦)", value: `₦${stats.revenue.toLocaleString()}`, icon: DollarSign, color: "text-success" },
   ];
 
