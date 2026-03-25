@@ -42,9 +42,9 @@ const Footer = () => {
               sell, and grow your educational community.
             </p>
             <div className="space-y-3">
-              <a href="mailto:campusmarket24@gmail.com" className="flex items-center gap-3 text-sm text-primary-foreground/70 hover:text-accent transition-colors">
+              <a href="mailto:contact@campusmarketapp.com" className="flex items-center gap-3 text-sm text-primary-foreground/70 hover:text-accent transition-colors">
                 <Mail className="h-4 w-4 text-accent" />
-                <span>campusmarket24@gmail.com</span>
+                <span>contact@campusmarketapp.com</span>
               </a>
               <a href="tel:+2349016103308" className="flex items-center gap-3 text-sm text-primary-foreground/70 hover:text-accent transition-colors">
                 <Phone className="h-4 w-4 text-accent" />
