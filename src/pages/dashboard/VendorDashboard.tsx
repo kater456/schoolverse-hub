@@ -416,16 +416,16 @@ const VendorDashboard = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center gap-2">
-                    <Input value={`${window.location.origin}/vendor/${vendor.id}`} readOnly className="bg-muted text-sm" />
+                    <Input value={`${window.location.origin}/vendor/${vendor.id}/${vendor.business_name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`} readOnly className="bg-muted text-sm" />
                     <Button size="sm" variant="outline" onClick={() => {
-                      navigator.clipboard.writeText(`${window.location.origin}/vendor/${vendor.id}`);
+                      navigator.clipboard.writeText(`${window.location.origin}/vendor/${vendor.id}/${vendor.business_name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`);
                       toast({ title: "Link copied!" });
                     }}>
                       <Copy className="h-4 w-4" />
                     </Button>
                   </div>
                   <div className="flex flex-col items-center gap-2 p-4 bg-white rounded-lg border border-border/50">
-                    <QRCodeSVG value={`${window.location.origin}/vendor/${vendor.id}`} size={160} level="M" includeMargin />
+                    <QRCodeSVG value={`${window.location.origin}/vendor/${vendor.id}/${vendor.business_name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`} size={160} level="M" includeMargin />
                     <p className="text-xs text-muted-foreground">Scan to visit your business page</p>
                   </div>
                 </CardContent>
