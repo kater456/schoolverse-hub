@@ -28,41 +28,5 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-  <!-- Import Featurebase SDK -->
-<script>!(function(e,t){const a="featurebase-sdk";function n(){if(!t.getElementById(a)){var e=t.createElement("script");(e.id=a),(e.src="https://do.featurebase.app/js/sdk.js"),t.getElementsByTagName("script")[0].parentNode.insertBefore(e,t.getElementsByTagName("script")[0])}}"function"!=typeof e.Featurebase&&(e.Featurebase=function(){(e.Featurebase.q=e.Featurebase.q||[]).push(arguments)}),"complete"===t.readyState||"interactive"===t.readyState?n():t.addEventListener("DOMContentLoaded",n)})(window,document);</script>
-
-<!-- Embed Featurebase -->
-<div data-featurebase-embed></div>
-
-<!-- Initialize Featurebase widget -->
-<script>
-  Featurebase('init_embed_widget', {
-    /* Required - Organization identifier */
-    organization: 'yourorg', // Replace with your organization name (subdomain from your Featurebase workspace URL)
-    
-    embedOptions: {
-      path: '/', // Initial page to load: '/' for feedback board, '/roadmap' for roadmap, '/changelog' for changelog, etc.
-      filters: '', // Query params that can be used for default filters (e.g. 'b=63f827df2d62cb301468aac4&sortBy=upvotes:desc')
-      // routeSyncingBasePath: '' // ADVANCED - Sync URLs between your website & the embed, read the documentation below for usage
-    },
-    
-    /* Optional - Styling configuration */
-    stylingOptions: {
-      theme: 'light', // Theme options: 'light', 'dark', or '' for auto-detection
-      hideMenu: false, // Toggle visibility of the top navigation bar
-      hideLogo: false, // Toggle visibility of the logo in the navigation bar
-    },
-    
-    /* Optional - User authentication & data */
-    // user: {
-    //   jwt: "", // For JWT-base authentication, use jwt parameter here   
-    //   metadata: {} // Custom metadata to attach to feedback submissions
-    // },
-    // Note: When SDK identify is set up, the user will be automatically authenticated
-    
-    /* Optional - Localization */
-    // locale: 'en' // Language setting (all available at https://help.featurebase.app/en/articles/8879098)
-  })
-</script>
   </body>
 </html>
