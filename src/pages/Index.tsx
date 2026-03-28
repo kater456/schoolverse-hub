@@ -9,11 +9,14 @@ import { Search, ShoppingBag, Star, Users, ArrowRight, GraduationCap, Loader2 } 
 import FloatingIcons from "@/components/landing/FloatingIcons";
 import { CATEGORIES } from "@/lib/constants";
 import { supabase } from "@/integrations/supabase/client";
+import AIChatbox from "@/components/AIChatbox";
 
 const CATEGORY_ICONS: Record<string, string> = {
   "Food & Snacks": "🍔",
   "Fashion & Clothing": "👗",
   "Hair & Beauty": "💇",
+  "Toiletries & Hygiene": "🧴",
+  "Perfumes & Fragrances": "🌸",
   "Tech & Gadgets": "📱",
   "Stationery & Printing": "📚",
   "Tutoring Services": "📖",
@@ -196,6 +199,9 @@ const Index = () => {
         </section>
       </main>
       <Footer />
+
+      {/* AI Chatbox — only visible to logged-in users, floats above footer */}
+      <AIChatbox />
     </div>
   );
 };
