@@ -17,7 +17,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { CATEGORIES } from "@/lib/constants";
-import { Loader2, Upload, FileCheck, ShieldCheck, CheckCircle2 } from "lucide-react";
+import { Loader2, Upload, FileCheck, ShieldCheck, CheckCircle2, CreditCard, PenLine } from "lucide-react";
+import { compressImage } from "@/lib/compressImage";
 
 const vendorSchema = z.object({
   business_name: z.string().min(2, "Business name is required").max(100),
@@ -34,17 +35,6 @@ const vendorSchema = z.object({
 
 type VendorFormData = z.infer<typeof vendorSchema>;
 
-const PAYMENT_INFO = {
-  Nigeria: {
-    amount: "₦1,200",
-    details: "Bank: OPay\nAccount Number: 09016103308\nAccount Name: Kater Akase",
-  },
-  Ghana: {
-    amount: "Free",
-    details: "No payment required for Ghana vendors at this time.",
-  },
-};
-
 const MAX_ID_SIZE_MB = 5;
 
 const VendorRegistration = () => {
@@ -52,14 +42,49 @@ const VendorRegistration = () => {
   const { schools } = useSchools();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [isSubmitting, setIsSubmitting]                     = useState(false);
   const [hasExistingApplication, setHasExistingApplication] = useState(false);
-  const [isCheckingExisting, setIsCheckingExisting] = useState(true);
-  const [selectedSchoolId, setSelectedSchoolId] = useState<string>("");
+  const [isCheckingExisting, setIsCheckingExisting]         = useState(true);
+  const [selectedSchoolId, setSelectedSchoolId]             = useState<string>("");
   const { locations } = useCampusLocations(selectedSchoolId || undefined);
-  const [productImages, setProductImages] = useState<File[]>([]);
-  const [vendorPhoto, setVendorPhoto] = useState<File | null>(null);
-  const [idDocument, setIdDocument] = useState<File | null>(null);
+  const [productImages, setProductImages]   = useState<File[]>([]);
+  const [vendorPhoto, setVendorPhoto]       = useState<File | null>(null);
+  const [idDocument, setIdDocument]         = useState<File | null>(null);
+  const [paymentPending, setPaymentPending] = useState(false);
+  const [otherServiceSpec, setOtherServiceSpec] = useState("");
+
+  // null = still loading from DB
+  const [paystackRequired, setPaystackRequired] = useState<boolean | null>(null);
+
+  // Load Paystack script
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.src = "https://js.paystack.co/v1/inline.js";
+    script.async = true;
+    document.body.appendChild(script);
+    return () => { if (document.body.contains(script)) document.body.removeChild(script); };
+  }, []);
+
+  // On mount: check existing application AND read platform_settings
+  useEffect(() => {
+    const init = async () => {
+      if (user) {
+        const { data } = await supabase
+          .from("vendors").select("id").eq("user_id", user.id).limit(1);
+        if (data && data.length > 0) setHasExistingApplication(true);
+      }
+
+      const { data: ps } = await supabase
+        .from("platform_settings")
+        .select("paystack_required")
+        .single();
+
+      setPaystackRequired((ps as any)?.paystack_required ?? false);
+      setIsCheckingExisting(false);
+    };
+    init();
+  }, [user]);
 
   const form = useForm<VendorFormData>({
     resolver: zodResolver(vendorSchema),
@@ -70,27 +95,21 @@ const VendorRegistration = () => {
     },
   });
 
-  // Check if user already has a vendor application
-  useEffect(() => {
-    const checkExisting = async () => {
-      if (!user) { setIsCheckingExisting(false); return; }
-      const { data } = await supabase.from("vendors").select("id").eq("user_id", user.id).limit(1);
-      if (data && data.length > 0) {
-        setHasExistingApplication(true);
-      }
-      setIsCheckingExisting(false);
-    };
-    checkExisting();
-  }, [user]);
+  const watchSchool    = form.watch("school_id");
+  const watchCountry   = form.watch("country");
+  const watchCategory  = form.watch("category");
+  const isOtherServices = watchCategory === "Other Services";
 
-  const watchSchool = form.watch("school_id");
-  const watchCountry = form.watch("country");
+  // Payment shows ONLY when admin has it ON and vendor is Nigerian
+  const showPayment = watchCountry === "Nigeria" && paystackRequired === true;
+
   useEffect(() => { setSelectedSchoolId(watchSchool); }, [watchSchool]);
 
-  const paymentInfo = PAYMENT_INFO[watchCountry as keyof typeof PAYMENT_INFO] || PAYMENT_INFO.Nigeria;
-
+  // ── Upload helper (compressed) ────────────────────────────────────────────
   const uploadFile = async (file: File, path: string) => {
-    const { data, error } = await supabase.storage.from("vendor-media").upload(path, file, { upsert: true });
+    const compressed = await compressImage(file);
+    const { data, error } = await supabase.storage
+      .from("vendor-media").upload(path, compressed, { upsert: true });
     if (error) throw error;
     const { data: urlData } = supabase.storage.from("vendor-media").getPublicUrl(data.path);
     return urlData.publicUrl;
@@ -106,50 +125,96 @@ const VendorRegistration = () => {
     setIdDocument(file);
   };
 
+  // ── Paystack popup ────────────────────────────────────────────────────────
+  const openPaystackPopup = (vendorId: string) => {
+    const PaystackPop = (window as any).PaystackPop;
+    if (!PaystackPop) {
+      toast({ title: "Payment system not ready", description: "Please wait a moment and try again.", variant: "destructive" });
+      setPaymentPending(false);
+      return;
+    }
+
+    const reference = `vr_${vendorId}_${Date.now()}`;
+    const handler = PaystackPop.setup({
+      key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
+      email: user!.email,
+      amount: 120000, // ₦1,200 in kobo
+      currency: "NGN",
+      ref: reference,
+      metadata: { vendor_id: vendorId },
+      onClose: () => {
+        setPaymentPending(false);
+        toast({
+          title: "Payment window closed",
+          description: "Your application is saved. An admin can activate your account, or you can complete payment later.",
+        });
+        setHasExistingApplication(true);
+      },
+      callback: async (response: any) => {
+        setPaymentPending(true);
+        try {
+          const { data, error } = await supabase.functions.invoke("verify-paystack-payment", {
+            body: { reference: response.reference, vendor_id: vendorId },
+          });
+          if (error || !data?.success) throw new Error(error?.message || "Verification failed");
+          toast({ title: "🎉 Payment Successful!", description: "Your application is now pending admin approval." });
+        } catch (err: any) {
+          toast({ title: "Payment verification failed", description: err.message || "Contact support with your payment reference.", variant: "destructive" });
+        } finally {
+          setPaymentPending(false);
+          setHasExistingApplication(true);
+        }
+      },
+    });
+    handler.openIframe();
+  };
+
+  // ── Submit ────────────────────────────────────────────────────────────────
   const onSubmit = async (data: VendorFormData) => {
     if (!user) return;
-    setIsSubmitting(true);
 
+    if (isOtherServices && !otherServiceSpec.trim()) {
+      toast({ title: "Please specify your service", description: 'Describe what you offer under "Other Services".', variant: "destructive" });
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
+      const finalCategory = isOtherServices
+        ? `Other: ${otherServiceSpec.trim()}` : data.category;
+
+      // payment_status: "unpaid" only when admin requires payment AND country is Nigeria
+      const paymentStatus = showPayment ? "unpaid" : "free";
+
       const { data: vendor, error: vendorError } = await supabase
         .from("vendors")
         .insert({
           user_id: user.id,
           business_name: data.business_name,
-          category: data.category,
+          category: finalCategory,
           description: data.description || null,
           contact_number: data.contact_number,
           school_id: data.school_id,
           campus_location_id: data.campus_location_id || null,
           country: data.country,
           is_approved: false,
+          payment_status: paymentStatus,
         } as any)
-        .select()
-        .single();
+        .select().single();
 
       if (vendorError) throw vendorError;
 
       let vendorPhotoUrl = null;
-      if (vendorPhoto) {
-        vendorPhotoUrl = await uploadFile(vendorPhoto, `${user.id}/vendor-photo-${Date.now()}`);
-      }
+      if (vendorPhoto) vendorPhotoUrl = await uploadFile(vendorPhoto, `${user.id}/vendor-photo-${Date.now()}`);
 
       let idDocumentUrl = null;
-      if (idDocument) {
-        idDocumentUrl = await uploadFile(idDocument, `${user.id}/id-document-${Date.now()}`);
-      }
+      if (idDocument) idDocumentUrl = await uploadFile(idDocument, `${user.id}/id-document-${Date.now()}`);
 
-      const { error: privateError } = await supabase
-        .from("vendor_private_details")
-        .insert({
-          vendor_id: vendor.id,
-          full_name: data.full_name,
-          vendor_photo_url: vendorPhotoUrl,
-          residential_location: data.residential_location,
-          personal_contact: data.personal_contact,
-          id_document_url: idDocumentUrl,
-        } as any);
-
+      const { error: privateError } = await supabase.from("vendor_private_details").insert({
+        vendor_id: vendor.id, full_name: data.full_name,
+        vendor_photo_url: vendorPhotoUrl, residential_location: data.residential_location,
+        personal_contact: data.personal_contact, id_document_url: idDocumentUrl,
+      } as any);
       if (privateError) throw privateError;
 
       for (let i = 0; i < productImages.length; i++) {
@@ -163,23 +228,27 @@ const VendorRegistration = () => {
         user_id: user.id, role: "vendor" as any, school_id: data.school_id,
       });
 
-      setHasExistingApplication(true);
+      setIsSubmitting(false);
 
-      toast({
-        title: "Request sent!",
-        description: "Your vendor application has been submitted successfully. It is now pending admin approval.",
-      });
+      if (showPayment) {
+        // Admin has payment ON — open Paystack popup
+        setPaymentPending(true);
+        openPaystackPopup(vendor.id);
+      } else {
+        // Admin has payment OFF — go straight to pending screen
+        setHasExistingApplication(true);
+        toast({ title: "Application submitted!", description: "Your vendor application is pending admin approval." });
+      }
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
-    } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (isCheckingExisting) {
+  // ── Loading screens ───────────────────────────────────────────────────────
+  if (isCheckingExisting || paystackRequired === null) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
+      <div className="min-h-screen bg-background"><Navbar />
         <div className="flex items-center justify-center pt-32">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
@@ -187,45 +256,59 @@ const VendorRegistration = () => {
     );
   }
 
-  // Already submitted — show success
+  if (paymentPending) {
+    return (
+      <div className="min-h-screen bg-background"><Navbar />
+        <div className="flex flex-col items-center justify-center pt-32 gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground text-sm">Verifying your payment…</p>
+        </div>
+      </div>
+    );
+  }
+
   if (hasExistingApplication) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
+      <div className="min-h-screen bg-background"><Navbar />
         <main className="pt-20 pb-16 px-4">
           <div className="container mx-auto max-w-lg text-center">
             <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-success/20 mb-6 mt-12">
               <CheckCircle2 className="h-10 w-10 text-success" />
             </div>
-            <h1 className="text-3xl font-bold mb-4 text-foreground">Request Sent!</h1>
+            <h1 className="text-3xl font-bold mb-4 text-foreground">Application Submitted!</h1>
             <p className="text-muted-foreground mb-6">
               Your vendor application has been submitted and is pending approval by the campus admin.
               You'll get access to your vendor dashboard once approved.
             </p>
-            <Button onClick={() => navigate("/")} variant="outline">
-              Back to Home
-            </Button>
+            <Button onClick={() => navigate("/")} variant="outline">Back to Home</Button>
           </div>
         </main>
       </div>
     );
   }
 
+  // ── Main registration form ────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
       <main className="pt-20 pb-16 px-4">
         <div className="container mx-auto max-w-2xl">
           <h1 className="text-3xl font-bold mb-2">Register Your Business</h1>
-          <p className="text-muted-foreground mb-8">List your products or services on your campus marketplace. Your registration will be reviewed by the campus admin.</p>
+          <p className="text-muted-foreground mb-8">
+            List your products or services on your campus marketplace. Your registration will be reviewed by the campus admin.
+          </p>
 
-          {watchCountry === "Nigeria" && (
+          {/* Payment banner — only when admin has it ON */}
+          {showPayment && (
             <Card className="mb-6 border-accent/50 bg-accent/5">
-              <CardContent className="p-4">
-                <h3 className="font-semibold text-foreground mb-2">💳 Registration Fee: {paymentInfo.amount}</h3>
-                <p className="text-sm text-muted-foreground mb-2">To activate your vendor space, complete payment to:</p>
-                <pre className="text-sm bg-muted/50 p-3 rounded-lg whitespace-pre-wrap font-mono text-foreground">{paymentInfo.details}</pre>
-                <p className="text-xs text-muted-foreground mt-2">After registration, your account will be activated once payment is verified by admin.</p>
+              <CardContent className="p-4 flex items-start gap-3">
+                <CreditCard className="h-5 w-5 text-accent mt-0.5 shrink-0" />
+                <div>
+                  <h3 className="font-semibold text-foreground mb-1">₦1,200 Registration Fee</h3>
+                  <p className="text-sm text-muted-foreground">
+                    A secure Paystack payment window will open after you submit. Your account activates once payment is confirmed.
+                  </p>
+                </div>
               </CardContent>
             </Card>
           )}
@@ -234,19 +317,24 @@ const VendorRegistration = () => {
             <Card className="mb-6 border-success/50 bg-success/5">
               <CardContent className="p-4">
                 <h3 className="font-semibold text-foreground mb-2">🇬🇭 Ghana — Free Registration</h3>
-                <p className="text-sm text-muted-foreground">No payment is required for Ghana vendors at this time. Your account will be reviewed and activated by the campus admin.</p>
+                <p className="text-sm text-muted-foreground">
+                  No payment required. Your account will be reviewed and activated by the campus admin.
+                </p>
               </CardContent>
             </Card>
           )}
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+
+              {/* ── Business Information ── */}
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">Business Information</CardTitle>
                   <CardDescription>This info will be visible to all users.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+
                   <FormField control={form.control} name="country" render={({ field }) => (
                     <FormItem><FormLabel>Country</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
@@ -258,41 +346,93 @@ const VendorRegistration = () => {
                       </Select><FormMessage />
                     </FormItem>
                   )} />
+
                   <FormField control={form.control} name="business_name" render={({ field }) => (
-                    <FormItem><FormLabel>Business Name</FormLabel><FormControl><Input placeholder="e.g. Jane's Smoothies" {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Business Name</FormLabel>
+                      <FormControl><Input placeholder="e.g. Jane's Smoothies" {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
                   )} />
+
                   <FormField control={form.control} name="category" render={({ field }) => (
                     <FormItem><FormLabel>Category</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl><SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger></FormControl>
-                        <SelectContent>{CATEGORIES.map((cat) => (<SelectItem key={cat} value={cat}>{cat}</SelectItem>))}</SelectContent>
+                      <Select
+                        onValueChange={(val) => { field.onChange(val); setOtherServiceSpec(""); }}
+                        value={field.value}
+                      >
+                        <FormControl><SelectTrigger><SelectValue placeholder="Select a category" /></SelectTrigger></FormControl>
+                        <SelectContent>
+                          {CATEGORIES.map((cat) => (
+                            <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                          ))}
+                        </SelectContent>
                       </Select><FormMessage />
                     </FormItem>
                   )} />
+
+                  {/* Other Services text box */}
+                  {isOtherServices && (
+                    <div className="rounded-lg border border-accent/50 bg-accent/5 p-4 space-y-2">
+                      <Label className="flex items-center gap-1.5 text-sm font-medium">
+                        <PenLine className="h-4 w-4 text-accent" />
+                        Specify your service <span className="text-destructive ml-0.5">*</span>
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        Describe exactly what you offer — e.g. "Laundry & Ironing", "Event Photography", "Car Wash"
+                      </p>
+                      <Input
+                        placeholder="e.g. Laundry & Ironing"
+                        value={otherServiceSpec}
+                        onChange={(e) => setOtherServiceSpec(e.target.value)}
+                        className="bg-background"
+                        maxLength={60}
+                      />
+                      {otherServiceSpec.trim() && (
+                        <p className="text-xs text-muted-foreground pt-1">
+                          Will show as: <strong className="text-foreground">Other: {otherServiceSpec.trim()}</strong>
+                        </p>
+                      )}
+                    </div>
+                  )}
+
                   <FormField control={form.control} name="description" render={({ field }) => (
-                    <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea placeholder="Describe your products or services..." {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Description</FormLabel>
+                      <FormControl><Textarea placeholder="Describe your products or services in more detail…" {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
                   )} />
+
                   <FormField control={form.control} name="contact_number" render={({ field }) => (
-                    <FormItem><FormLabel>Contact Number (for customers)</FormLabel><FormControl><Input placeholder="e.g. 08012345678" {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Contact Number (for customers)</FormLabel>
+                      <FormControl><Input placeholder="e.g. 08012345678" {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
                   )} />
+
                   <FormField control={form.control} name="school_id" render={({ field }) => (
                     <FormItem><FormLabel>School</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl><SelectTrigger><SelectValue placeholder="Select school" /></SelectTrigger></FormControl>
-                        <SelectContent>{schools.map((s) => (<SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>))}</SelectContent>
+                        <SelectContent>
+                          {schools.map((s) => (<SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>))}
+                        </SelectContent>
                       </Select><FormMessage />
                     </FormItem>
                   )} />
+
                   {locations.length > 0 && (
                     <FormField control={form.control} name="campus_location_id" render={({ field }) => (
                       <FormItem><FormLabel>Campus Location</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl><SelectTrigger><SelectValue placeholder="Select location" /></SelectTrigger></FormControl>
-                          <SelectContent>{locations.map((loc) => (<SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>))}</SelectContent>
+                          <SelectContent>
+                            {locations.map((loc) => (<SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>))}
+                          </SelectContent>
                         </Select><FormMessage />
                       </FormItem>
                     )} />
                   )}
+
                   <div>
                     <Label>Product Photos</Label>
                     <div className="mt-2">
@@ -318,15 +458,21 @@ const VendorRegistration = () => {
                 </CardContent>
               </Card>
 
+              {/* ── Private Information ── */}
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">Private Information</CardTitle>
                   <CardDescription>This info is only visible to campus admins for verification.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+
                   <FormField control={form.control} name="full_name" render={({ field }) => (
-                    <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input placeholder="Your full legal name" {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Full Name</FormLabel>
+                      <FormControl><Input placeholder="Your full legal name" {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
                   )} />
+
                   <div>
                     <Label>Your Photo</Label>
                     <div className="mt-2">
@@ -338,38 +484,56 @@ const VendorRegistration = () => {
                       </label>
                     </div>
                   </div>
+
                   <div>
                     <Label className="flex items-center gap-1">
                       <ShieldCheck className="h-4 w-4 text-primary" />
                       Valid ID Document
                       <span className="text-xs text-muted-foreground ml-1">(Optional — required for Verified Badge)</span>
                     </Label>
-                    <p className="text-xs text-muted-foreground mb-2">Upload a clear photo of your student ID, national ID, or any government-issued ID (max {MAX_ID_SIZE_MB}MB)</p>
-                    <div className="mt-1">
-                      <label className={`flex items-center justify-center gap-2 border-2 border-dashed rounded-lg p-4 cursor-pointer transition-colors ${
-                        idDocument ? "border-success bg-success/5" : "border-border hover:border-accent"
-                      }`}>
-                        {idDocument ? (
-                          <><FileCheck className="h-4 w-4 text-success" /><span className="text-sm text-success font-medium">{idDocument.name}</span></>
-                        ) : (
-                          <><Upload className="h-4 w-4 text-muted-foreground" /><span className="text-sm text-muted-foreground">Upload valid ID (optional)</span></>
-                        )}
-                        <input type="file" accept="image/*,.pdf" className="hidden" onChange={handleIdDocumentChange} />
-                      </label>
-                    </div>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Upload a clear photo of your student ID, national ID, or any government-issued ID (max {MAX_ID_SIZE_MB}MB)
+                    </p>
+                    <label className={`flex items-center justify-center gap-2 border-2 border-dashed rounded-lg p-4 cursor-pointer transition-colors ${
+                      idDocument ? "border-success bg-success/5" : "border-border hover:border-accent"
+                    }`}>
+                      {idDocument ? (
+                        <><FileCheck className="h-4 w-4 text-success" /><span className="text-sm text-success font-medium">{idDocument.name}</span></>
+                      ) : (
+                        <><Upload className="h-4 w-4 text-muted-foreground" /><span className="text-sm text-muted-foreground">Upload valid ID (optional)</span></>
+                      )}
+                      <input type="file" accept="image/*,.pdf" className="hidden" onChange={handleIdDocumentChange} />
+                    </label>
                   </div>
+
                   <FormField control={form.control} name="residential_location" render={({ field }) => (
-                    <FormItem><FormLabel>Where You Stay</FormLabel><FormControl><Input placeholder="e.g. Hilltop Hostel, Room 24" {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Where You Stay</FormLabel>
+                      <FormControl><Input placeholder="e.g. Hilltop Hostel, Room 24" {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
                   )} />
+
                   <FormField control={form.control} name="personal_contact" render={({ field }) => (
-                    <FormItem><FormLabel>Personal Contact (admin only)</FormLabel><FormControl><Input placeholder="Personal phone number" {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Personal Contact (admin only)</FormLabel>
+                      <FormControl><Input placeholder="Personal phone number" {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
                   )} />
                 </CardContent>
               </Card>
 
-              <Button type="submit" size="lg" className="w-full bg-accent text-accent-foreground hover:bg-accent/90" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Submit Application
+              <Button
+                type="submit" size="lg"
+                className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Submitting…</>
+                ) : showPayment ? (
+                  <><CreditCard className="h-4 w-4 mr-2" />Submit &amp; Pay ₦1,200</>
+                ) : (
+                  "Submit Application"
+                )}
               </Button>
             </form>
           </Form>
