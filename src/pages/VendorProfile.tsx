@@ -15,32 +15,116 @@ import { useToast } from "@/hooks/use-toast";
 import {
   MapPin, Phone, MessageCircle, Heart, MessageSquare, Eye,
   Send, Loader2, Star, ShieldCheck, Instagram, Twitter, Music2,
+  ZoomIn, X, ChevronLeft, ChevronRight,
 } from "lucide-react";
 
+// ── Lightbox ──────────────────────────────────────────────────────────────────
+const Lightbox = ({ images, startIndex, onClose }: {
+  images: string[]; startIndex: number; onClose: () => void;
+}) => {
+  const [current, setCurrent] = useState(startIndex);
+  const prev = () => setCurrent((i) => (i - 1 + images.length) % images.length);
+  const next = () => setCurrent((i) => (i + 1) % images.length);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape")      onClose();
+      if (e.key === "ArrowLeft")   prev();
+      if (e.key === "ArrowRight")  next();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
+  return (
+    <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center" onClick={onClose}>
+      {/* Close */}
+      <button onClick={onClose}
+        className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white z-10">
+        <X className="h-6 w-6" />
+      </button>
+
+      {/* Counter */}
+      {images.length > 1 && (
+        <span className="absolute top-4 left-1/2 -translate-x-1/2 text-white/70 text-sm">
+          {current + 1} / {images.length}
+        </span>
+      )}
+
+      {/* Prev */}
+      {images.length > 1 && (
+        <button onClick={(e) => { e.stopPropagation(); prev(); }}
+          className="absolute left-3 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white z-10">
+          <ChevronLeft className="h-7 w-7" />
+        </button>
+      )}
+
+      {/* Image */}
+      <img src={images[current]} alt="" draggable={false}
+        className="max-w-[92vw] max-h-[88vh] object-contain rounded-lg select-none"
+        onClick={(e) => e.stopPropagation()} />
+
+      {/* Next */}
+      {images.length > 1 && (
+        <button onClick={(e) => { e.stopPropagation(); next(); }}
+          className="absolute right-3 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white z-10">
+          <ChevronRight className="h-7 w-7" />
+        </button>
+      )}
+
+      {/* Thumbnails */}
+      {images.length > 1 && (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+          {images.map((src, i) => (
+            <button key={i} onClick={(e) => { e.stopPropagation(); setCurrent(i); }}
+              className={`w-10 h-10 rounded-md overflow-hidden border-2 transition-all ${
+                i === current ? "border-white scale-110" : "border-white/30 opacity-60"
+              }`}>
+              <img src={src} alt="" className="w-full h-full object-cover" />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ── Main Component ────────────────────────────────────────────────────────────
 const VendorProfile = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [vendor, setVendor] = useState<any>(null);
-  const [images, setImages] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+
+  const [vendor, setVendor]               = useState<any>(null);
+  const [images, setImages]               = useState<any[]>([]);
+  const [isLoading, setIsLoading]         = useState(true);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [lightboxOpen, setLightboxOpen]   = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
-  const [liked, setLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(0);
-  const [comments, setComments] = useState<any[]>([]);
+  const allImageUrls = images.map((img) => img.image_url).filter(Boolean);
+
+  const openLightbox = (url: string) => {
+    const idx = allImageUrls.indexOf(url);
+    setLightboxIndex(idx >= 0 ? idx : 0);
+    setLightboxOpen(true);
+  };
+
+  const [liked, setLiked]             = useState(false);
+  const [likeCount, setLikeCount]     = useState(0);
+  const [comments, setComments]       = useState<any[]>([]);
   const [commentText, setCommentText] = useState("");
-  const [viewCount, setViewCount] = useState(0);
+  const [viewCount, setViewCount]     = useState(0);
 
-  const [ratings, setRatings] = useState<any[]>([]);
-  const [avgRating, setAvgRating] = useState(0);
-  const [ratingDistribution, setRatingDistribution] = useState<number[]>([0, 0, 0, 0, 0]);
-  const [userRating, setUserRating] = useState(0);
-  const [userReview, setUserReview] = useState("");
-  const [hasRated, setHasRated] = useState(false);
-  const [hoverRating, setHoverRating] = useState(0);
-  const [canRate, setCanRate] = useState(false);
+  const [ratings, setRatings]                   = useState<any[]>([]);
+  const [avgRating, setAvgRating]               = useState(0);
+  const [ratingDistribution, setRatingDistribution] = useState<number[]>([0,0,0,0,0]);
+  const [userRating, setUserRating]             = useState(0);
+  const [userReview, setUserReview]             = useState("");
+  const [hasRated, setHasRated]                 = useState(false);
+  const [hoverRating, setHoverRating]           = useState(0);
+  const [canRate, setCanRate]                   = useState(false);
 
   useEffect(() => {
     const fetchVendor = async () => {
@@ -48,8 +132,7 @@ const VendorProfile = () => {
       const { data } = await supabase
         .from("vendors")
         .select(`*, schools(name, id), campus_locations(name), vendor_images(*)`)
-        .eq("id", id)
-        .single();
+        .eq("id", id).single();
 
       if (data) {
         setVendor(data);
@@ -81,9 +164,9 @@ const VendorProfile = () => {
         const allRatings = ratingsRes.data || [];
         setRatings(allRatings);
         if (allRatings.length > 0) {
-          const avg = allRatings.reduce((sum: number, r: any) => sum + r.rating, 0) / allRatings.length;
+          const avg = allRatings.reduce((s: number, r: any) => s + r.rating, 0) / allRatings.length;
           setAvgRating(avg);
-          const dist = [0, 0, 0, 0, 0];
+          const dist = [0,0,0,0,0];
           allRatings.forEach((r: any) => { if (r.rating >= 1 && r.rating <= 5) dist[r.rating - 1]++; });
           setRatingDistribution(dist);
         }
@@ -91,9 +174,7 @@ const VendorProfile = () => {
         if (user) {
           const userR = allRatings.find((r: any) => r.user_id === user.id);
           if (userR) { setUserRating(userR.rating); setUserReview(userR.review || ""); setHasRated(true); }
-
-          const { data: txn } = await supabase
-            .from("transactions").select("id")
+          const { data: txn } = await supabase.from("transactions").select("id")
             .eq("vendor_id", id).eq("user_id", user.id).eq("status", "completed").limit(1);
           setCanRate(!!txn && txn.length > 0);
         }
@@ -106,8 +187,7 @@ const VendorProfile = () => {
   const requireAuth = (action: string) => {
     if (!user) {
       toast({ title: `Sign in to ${action}`, description: "Create an account to interact with businesses", variant: "destructive" });
-      navigate("/signup");
-      return false;
+      navigate("/signup"); return false;
     }
     return true;
   };
@@ -126,22 +206,17 @@ const VendorProfile = () => {
   const submitComment = async () => {
     if (!requireAuth("comment")) return;
     if (!commentText.trim()) return;
-    const { data, error } = await supabase
-      .from("vendor_comments")
+    const { data, error } = await supabase.from("vendor_comments")
       .insert({ vendor_id: id!, user_id: user!.id, content: commentText.trim() } as any)
-      .select("*, profiles:user_id(first_name, last_name)")
-      .single();
-    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); }
+      .select("*, profiles:user_id(first_name, last_name)").single();
+    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
     else { setComments((prev) => [data, ...prev]); setCommentText(""); }
   };
 
   const submitRating = async () => {
     if (!requireAuth("rate")) return;
     if (userRating === 0) return;
-    if (!canRate) {
-      toast({ title: "Cannot rate yet", description: "You can only rate after completing a transaction with this vendor.", variant: "destructive" });
-      return;
-    }
+    if (!canRate) { toast({ title: "Cannot rate yet", description: "Complete a transaction with this vendor first.", variant: "destructive" }); return; }
     const op = hasRated
       ? supabase.from("vendor_ratings").update({ rating: userRating, review: userReview || null } as any).eq("vendor_id", id!).eq("user_id", user!.id)
       : supabase.from("vendor_ratings").insert({ vendor_id: id!, user_id: user!.id, rating: userRating, review: userReview || null } as any);
@@ -152,8 +227,8 @@ const VendorProfile = () => {
     const { data } = await supabase.from("vendor_ratings").select("*").eq("vendor_id", id!);
     setRatings(data || []);
     if (data && data.length > 0) {
-      setAvgRating(data.reduce((sum: number, r: any) => sum + r.rating, 0) / data.length);
-      const dist = [0, 0, 0, 0, 0];
+      setAvgRating(data.reduce((s: number, r: any) => s + r.rating, 0) / data.length);
+      const dist = [0,0,0,0,0];
       data.forEach((r: any) => { if (r.rating >= 1 && r.rating <= 5) dist[r.rating - 1]++; });
       setRatingDistribution(dist);
     }
@@ -165,25 +240,17 @@ const VendorProfile = () => {
     } as any);
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
-        <div className="flex justify-center items-center pt-32">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
-      </div>
-    );
-  }
+  if (isLoading) return (
+    <div className="min-h-screen bg-background"><Navbar />
+      <div className="flex justify-center items-center pt-32"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+    </div>
+  );
 
-  if (!vendor) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
-        <div className="text-center pt-32"><h2 className="text-xl font-semibold">Vendor not found</h2></div>
-      </div>
-    );
-  }
+  if (!vendor) return (
+    <div className="min-h-screen bg-background"><Navbar />
+      <div className="text-center pt-32"><h2 className="text-xl font-semibold">Vendor not found</h2></div>
+    </div>
+  );
 
   const totalRatings = ratings.length;
   const hasSocialLinks = vendor.is_verified && (vendor.social_instagram || vendor.social_tiktok || vendor.social_twitter);
@@ -191,31 +258,53 @@ const VendorProfile = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
+
+      {lightboxOpen && allImageUrls.length > 0 && (
+        <Lightbox images={allImageUrls} startIndex={lightboxIndex} onClose={() => setLightboxOpen(false)} />
+      )}
+
       <main className="pt-20 pb-16 px-4">
         <div className="container mx-auto max-w-4xl">
           <div className="grid md:grid-cols-2 gap-8">
 
             {/* ── Image Gallery ── */}
             <div>
-              <div className="aspect-square bg-muted rounded-xl overflow-hidden mb-4">
+              <div
+                className="relative aspect-square bg-muted rounded-xl overflow-hidden mb-4 cursor-zoom-in group"
+                onClick={() => selectedImage && openLightbox(selectedImage)}
+              >
                 {selectedImage ? (
-                  <img src={selectedImage} alt={vendor.business_name} className="w-full h-full object-cover" />
+                  <>
+                    <img src={selectedImage} alt={vendor.business_name}
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20">
+                      <div className="bg-white/90 rounded-full p-2">
+                        <ZoomIn className="h-5 w-5 text-foreground" />
+                      </div>
+                    </div>
+                  </>
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-6xl">🏪</div>
                 )}
               </div>
+
               {images.length > 1 && (
                 <div className="flex gap-2 overflow-x-auto pb-1">
                   {images.map((img: any) => (
-                    <button key={img.id} onClick={() => setSelectedImage(img.image_url)}
-                      className={`w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-colors ${selectedImage === img.image_url ? "border-accent" : "border-transparent"}`}>
+                    <button key={img.id}
+                      onClick={() => { setSelectedImage(img.image_url); openLightbox(img.image_url); }}
+                      className={`relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-all group ${
+                        selectedImage === img.image_url ? "border-accent" : "border-transparent hover:border-accent/50"
+                      }`}>
                       <img src={img.image_url} alt="" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <ZoomIn className="h-3 w-3 text-white" />
+                      </div>
                     </button>
                   ))}
                 </div>
               )}
 
-              {/* Engagement bar */}
               <div className="flex items-center gap-4 mt-4 py-3 border-t border-border/50">
                 <button onClick={toggleLike} className="flex items-center gap-1.5 text-sm">
                   <Heart className={`h-5 w-5 ${liked ? "fill-destructive text-destructive" : "text-muted-foreground"}`} />
@@ -238,7 +327,6 @@ const VendorProfile = () => {
 
             {/* ── Info Column ── */}
             <div>
-              {/* Business name & verified badge */}
               <div className="flex items-center gap-3 mb-2 flex-wrap">
                 <Avatar className="h-12 w-12 border-2 border-accent">
                   {selectedImage ? <AvatarImage src={selectedImage} alt={vendor.business_name} /> : null}
@@ -262,22 +350,22 @@ const VendorProfile = () => {
 
               {vendor.description && <p className="text-muted-foreground mb-6">{vendor.description}</p>}
 
-              {/* ── Ratings ── */}
+              {/* Ratings */}
               <Card className="border-border/50 mb-4">
                 <CardContent className="p-4">
                   <h3 className="font-semibold text-sm mb-3">Customer Ratings</h3>
                   <div className="flex items-center gap-4 mb-4">
                     <div className="text-center">
-                      <div className="text-3xl font-bold text-foreground">{avgRating.toFixed(1)}</div>
+                      <div className="text-3xl font-bold">{avgRating.toFixed(1)}</div>
                       <div className="flex items-center gap-0.5 justify-center my-1">
-                        {[1, 2, 3, 4, 5].map((s) => (
+                        {[1,2,3,4,5].map((s) => (
                           <Star key={s} className={`h-4 w-4 ${s <= Math.round(avgRating) ? "text-yellow-500 fill-yellow-500" : "text-muted-foreground/30"}`} />
                         ))}
                       </div>
                       <div className="text-xs text-muted-foreground">{totalRatings} rating{totalRatings !== 1 ? "s" : ""}</div>
                     </div>
                     <div className="flex-1 space-y-1.5">
-                      {[5, 4, 3, 2, 1].map((star) => {
+                      {[5,4,3,2,1].map((star) => {
                         const count = ratingDistribution[star - 1];
                         const pct = totalRatings > 0 ? (count / totalRatings) * 100 : 0;
                         return (
@@ -291,14 +379,11 @@ const VendorProfile = () => {
                       })}
                     </div>
                   </div>
-
                   {user && canRate && (
                     <div className="border-t border-border/50 pt-3">
-                      <p className="text-xs text-muted-foreground mb-2">
-                        {hasRated ? "Update your rating" : "Rate your experience"}
-                      </p>
+                      <p className="text-xs text-muted-foreground mb-2">{hasRated ? "Update your rating" : "Rate your experience"}</p>
                       <div className="flex items-center gap-1 mb-2">
-                        {[1, 2, 3, 4, 5].map((star) => (
+                        {[1,2,3,4,5].map((star) => (
                           <button key={star} onMouseEnter={() => setHoverRating(star)} onMouseLeave={() => setHoverRating(0)}
                             onClick={() => setUserRating(star)} className="transition-transform hover:scale-110">
                             <Star className={`h-6 w-6 ${star <= (hoverRating || userRating) ? "text-yellow-500 fill-yellow-500" : "text-muted-foreground/30"}`} />
@@ -314,18 +399,14 @@ const VendorProfile = () => {
                   )}
                   {user && !canRate && !hasRated && (
                     <p className="text-xs text-muted-foreground border-t border-border/50 pt-3">
-                      💡 You can rate this vendor after completing a transaction with them.
+                      💡 Complete a transaction with this vendor to leave a rating.
                     </p>
                   )}
-                  {!user && (
-                    <p className="text-xs text-muted-foreground border-t border-border/50 pt-3">
-                      Sign in and complete a transaction to leave a rating.
-                    </p>
-                  )}
+                  {!user && <p className="text-xs text-muted-foreground border-t border-border/50 pt-3">Sign in and complete a transaction to leave a rating.</p>}
                 </CardContent>
               </Card>
 
-              {/* ── Social Media (verified vendors only) ── */}
+              {/* Social */}
               {hasSocialLinks && (
                 <Card className="border-primary/20 bg-primary/5 mb-4">
                   <CardContent className="p-4">
@@ -334,42 +415,27 @@ const VendorProfile = () => {
                     </h3>
                     <div className="space-y-2">
                       {vendor.social_instagram && (
-                        <a
-                          href={vendor.social_instagram}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2.5 text-sm text-muted-foreground hover:text-foreground transition-colors group"
-                        >
-                          <div className="w-7 h-7 rounded-lg bg-pink-500/10 flex items-center justify-center group-hover:bg-pink-500/20 transition-colors">
+                        <a href={vendor.social_instagram} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-2.5 text-sm text-muted-foreground hover:text-foreground transition-colors group">
+                          <div className="w-7 h-7 rounded-lg bg-pink-500/10 flex items-center justify-center group-hover:bg-pink-500/20">
                             <Instagram className="h-4 w-4 text-pink-500" />
-                          </div>
-                          Instagram
+                          </div>Instagram
                         </a>
                       )}
                       {vendor.social_tiktok && (
-                        <a
-                          href={vendor.social_tiktok}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2.5 text-sm text-muted-foreground hover:text-foreground transition-colors group"
-                        >
-                          <div className="w-7 h-7 rounded-lg bg-foreground/10 flex items-center justify-center group-hover:bg-foreground/20 transition-colors">
-                            <Music2 className="h-4 w-4 text-foreground" />
-                          </div>
-                          TikTok
+                        <a href={vendor.social_tiktok} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-2.5 text-sm text-muted-foreground hover:text-foreground transition-colors group">
+                          <div className="w-7 h-7 rounded-lg bg-foreground/10 flex items-center justify-center group-hover:bg-foreground/20">
+                            <Music2 className="h-4 w-4" />
+                          </div>TikTok
                         </a>
                       )}
                       {vendor.social_twitter && (
-                        <a
-                          href={vendor.social_twitter}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2.5 text-sm text-muted-foreground hover:text-foreground transition-colors group"
-                        >
-                          <div className="w-7 h-7 rounded-lg bg-sky-500/10 flex items-center justify-center group-hover:bg-sky-500/20 transition-colors">
+                        <a href={vendor.social_twitter} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-2.5 text-sm text-muted-foreground hover:text-foreground transition-colors group">
+                          <div className="w-7 h-7 rounded-lg bg-sky-500/10 flex items-center justify-center group-hover:bg-sky-500/20">
                             <Twitter className="h-4 w-4 text-sky-500" />
-                          </div>
-                          X / Twitter
+                          </div>X / Twitter
                         </a>
                       )}
                     </div>
@@ -377,7 +443,7 @@ const VendorProfile = () => {
                 </Card>
               )}
 
-              {/* ── Contact ── */}
+              {/* Contact */}
               <Card className="border-border/50 mb-4">
                 <CardContent className="p-4 space-y-3">
                   <h3 className="font-semibold text-sm">Contact</h3>
@@ -396,38 +462,30 @@ const VendorProfile = () => {
                 </CardContent>
               </Card>
 
-              {/* ── Comments ── */}
+              {/* Comments */}
               <Card className="border-border/50">
                 <CardContent className="p-4">
                   <h3 className="font-semibold text-sm mb-3">Comments ({comments.length})</h3>
                   <div className="flex gap-2 mb-4">
-                    <Input
-                      placeholder={user ? "Write a comment..." : "Sign in to comment"}
-                      value={commentText}
+                    <Input placeholder={user ? "Write a comment..." : "Sign in to comment"} value={commentText}
                       onChange={(e) => setCommentText(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && submitComment()}
-                      className="h-9 text-sm"
-                    />
-                    <Button size="sm" onClick={submitComment} disabled={!commentText.trim()}>
-                      <Send className="h-4 w-4" />
-                    </Button>
+                      onKeyDown={(e) => e.key === "Enter" && submitComment()} className="h-9 text-sm" />
+                    <Button size="sm" onClick={submitComment} disabled={!commentText.trim()}><Send className="h-4 w-4" /></Button>
                   </div>
                   <div className="space-y-3 max-h-64 overflow-y-auto">
                     {comments.length === 0 ? (
                       <p className="text-xs text-muted-foreground text-center py-2">No comments yet</p>
-                    ) : (
-                      comments.map((c: any) => (
-                        <div key={c.id} className="border-b border-border/30 pb-2 last:border-0">
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <span className="text-xs font-medium text-foreground">
-                              {(c.profiles as any)?.first_name || "User"} {(c.profiles as any)?.last_name || ""}
-                            </span>
-                            <span className="text-[10px] text-muted-foreground">{new Date(c.created_at).toLocaleDateString()}</span>
-                          </div>
-                          <p className="text-xs text-muted-foreground">{c.content}</p>
+                    ) : comments.map((c: any) => (
+                      <div key={c.id} className="border-b border-border/30 pb-2 last:border-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="text-xs font-medium text-foreground">
+                            {(c.profiles as any)?.first_name || "User"} {(c.profiles as any)?.last_name || ""}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground">{new Date(c.created_at).toLocaleDateString()}</span>
                         </div>
-                      ))
-                    )}
+                        <p className="text-xs text-muted-foreground">{c.content}</p>
+                      </div>
+                    ))}
                   </div>
                 </CardContent>
               </Card>
