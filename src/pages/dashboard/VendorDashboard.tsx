@@ -14,12 +14,14 @@ import {
   Eye, Heart, MessageSquare, Phone, ShoppingBag,
   BarChart3, Star, LogOut, Film, Loader2, CreditCard, CheckCircle, Package,
   User, Camera, Save, Share2, QrCode, ShieldCheck, Copy,
+  Instagram, Twitter, Music2, FileCheck, Upload,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import FeaturedPaymentModal from "@/components/vendor/FeaturedPaymentModal";
 import VendorProductManager from "@/components/vendor/VendorProductManager";
 import VendorVideoManager from "@/components/vendor/VendorVideoManager";
 import ThemeToggle from "@/components/ThemeToggle";
+import { compressImage } from "@/lib/compressImage";
 
 const VendorDashboard = () => {
   const { user, signOut } = useAuth();
@@ -36,6 +38,17 @@ const VendorDashboard = () => {
   const [contactEditsThisMonth, setContactEditsThisMonth] = useState(0);
   const [savingContact, setSavingContact] = useState(false);
 
+  // Social media edit state
+  const [socialInstagram, setSocialInstagram] = useState("");
+  const [socialTiktok, setSocialTiktok]       = useState("");
+  const [socialTwitter, setSocialTwitter]     = useState("");
+  const [savingSocial, setSavingSocial]       = useState(false);
+
+  // Verification state
+  const [verifIdUrl,      setVerifIdUrl]      = useState<string | null>(null);
+  const [uploadingId,     setUploadingId]     = useState(false);
+  const [payingVerif,     setPayingVerif]     = useState(false);
+
   const fetchVendorData = async () => {
     if (!user) return;
     const { data: v } = await supabase
@@ -47,6 +60,9 @@ const VendorDashboard = () => {
     if (!v) { setIsLoading(false); return; }
     setVendor(v);
     setEditContact(v.contact_number || "");
+    setSocialInstagram(v.social_instagram || "");
+    setSocialTiktok(v.social_tiktok || "");
+    setSocialTwitter(v.social_twitter || "");
 
     const { data: primaryImg } = await supabase
       .from("vendor_images")
@@ -85,34 +101,29 @@ const VendorDashboard = () => {
     if (!user) return;
     fetchVendorData();
 
-    // Realtime: listen for vendor approval updates
     const channel = supabase
       .channel("vendor-dashboard-realtime")
       .on("postgres_changes", {
-        event: "UPDATE",
-        schema: "public",
-        table: "vendors",
+        event: "UPDATE", schema: "public", table: "vendors",
         filter: `user_id=eq.${user.id}`,
       }, (payload) => {
-        if (payload.new) {
-          setVendor((prev: any) => prev ? { ...prev, ...payload.new } : prev);
-        }
+        if (payload.new) setVendor((prev: any) => prev ? { ...prev, ...payload.new } : prev);
       })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
   }, [user]);
 
+  // ── Avatar upload (compressed) ──────────────────────────────────────────────
   const uploadAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !vendor) return;
     setUploadingAvatar(true);
-    const ext = file.name.split(".").pop();
-    const path = `avatars/${vendor.id}.${ext}`;
-    await supabase.storage.from("vendor-media").upload(path, file, { upsert: true });
+    const compressed = await compressImage(file, 600);
+    const path = `avatars/${vendor.id}.jpg`;
+    await supabase.storage.from("vendor-media").upload(path, compressed, { upsert: true });
     const { data: urlData } = supabase.storage.from("vendor-media").getPublicUrl(path);
 
-    // Set as primary image or insert new
     const { data: existing } = await supabase.from("vendor_images").select("id").eq("vendor_id", vendor.id).eq("is_primary", true).maybeSingle();
     if (existing) {
       await supabase.from("vendor_images").update({ image_url: urlData.publicUrl } as any).eq("id", existing.id);
@@ -124,6 +135,7 @@ const VendorDashboard = () => {
     toast({ title: "Profile photo updated!" });
   };
 
+  // ── Contact save ─────────────────────────────────────────────────────────────
   const saveContact = async () => {
     if (!vendor) return;
     if (contactEditsThisMonth >= 3) {
@@ -141,15 +153,94 @@ const VendorDashboard = () => {
     setSavingContact(false);
   };
 
-  const markDelivered = async (txnId: string) => {
-    const { error } = await supabase
-      .from("transactions")
-      .update({ vendor_marked_delivered: true } as any)
-      .eq("id", txnId);
+  // ── Social media save ────────────────────────────────────────────────────────
+  const saveSocials = async () => {
+    if (!vendor) return;
+    setSavingSocial(true);
+    const { error } = await supabase.from("vendors").update({
+      social_instagram: socialInstagram.trim() || null,
+      social_tiktok:    socialTiktok.trim()    || null,
+      social_twitter:   socialTwitter.trim()   || null,
+    } as any).eq("id", vendor.id);
     if (!error) {
-      setTransactions((prev) =>
-        prev.map((t) => t.id === txnId ? { ...t, vendor_marked_delivered: true, status: "delivered" } : t)
+      setVendor((v: any) => ({
+        ...v,
+        social_instagram: socialInstagram.trim() || null,
+        social_tiktok:    socialTiktok.trim()    || null,
+        social_twitter:   socialTwitter.trim()   || null,
+      }));
+      toast({ title: "Social links saved!" });
+    }
+    setSavingSocial(false);
+  };
+
+  // ── Verification ID upload ───────────────────────────────────────────────────
+  const uploadVerifId = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !vendor) return;
+    setUploadingId(true);
+    const compressed = await compressImage(file, 1200);
+    const path = `${vendor.id}/verification-id-${Date.now()}.jpg`;
+    const { data, error } = await supabase.storage.from("vendor-media").upload(path, compressed, { upsert: true });
+    if (!error && data) {
+      const { data: urlData } = supabase.storage.from("vendor-media").getPublicUrl(data.path);
+      await supabase.from("vendor_private_details").upsert(
+        { vendor_id: vendor.id, id_document_url: urlData.publicUrl } as any,
+        { onConflict: "vendor_id" }
       );
+      setVerifIdUrl(urlData.publicUrl);
+      toast({ title: "ID uploaded ✅" });
+    } else {
+      toast({ title: "Upload failed", variant: "destructive" });
+    }
+    setUploadingId(false);
+  };
+
+  // ── Paystack verification payment ────────────────────────────────────────────
+  const openVerifPaystack = () => {
+    if (!verifIdUrl) {
+      toast({ title: "Upload your ID first", variant: "destructive" });
+      return;
+    }
+    const PaystackPop = (window as any).PaystackPop;
+    if (!PaystackPop) {
+      toast({ title: "Payment not ready, please refresh and try again", variant: "destructive" });
+      return;
+    }
+    const ref = `verif_${vendor.id}_${Date.now()}`;
+    const handler = PaystackPop.setup({
+      key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
+      email: user!.email,
+      amount: 200000, // ₦2,000 in kobo
+      currency: "NGN",
+      ref,
+      onClose: () => toast({ title: "Payment cancelled" }),
+      callback: async (response: any) => {
+        setPayingVerif(true);
+        const { data, error } = await supabase.functions.invoke("verify-vendor-verification", {
+          body: { reference: response.reference, vendor_id: vendor.id },
+        });
+        if (error || !data?.success) {
+          toast({
+            title: "Verification failed",
+            description: "Contact support with your payment reference: " + response.reference,
+            variant: "destructive",
+          });
+        } else {
+          toast({ title: "🎉 You're now Verified!", description: "Your verified badge is live on your profile." });
+          setVendor((v: any) => ({ ...v, is_verified: true }));
+        }
+        setPayingVerif(false);
+      },
+    });
+    handler.openIframe();
+  };
+
+  // ── Mark delivered ───────────────────────────────────────────────────────────
+  const markDelivered = async (txnId: string) => {
+    const { error } = await supabase.from("transactions").update({ vendor_marked_delivered: true } as any).eq("id", txnId);
+    if (!error) {
+      setTransactions((prev) => prev.map((t) => t.id === txnId ? { ...t, vendor_marked_delivered: true, status: "delivered" } : t));
     }
   };
 
@@ -184,8 +275,7 @@ const VendorDashboard = () => {
           <p className="text-muted-foreground">
             {vendorCountry === "Ghana"
               ? "Your registration is being reviewed by the campus admin. You'll get access once approved."
-              : "Please complete payment to gain access to your vendor dashboard. Once payment is verified by admin, your account will be activated automatically."
-            }
+              : "Please complete payment to gain access to your vendor dashboard. Once payment is verified by admin, your account will be activated automatically."}
           </p>
           {vendorCountry === "Nigeria" && (
             <div className="bg-muted/50 p-4 rounded-lg text-left">
@@ -198,12 +288,8 @@ const VendorDashboard = () => {
               </p>
             </div>
           )}
-          <p className="text-xs text-muted-foreground">
-            This page will update automatically once you're approved.
-          </p>
-          <Button variant="outline" asChild>
-            <Link to="/">Back to Home</Link>
-          </Button>
+          <p className="text-xs text-muted-foreground">This page will update automatically once you're approved.</p>
+          <Button variant="outline" asChild><Link to="/">Back to Home</Link></Button>
         </div>
       </div>
     );
@@ -214,14 +300,15 @@ const VendorDashboard = () => {
   );
 
   const statCards = [
-    { title: "Total Views", value: stats.views, icon: Eye, color: "text-primary" },
-    { title: "Total Likes", value: stats.likes, icon: Heart, color: "text-destructive" },
+    { title: "Total Views",    value: stats.views,    icon: Eye,          color: "text-primary" },
+    { title: "Total Likes",    value: stats.likes,    icon: Heart,        color: "text-destructive" },
     { title: "Total Comments", value: stats.comments, icon: MessageSquare, color: "text-accent" },
-    { title: "Contacts Made", value: stats.contacts, icon: Phone, color: "text-success" },
+    { title: "Contacts Made",  value: stats.contacts, icon: Phone,        color: "text-success" },
   ];
 
   return (
     <div className="min-h-screen bg-background">
+      {/* ── Header ── */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border px-6 h-16 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link to="/" className="flex items-center gap-2">
@@ -247,28 +334,29 @@ const VendorDashboard = () => {
       </header>
 
       <main className="p-4 sm:p-6 max-w-6xl mx-auto space-y-6">
+        {/* ── Business header ── */}
         <div className="flex items-center gap-4">
-          {/* Vendor Avatar */}
           <div className="relative group">
             <Avatar className="h-16 w-16 border-2 border-accent">
-              {avatarUrl ? (
-                <AvatarImage src={avatarUrl} alt={vendor.business_name} />
-              ) : null}
+              {avatarUrl ? <AvatarImage src={avatarUrl} alt={vendor.business_name} /> : null}
               <AvatarFallback className="bg-accent/10 text-accent text-lg">
                 {vendor.business_name?.charAt(0) || "V"}
               </AvatarFallback>
             </Avatar>
             <label className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-              {uploadingAvatar ? (
-                <Loader2 className="h-5 w-5 text-white animate-spin" />
-              ) : (
-                <Camera className="h-5 w-5 text-white" />
-              )}
+              {uploadingAvatar ? <Loader2 className="h-5 w-5 text-white animate-spin" /> : <Camera className="h-5 w-5 text-white" />}
               <input type="file" accept="image/*" className="hidden" onChange={uploadAvatar} disabled={uploadingAvatar} />
             </label>
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">{vendor.business_name}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">{vendor.business_name}</h1>
+              {vendor.is_verified && (
+                <Badge className="bg-primary/10 text-primary text-xs shrink-0">
+                  <ShieldCheck className="h-3 w-3 mr-1" /> Verified
+                </Badge>
+              )}
+            </div>
             <p className="text-muted-foreground text-xs sm:text-sm">
               {vendor.category} · {vendor.schools?.name}
               {vendor.campus_locations?.name && ` · ${vendor.campus_locations.name}`}
@@ -280,6 +368,7 @@ const VendorDashboard = () => {
           </div>
         </div>
 
+        {/* ── Stat cards ── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {statCards.map((s) => (
             <Card key={s.title} className="border-border/50">
@@ -292,27 +381,33 @@ const VendorDashboard = () => {
           ))}
         </div>
 
-        {/* Tabbed Content */}
+        {/* ── Tabs ── */}
         <Tabs defaultValue="products" className="space-y-4">
-          <TabsList className="flex-wrap">
-            <TabsTrigger value="products"><Package className="h-4 w-4 mr-1" />Products</TabsTrigger>
-            <TabsTrigger value="reels"><Film className="h-4 w-4 mr-1" />Reels</TabsTrigger>
-            <TabsTrigger value="orders"><ShoppingBag className="h-4 w-4 mr-1" />Orders</TabsTrigger>
-            <TabsTrigger value="profile"><User className="h-4 w-4 mr-1" />Profile</TabsTrigger>
+          <TabsList className="flex-wrap h-auto gap-1">
+            <TabsTrigger value="products"><Package   className="h-4 w-4 mr-1" />Products</TabsTrigger>
+            <TabsTrigger value="reels">  <Film       className="h-4 w-4 mr-1" />Reels</TabsTrigger>
+            <TabsTrigger value="orders"> <ShoppingBag className="h-4 w-4 mr-1" />Orders</TabsTrigger>
+            <TabsTrigger value="profile"><User       className="h-4 w-4 mr-1" />Profile</TabsTrigger>
             <TabsTrigger value="engagement"><BarChart3 className="h-4 w-4 mr-1" />Insights</TabsTrigger>
+            <TabsTrigger value="verify"> <ShieldCheck className="h-4 w-4 mr-1" />
+              {vendor.is_verified ? "Verified ✅" : "Get Verified"}
+            </TabsTrigger>
           </TabsList>
 
+          {/* Products */}
           <TabsContent value="products">
             <VendorProductManager vendorId={vendor.id} schoolId={vendor.school_id} />
           </TabsContent>
 
+          {/* Reels */}
           <TabsContent value="reels">
             <VendorVideoManager vendorId={vendor.id} reelsEnabled={vendor.reels_enabled || false} />
           </TabsContent>
 
+          {/* Profile */}
           <TabsContent value="profile">
             <div className="space-y-6">
-              {/* Share Link & QR Code */}
+              {/* Share link & QR */}
               <Card className="border-border/50">
                 <CardHeader>
                   <CardTitle className="text-base flex items-center gap-2">
@@ -321,11 +416,7 @@ const VendorDashboard = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center gap-2">
-                    <Input
-                      value={`${window.location.origin}/vendor/${vendor.id}`}
-                      readOnly
-                      className="bg-muted text-sm"
-                    />
+                    <Input value={`${window.location.origin}/vendor/${vendor.id}`} readOnly className="bg-muted text-sm" />
                     <Button size="sm" variant="outline" onClick={() => {
                       navigator.clipboard.writeText(`${window.location.origin}/vendor/${vendor.id}`);
                       toast({ title: "Link copied!" });
@@ -334,18 +425,13 @@ const VendorDashboard = () => {
                     </Button>
                   </div>
                   <div className="flex flex-col items-center gap-2 p-4 bg-white rounded-lg border border-border/50">
-                    <QRCodeSVG
-                      value={`${window.location.origin}/vendor/${vendor.id}`}
-                      size={160}
-                      level="M"
-                      includeMargin
-                    />
+                    <QRCodeSVG value={`${window.location.origin}/vendor/${vendor.id}`} size={160} level="M" includeMargin />
                     <p className="text-xs text-muted-foreground">Scan to visit your business page</p>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Profile Settings */}
+              {/* Profile settings */}
               <Card className="border-border/50">
                 <CardHeader>
                   <CardTitle className="text-base flex items-center gap-2">
@@ -363,21 +449,13 @@ const VendorDashboard = () => {
                     <Input value={vendor.business_name} disabled className="bg-muted" />
                     <p className="text-xs text-muted-foreground">Contact admin to change your business name.</p>
                   </div>
-
                   <div className="space-y-2">
                     <Label>Contact Number</Label>
                     <div className="flex gap-2">
-                      <Input
-                        value={editContact}
-                        onChange={(e) => setEditContact(e.target.value)}
-                        placeholder="+234..."
-                        disabled={contactEditsThisMonth >= 3}
-                      />
-                      <Button
-                        size="sm"
-                        onClick={saveContact}
-                        disabled={savingContact || contactEditsThisMonth >= 3 || editContact === vendor.contact_number}
-                      >
+                      <Input value={editContact} onChange={(e) => setEditContact(e.target.value)}
+                        placeholder="+234..." disabled={contactEditsThisMonth >= 3} />
+                      <Button size="sm" onClick={saveContact}
+                        disabled={savingContact || contactEditsThisMonth >= 3 || editContact === vendor.contact_number}>
                         {savingContact ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
                         Save
                       </Button>
@@ -388,12 +466,10 @@ const VendorDashboard = () => {
                         : `${3 - contactEditsThisMonth} edit(s) remaining this month.`}
                     </p>
                   </div>
-
                   <div className="space-y-2">
                     <Label>Category</Label>
                     <Input value={vendor.category} disabled className="bg-muted" />
                   </div>
-
                   <div className="space-y-2">
                     <Label>Description</Label>
                     <Input value={vendor.description || "No description"} disabled className="bg-muted" />
@@ -403,6 +479,7 @@ const VendorDashboard = () => {
             </div>
           </TabsContent>
 
+          {/* Orders */}
           <TabsContent value="orders">
             <Card className="border-border/50">
               <CardHeader>
@@ -435,9 +512,7 @@ const VendorDashboard = () => {
                           {t.vendor_marked_delivered && !t.customer_confirmed && (
                             <span className="text-xs text-muted-foreground">Awaiting customer confirmation</span>
                           )}
-                          {t.status === "completed" && (
-                            <span className="text-xs text-success font-medium">✓ Completed</span>
-                          )}
+                          {t.status === "completed" && <span className="text-xs text-success font-medium">✓ Completed</span>}
                         </div>
                       </div>
                     ))}
@@ -447,6 +522,7 @@ const VendorDashboard = () => {
             </Card>
           </TabsContent>
 
+          {/* Insights */}
           <TabsContent value="engagement">
             <div className="grid lg:grid-cols-2 gap-6">
               <Card className="border-border/50">
@@ -504,11 +580,185 @@ const VendorDashboard = () => {
               </Card>
             </div>
           </TabsContent>
+
+          {/* ── Verification Tab ─────────────────────────────────────────────── */}
+          <TabsContent value="verify">
+            <div className="space-y-6 max-w-xl">
+
+              {vendor.is_verified ? (
+                /* ── Already verified ── */
+                <>
+                  <Card className="border-success/40 bg-success/5">
+                    <CardContent className="p-5 flex items-start gap-3">
+                      <ShieldCheck className="h-6 w-6 text-success mt-0.5 shrink-0" />
+                      <div>
+                        <h3 className="font-semibold text-foreground mb-1">Your account is Verified ✅</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Your verified badge is showing on your public profile. Customers can see your social media links below.
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Social media links */}
+                  <Card className="border-border/50">
+                    <CardHeader>
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Share2 className="h-4 w-4" /> Link Your Social Media
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-sm text-muted-foreground">
+                        These links will appear on your public profile page since you're verified.
+                      </p>
+
+                      <div className="space-y-1.5">
+                        <Label className="flex items-center gap-1.5 text-sm">
+                          <Instagram className="h-4 w-4 text-pink-500" /> Instagram
+                        </Label>
+                        <Input
+                          value={socialInstagram}
+                          onChange={(e) => setSocialInstagram(e.target.value)}
+                          placeholder="https://instagram.com/yourhandle"
+                          className="text-sm"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <Label className="flex items-center gap-1.5 text-sm">
+                          <Music2 className="h-4 w-4 text-foreground" /> TikTok
+                        </Label>
+                        <Input
+                          value={socialTiktok}
+                          onChange={(e) => setSocialTiktok(e.target.value)}
+                          placeholder="https://tiktok.com/@yourhandle"
+                          className="text-sm"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <Label className="flex items-center gap-1.5 text-sm">
+                          <Twitter className="h-4 w-4 text-sky-500" /> X / Twitter
+                        </Label>
+                        <Input
+                          value={socialTwitter}
+                          onChange={(e) => setSocialTwitter(e.target.value)}
+                          placeholder="https://x.com/yourhandle"
+                          className="text-sm"
+                        />
+                      </div>
+
+                      <Button
+                        className="w-full"
+                        onClick={saveSocials}
+                        disabled={savingSocial}
+                      >
+                        {savingSocial
+                          ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving…</>
+                          : <><Save className="h-4 w-4 mr-2" />Save Social Links</>}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </>
+              ) : (
+                /* ── Not yet verified ── */
+                <Card className="border-border/50">
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <ShieldCheck className="h-4 w-4 text-primary" /> Apply for Verified Badge
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-5">
+                    <p className="text-sm text-muted-foreground">
+                      A verified badge builds customer trust and unlocks your social media links on your public profile.
+                    </p>
+
+                    {/* Requirements checklist */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm">
+                        <CheckCircle className={`h-4 w-4 shrink-0 ${verifIdUrl ? "text-success" : "text-muted-foreground/40"}`} />
+                        <span className={verifIdUrl ? "text-foreground font-medium" : "text-muted-foreground"}>
+                          Upload your student ID or government ID
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <CheckCircle className="h-4 w-4 shrink-0 text-muted-foreground/40" />
+                        <span className="text-muted-foreground">Pay a one-time fee of ₦2,000 via Paystack</span>
+                      </div>
+                    </div>
+
+                    {/* Payment details */}
+                    <div className="p-4 rounded-lg bg-muted/40 border border-border/50 space-y-1">
+                      <p className="text-sm font-semibold text-foreground">Payment Details</p>
+                      <p className="text-sm text-muted-foreground">Bank: <strong className="text-foreground">Sterling Bank</strong></p>
+                      <p className="text-sm text-muted-foreground">Account Number: <strong className="text-foreground">0128456092</strong></p>
+                      <p className="text-sm text-muted-foreground">Account Name: <strong className="text-foreground">Kater Akase</strong></p>
+                      <p className="text-sm text-muted-foreground">Amount: <strong className="text-foreground">₦2,000</strong></p>
+                    </div>
+
+                    {/* ID upload */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium flex items-center gap-1.5">
+                        <FileCheck className="h-4 w-4" /> Upload Your ID
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        Student ID, national ID, or any government-issued ID (image or PDF, max 5MB)
+                      </p>
+                      <label className={`flex items-center justify-center gap-2 border-2 border-dashed rounded-lg p-4 cursor-pointer transition-colors ${
+                        verifIdUrl ? "border-success bg-success/5" : "border-border hover:border-primary"
+                      }`}>
+                        {uploadingId ? (
+                          <><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /><span className="text-sm text-muted-foreground">Uploading…</span></>
+                        ) : verifIdUrl ? (
+                          <><CheckCircle className="h-5 w-5 text-success" /><span className="text-sm text-success font-medium">ID Uploaded Successfully ✅</span></>
+                        ) : (
+                          <><Upload className="h-4 w-4 text-muted-foreground" /><span className="text-sm text-muted-foreground">Tap to upload your ID</span></>
+                        )}
+                        <input
+                          type="file"
+                          accept="image/*,.pdf"
+                          className="hidden"
+                          onChange={uploadVerifId}
+                          disabled={uploadingId}
+                        />
+                      </label>
+                    </div>
+
+                    {/* Pay button */}
+                    <Button
+                      className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-11"
+                      onClick={openVerifPaystack}
+                      disabled={payingVerif || uploadingId || !verifIdUrl}
+                    >
+                      {payingVerif ? (
+                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Verifying payment…</>
+                      ) : (
+                        <><CreditCard className="h-4 w-4 mr-2" />Pay ₦2,000 &amp; Get Verified</>
+                      )}
+                    </Button>
+                    {!verifIdUrl && (
+                      <p className="text-xs text-muted-foreground text-center">
+                        You must upload your ID before you can pay
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground text-center">
+                      Your verified badge goes live immediately after payment is confirmed.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </TabsContent>
+
         </Tabs>
       </main>
 
-      <FeaturedPaymentModal open={showFeaturedModal} onOpenChange={setShowFeaturedModal}
-        vendorId={vendor.id} onSuccess={() => window.location.reload()} />
+      <FeaturedPaymentModal
+        open={showFeaturedModal}
+        onOpenChange={setShowFeaturedModal}
+        vendorId={vendor.id}
+        onSuccess={() => window.location.reload()}
+      />
     </div>
   );
 };
