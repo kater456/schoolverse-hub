@@ -12,7 +12,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { MapPin, Phone, MessageCircle, Heart, MessageSquare, Eye, Send, Loader2, Star, ShieldCheck } from "lucide-react";
+import {
+  MapPin, Phone, MessageCircle, Heart, MessageSquare, Eye,
+  Send, Loader2, Star, ShieldCheck, Instagram, Twitter, Music2,
+} from "lucide-react";
 
 const VendorProfile = () => {
   const { id } = useParams<{ id: string }>();
@@ -30,7 +33,6 @@ const VendorProfile = () => {
   const [commentText, setCommentText] = useState("");
   const [viewCount, setViewCount] = useState(0);
 
-  // Rating state
   const [ratings, setRatings] = useState<any[]>([]);
   const [avgRating, setAvgRating] = useState(0);
   const [ratingDistribution, setRatingDistribution] = useState<number[]>([0, 0, 0, 0, 0]);
@@ -55,7 +57,6 @@ const VendorProfile = () => {
         const primary = data.vendor_images?.find((img: any) => img.is_primary);
         setSelectedImage(primary?.image_url || data.vendor_images?.[0]?.image_url || null);
 
-        // Track view only once per session per vendor
         const viewKey = `vendor_viewed_${id}`;
         if (!sessionStorage.getItem(viewKey)) {
           await supabase.from("vendor_views").insert({
@@ -64,7 +65,6 @@ const VendorProfile = () => {
           sessionStorage.setItem(viewKey, "1");
         }
 
-        // Fetch engagement data
         const [viewsRes, likesRes, userLike, commentsRes, ratingsRes] = await Promise.all([
           supabase.from("vendor_views").select("id", { count: "exact", head: true }).eq("vendor_id", id),
           supabase.from("vendor_likes").select("id", { count: "exact", head: true }).eq("vendor_id", id),
@@ -80,7 +80,6 @@ const VendorProfile = () => {
 
         const allRatings = ratingsRes.data || [];
         setRatings(allRatings);
-
         if (allRatings.length > 0) {
           const avg = allRatings.reduce((sum: number, r: any) => sum + r.rating, 0) / allRatings.length;
           setAvgRating(avg);
@@ -91,20 +90,11 @@ const VendorProfile = () => {
 
         if (user) {
           const userR = allRatings.find((r: any) => r.user_id === user.id);
-          if (userR) {
-            setUserRating(userR.rating);
-            setUserReview(userR.review || "");
-            setHasRated(true);
-          }
+          if (userR) { setUserRating(userR.rating); setUserReview(userR.review || ""); setHasRated(true); }
 
           const { data: txn } = await supabase
-            .from("transactions")
-            .select("id")
-            .eq("vendor_id", id)
-            .eq("user_id", user.id)
-            .eq("status", "completed")
-            .limit(1);
-
+            .from("transactions").select("id")
+            .eq("vendor_id", id).eq("user_id", user.id).eq("status", "completed").limit(1);
           setCanRate(!!txn && txn.length > 0);
         }
       }
@@ -152,14 +142,11 @@ const VendorProfile = () => {
       toast({ title: "Cannot rate yet", description: "You can only rate after completing a transaction with this vendor.", variant: "destructive" });
       return;
     }
-
     const op = hasRated
       ? supabase.from("vendor_ratings").update({ rating: userRating, review: userReview || null } as any).eq("vendor_id", id!).eq("user_id", user!.id)
       : supabase.from("vendor_ratings").insert({ vendor_id: id!, user_id: user!.id, rating: userRating, review: userReview || null } as any);
-
     const { error } = await op;
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-
     toast({ title: hasRated ? "Rating updated!" : "Thanks for your rating!" });
     setHasRated(true);
     const { data } = await supabase.from("vendor_ratings").select("*").eq("vendor_id", id!);
@@ -179,14 +166,27 @@ const VendorProfile = () => {
   };
 
   if (isLoading) {
-    return (<div className="min-h-screen bg-background"><Navbar /><div className="flex justify-center items-center pt-32"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div></div>);
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="flex justify-center items-center pt-32">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </div>
+    );
   }
 
   if (!vendor) {
-    return (<div className="min-h-screen bg-background"><Navbar /><div className="text-center pt-32"><h2 className="text-xl font-semibold">Vendor not found</h2></div></div>);
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="text-center pt-32"><h2 className="text-xl font-semibold">Vendor not found</h2></div>
+      </div>
+    );
   }
 
   const totalRatings = ratings.length;
+  const hasSocialLinks = vendor.is_verified && (vendor.social_instagram || vendor.social_tiktok || vendor.social_twitter);
 
   return (
     <div className="min-h-screen bg-background">
@@ -194,7 +194,8 @@ const VendorProfile = () => {
       <main className="pt-20 pb-16 px-4">
         <div className="container mx-auto max-w-4xl">
           <div className="grid md:grid-cols-2 gap-8">
-            {/* Image Gallery */}
+
+            {/* ── Image Gallery ── */}
             <div>
               <div className="aspect-square bg-muted rounded-xl overflow-hidden mb-4">
                 {selectedImage ? (
@@ -204,17 +205,17 @@ const VendorProfile = () => {
                 )}
               </div>
               {images.length > 1 && (
-                <div className="flex gap-2 overflow-x-auto">
+                <div className="flex gap-2 overflow-x-auto pb-1">
                   {images.map((img: any) => (
                     <button key={img.id} onClick={() => setSelectedImage(img.image_url)}
-                      className={`w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border-2 ${selectedImage === img.image_url ? "border-accent" : "border-transparent"}`}>
+                      className={`w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-colors ${selectedImage === img.image_url ? "border-accent" : "border-transparent"}`}>
                       <img src={img.image_url} alt="" className="w-full h-full object-cover" />
                     </button>
                   ))}
                 </div>
               )}
 
-              {/* Engagement Bar */}
+              {/* Engagement bar */}
               <div className="flex items-center gap-4 mt-4 py-3 border-t border-border/50">
                 <button onClick={toggleLike} className="flex items-center gap-1.5 text-sm">
                   <Heart className={`h-5 w-5 ${liked ? "fill-destructive text-destructive" : "text-muted-foreground"}`} />
@@ -235,9 +236,10 @@ const VendorProfile = () => {
               </div>
             </div>
 
-            {/* Info */}
+            {/* ── Info Column ── */}
             <div>
-              <div className="flex items-center gap-3 mb-2">
+              {/* Business name & verified badge */}
+              <div className="flex items-center gap-3 mb-2 flex-wrap">
                 <Avatar className="h-12 w-12 border-2 border-accent">
                   {selectedImage ? <AvatarImage src={selectedImage} alt={vendor.business_name} /> : null}
                   <AvatarFallback className="bg-accent/10 text-accent">{vendor.business_name?.charAt(0) || "V"}</AvatarFallback>
@@ -249,6 +251,7 @@ const VendorProfile = () => {
                   </Badge>
                 )}
               </div>
+
               <div className="flex flex-wrap gap-2 mb-4">
                 <Badge variant="secondary">{vendor.category}</Badge>
                 {vendor.schools?.name && <Badge variant="outline">🎓 {vendor.schools.name}</Badge>}
@@ -256,9 +259,10 @@ const VendorProfile = () => {
                   <Badge variant="outline"><MapPin className="h-3 w-3 mr-1" />{vendor.campus_locations.name}</Badge>
                 )}
               </div>
+
               {vendor.description && <p className="text-muted-foreground mb-6">{vendor.description}</p>}
 
-              {/* Amazon-style Rating Breakdown */}
+              {/* ── Ratings ── */}
               <Card className="border-border/50 mb-4">
                 <CardContent className="p-4">
                   <h3 className="font-semibold text-sm mb-3">Customer Ratings</h3>
@@ -288,7 +292,6 @@ const VendorProfile = () => {
                     </div>
                   </div>
 
-                  {/* Leave a rating (only if has completed transaction) */}
                   {user && canRate && (
                     <div className="border-t border-border/50 pt-3">
                       <p className="text-xs text-muted-foreground mb-2">
@@ -322,7 +325,59 @@ const VendorProfile = () => {
                 </CardContent>
               </Card>
 
-              {/* Contact */}
+              {/* ── Social Media (verified vendors only) ── */}
+              {hasSocialLinks && (
+                <Card className="border-primary/20 bg-primary/5 mb-4">
+                  <CardContent className="p-4">
+                    <h3 className="font-semibold text-sm flex items-center gap-1.5 mb-3">
+                      <ShieldCheck className="h-4 w-4 text-primary" /> Social Media
+                    </h3>
+                    <div className="space-y-2">
+                      {vendor.social_instagram && (
+                        <a
+                          href={vendor.social_instagram}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2.5 text-sm text-muted-foreground hover:text-foreground transition-colors group"
+                        >
+                          <div className="w-7 h-7 rounded-lg bg-pink-500/10 flex items-center justify-center group-hover:bg-pink-500/20 transition-colors">
+                            <Instagram className="h-4 w-4 text-pink-500" />
+                          </div>
+                          Instagram
+                        </a>
+                      )}
+                      {vendor.social_tiktok && (
+                        <a
+                          href={vendor.social_tiktok}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2.5 text-sm text-muted-foreground hover:text-foreground transition-colors group"
+                        >
+                          <div className="w-7 h-7 rounded-lg bg-foreground/10 flex items-center justify-center group-hover:bg-foreground/20 transition-colors">
+                            <Music2 className="h-4 w-4 text-foreground" />
+                          </div>
+                          TikTok
+                        </a>
+                      )}
+                      {vendor.social_twitter && (
+                        <a
+                          href={vendor.social_twitter}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2.5 text-sm text-muted-foreground hover:text-foreground transition-colors group"
+                        >
+                          <div className="w-7 h-7 rounded-lg bg-sky-500/10 flex items-center justify-center group-hover:bg-sky-500/20 transition-colors">
+                            <Twitter className="h-4 w-4 text-sky-500" />
+                          </div>
+                          X / Twitter
+                        </a>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* ── Contact ── */}
               <Card className="border-border/50 mb-4">
                 <CardContent className="p-4 space-y-3">
                   <h3 className="font-semibold text-sm">Contact</h3>
@@ -341,14 +396,21 @@ const VendorProfile = () => {
                 </CardContent>
               </Card>
 
-              {/* Comments */}
+              {/* ── Comments ── */}
               <Card className="border-border/50">
                 <CardContent className="p-4">
                   <h3 className="font-semibold text-sm mb-3">Comments ({comments.length})</h3>
                   <div className="flex gap-2 mb-4">
-                    <Input placeholder={user ? "Write a comment..." : "Sign in to comment"} value={commentText}
-                      onChange={(e) => setCommentText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submitComment()} className="h-9 text-sm" />
-                    <Button size="sm" onClick={submitComment} disabled={!commentText.trim()}><Send className="h-4 w-4" /></Button>
+                    <Input
+                      placeholder={user ? "Write a comment..." : "Sign in to comment"}
+                      value={commentText}
+                      onChange={(e) => setCommentText(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && submitComment()}
+                      className="h-9 text-sm"
+                    />
+                    <Button size="sm" onClick={submitComment} disabled={!commentText.trim()}>
+                      <Send className="h-4 w-4" />
+                    </Button>
                   </div>
                   <div className="space-y-3 max-h-64 overflow-y-auto">
                     {comments.length === 0 ? (
