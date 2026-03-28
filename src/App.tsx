@@ -62,6 +62,7 @@ const App = () => (
             <Route path="/browse" element={<Browse />} />
             <Route path="/help" element={<Help />} />
             <Route path="/vendor/:id" element={<VendorProfile />} />
+            <Route path="/vendor/:id/:slug" element={<VendorProfile />} />
             <Route path="/reels" element={<Reels />} />
             <Route path="/register-vendor" element={
               <ProtectedRoute><VendorRegistration /></ProtectedRoute>
