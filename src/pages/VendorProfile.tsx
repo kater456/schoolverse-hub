@@ -263,9 +263,9 @@ const VendorProfile = () => {
         <Lightbox images={allImageUrls} startIndex={lightboxIndex} onClose={() => setLightboxOpen(false)} />
       )}
 
-      <main className="pt-20 pb-16 px-4">
-        <div className="container mx-auto max-w-4xl">
-          <div className="grid md:grid-cols-2 gap-8">
+      <main className="pt-20 pb-16 px-3 sm:px-4">
+        <div className="w-full max-w-4xl mx-auto overflow-x-hidden">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 
             {/* ── Image Gallery ── */}
             <div>
@@ -327,17 +327,19 @@ const VendorProfile = () => {
 
             {/* ── Info Column ── */}
             <div>
-              <div className="flex items-center gap-3 mb-2 flex-wrap">
-                <Avatar className="h-12 w-12 border-2 border-accent">
+              <div className="flex items-start gap-3 mb-2 flex-wrap">
+                <Avatar className="h-10 w-10 border-2 border-accent shrink-0">
                   {selectedImage ? <AvatarImage src={selectedImage} alt={vendor.business_name} /> : null}
                   <AvatarFallback className="bg-accent/10 text-accent">{vendor.business_name?.charAt(0) || "V"}</AvatarFallback>
                 </Avatar>
-                <h1 className="text-xl sm:text-2xl font-bold text-foreground">{vendor.business_name}</h1>
-                {vendor.is_verified && (
-                  <Badge className="bg-primary/10 text-primary text-xs">
-                    <ShieldCheck className="h-3 w-3 mr-1" /> Verified
-                  </Badge>
-                )}
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-lg sm:text-2xl font-bold text-foreground break-words">{vendor.business_name}</h1>
+                  {vendor.is_verified && (
+                    <Badge className="bg-primary/10 text-primary text-xs mt-1">
+                      <ShieldCheck className="h-3 w-3 mr-1" /> Verified
+                    </Badge>
+                  )}
+                </div>
               </div>
 
               <div className="flex flex-wrap gap-2 mb-4">
@@ -354,7 +356,7 @@ const VendorProfile = () => {
               <Card className="border-border/50 mb-4">
                 <CardContent className="p-4">
                   <h3 className="font-semibold text-sm mb-3">Customer Ratings</h3>
-                  <div className="flex items-center gap-4 mb-4">
+                  <div className="flex items-start gap-3 mb-4 flex-wrap sm:flex-nowrap">
                     <div className="text-center">
                       <div className="text-3xl font-bold">{avgRating.toFixed(1)}</div>
                       <div className="flex items-center gap-0.5 justify-center my-1">
