@@ -5,11 +5,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import { Search, ShoppingBag, Star, Users, ArrowRight, GraduationCap, Loader2 } from "lucide-react";
+import { Search, ShoppingBag, ArrowRight, GraduationCap, Loader2 } from "lucide-react";
 import FloatingIcons from "@/components/landing/FloatingIcons";
 import { CATEGORIES } from "@/lib/constants";
 import { supabase } from "@/integrations/supabase/client";
 import AIChatbox from "@/components/AIChatbox";
+import SplashScreen from "@/components/SplashScreen";
 
 const CATEGORY_ICONS: Record<string, string> = {
   "Food & Snacks": "🍔",
@@ -34,6 +35,16 @@ interface ApprovedSchool {
 const Index = () => {
   const [schools, setSchools] = useState<ApprovedSchool[]>([]);
   const [loadingSchools, setLoadingSchools] = useState(true);
+
+  // Show splash once per session
+  const [showSplash, setShowSplash] = useState(() => {
+    return !sessionStorage.getItem("splash_shown");
+  });
+
+  const handleSplashEnter = () => {
+    sessionStorage.setItem("splash_shown", "1");
+    setShowSplash(false);
+  };
 
   useEffect(() => {
     const fetchSchools = async () => {
@@ -74,6 +85,10 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
+
+      {/* Splash — sits on top of everything, shows once per session */}
+      {showSplash && <SplashScreen onEnter={handleSplashEnter} />}
+
       <Navbar />
       <main>
         {/* Hero */}
@@ -200,7 +215,7 @@ const Index = () => {
       </main>
       <Footer />
 
-      {/* AI Chatbox — only visible to logged-in users, floats above footer */}
+      {/* AI Chatbox — only visible to logged-in users */}
       <AIChatbox />
     </div>
   );
