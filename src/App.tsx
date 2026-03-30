@@ -18,6 +18,7 @@ import VendorProfile from "./pages/VendorProfile";
 import VendorRegistration from "./pages/VendorRegistration";
 import Reels from "./pages/Reels";
 import NotFound from "./pages/NotFound";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 
 // Auth Pages
 import SignUp from "./pages/auth/SignUp";
@@ -63,6 +64,7 @@ const App = () => (
             <Route path="/help" element={<Help />} />
             <Route path="/vendor/:id" element={<VendorProfile />} />
             <Route path="/vendor/:id/:slug" element={<VendorProfile />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/reels" element={<Reels />} />
             <Route path="/register-vendor" element={
               <ProtectedRoute><VendorRegistration /></ProtectedRoute>
