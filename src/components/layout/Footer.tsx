@@ -20,8 +20,8 @@ const Footer = () => {
       { name: "Login", href: "/login" },
     ],
     legal: [
-      { name: "Privacy Policy", href: "/help" },
-      { name: "Terms of Service", href: "/help" },
+      { name: "Privacy Policy", href: "/privacy" },
+      { name: "Terms of Service", href: "/privacy" },
     ],
   };
 
@@ -63,10 +63,7 @@ const Footer = () => {
             <ul className="space-y-3">
               {footerLinks.product.map((link) => (
                 <li key={link.name}>
-                  <Link
-                    to={link.href}
-                    className="text-sm text-primary-foreground/70 hover:text-accent transition-colors"
-                  >
+                  <Link to={link.href} className="text-sm text-primary-foreground/70 hover:text-accent transition-colors">
                     {link.name}
                   </Link>
                 </li>
@@ -80,10 +77,7 @@ const Footer = () => {
             <ul className="space-y-3">
               {footerLinks.company.map((link) => (
                 <li key={link.name}>
-                  <Link
-                    to={link.href}
-                    className="text-sm text-primary-foreground/70 hover:text-accent transition-colors"
-                  >
+                  <Link to={link.href} className="text-sm text-primary-foreground/70 hover:text-accent transition-colors">
                     {link.name}
                   </Link>
                 </li>
@@ -97,10 +91,7 @@ const Footer = () => {
             <ul className="space-y-3">
               {footerLinks.resources.map((link) => (
                 <li key={link.name}>
-                  <Link
-                    to={link.href}
-                    className="text-sm text-primary-foreground/70 hover:text-accent transition-colors"
-                  >
+                  <Link to={link.href} className="text-sm text-primary-foreground/70 hover:text-accent transition-colors">
                     {link.name}
                   </Link>
                 </li>
@@ -114,10 +105,7 @@ const Footer = () => {
             <ul className="space-y-3">
               {footerLinks.legal.map((link) => (
                 <li key={link.name}>
-                  <Link
-                    to={link.href}
-                    className="text-sm text-primary-foreground/70 hover:text-accent transition-colors"
-                  >
+                  <Link to={link.href} className="text-sm text-primary-foreground/70 hover:text-accent transition-colors">
                     {link.name}
                   </Link>
                 </li>
@@ -133,16 +121,13 @@ const Footer = () => {
               © {new Date().getFullYear()} Campus Market. All rights reserved.
             </p>
             <div className="flex items-center gap-6">
-              <Link
-                to="/help"
-                className="text-primary-foreground/60 hover:text-accent transition-colors"
-              >
+              <Link to="/privacy" className="text-primary-foreground/60 hover:text-accent transition-colors text-sm">
+                Privacy Policy
+              </Link>
+              <Link to="/help" className="text-primary-foreground/60 hover:text-accent transition-colors text-sm">
                 Help Center
               </Link>
-              <Link
-                to="/browse"
-                className="text-primary-foreground/60 hover:text-accent transition-colors"
-              >
+              <Link to="/browse" className="text-primary-foreground/60 hover:text-accent transition-colors text-sm">
                 Marketplace
               </Link>
             </div>
