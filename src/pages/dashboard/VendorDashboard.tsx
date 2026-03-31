@@ -13,8 +13,8 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Eye, Heart, MessageSquare, Phone, ShoppingBag,
   BarChart3, Star, LogOut, Film, Loader2, CreditCard, CheckCircle, Package,
-  User, Camera, Save, Share2, QrCode, ShieldCheck, Copy,
-  Instagram, Twitter, Music2, FileCheck, Upload,
+  User, Camera, Save, Share2, ShieldCheck, Copy,
+  Instagram, Twitter, Music2, FileCheck, Upload, ToggleLeft,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import FeaturedPaymentModal from "@/components/vendor/FeaturedPaymentModal";
@@ -22,6 +22,7 @@ import VendorProductManager from "@/components/vendor/VendorProductManager";
 import VendorVideoManager from "@/components/vendor/VendorVideoManager";
 import ThemeToggle from "@/components/ThemeToggle";
 import { compressImage } from "@/lib/compressImage";
+import VendorControlCenter from "@/components/vendor/VendorControlCenter";
 
 const VendorDashboard = () => {
   const { user, signOut } = useAuth();
@@ -392,6 +393,7 @@ const VendorDashboard = () => {
             <TabsTrigger value="verify"> <ShieldCheck className="h-4 w-4 mr-1" />
               {vendor.is_verified ? "Verified ✅" : "Get Verified"}
             </TabsTrigger>
+            <TabsTrigger value="control"><ToggleLeft className="h-4 w-4 mr-1" />Controls</TabsTrigger>
           </TabsList>
 
           {/* Products */}
@@ -748,6 +750,14 @@ const VendorDashboard = () => {
                 </Card>
               )}
             </div>
+          </TabsContent>
+
+          {/* ── Control Center Tab ── */}
+          <TabsContent value="control">
+            <VendorControlCenter
+              vendor={vendor}
+              onUpdate={(updates) => setVendor((v: any) => ({ ...v, ...updates }))}
+            />
           </TabsContent>
 
         </Tabs>
