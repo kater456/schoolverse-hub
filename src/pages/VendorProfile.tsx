@@ -15,8 +15,11 @@ import { useToast } from "@/hooks/use-toast";
 import {
   MapPin, Phone, MessageCircle, Heart, MessageSquare, Eye,
   Send, Loader2, Star, ShieldCheck, Instagram, Twitter, Music2,
-  ZoomIn, X, ChevronLeft, ChevronRight,
+  ZoomIn, X, ChevronLeft, ChevronRight, Flag, Upload, AlertTriangle,
 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 // ── Lightbox ──────────────────────────────────────────────────────────────────
 const Lightbox = ({ images, startIndex, onClose }: {
@@ -126,6 +129,14 @@ const VendorProfile = () => {
   const [hoverRating, setHoverRating]           = useState(0);
   const [canRate, setCanRate]                   = useState(false);
 
+  // ── Report state ──────────────────────────────────────────────────────────
+  const [reportOpen,     setReportOpen]     = useState(false);
+  const [reportReason,   setReportReason]   = useState("");
+  const [reportDetails,  setReportDetails]  = useState("");
+  const [reportEvidence, setReportEvidence] = useState<string | null>(null);
+  const [uploadingEvid,  setUploadingEvid]  = useState(false);
+  const [submittingReport, setSubmittingReport] = useState(false);
+
   useEffect(() => {
     const fetchVendor = async () => {
       if (!id) return;
@@ -234,6 +245,48 @@ const VendorProfile = () => {
     }
   };
 
+  const uploadEvidence = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !vendor) return;
+    setUploadingEvid(true);
+    const path = `reports/${vendor.id}-${Date.now()}.jpg`;
+    const { data, error } = await supabase.storage.from("vendor-media").upload(path, file, { upsert: true });
+    if (!error && data) {
+      const { data: urlData } = supabase.storage.from("vendor-media").getPublicUrl(data.path);
+      setReportEvidence(urlData.publicUrl);
+      toast({ title: "Evidence uploaded ✅" });
+    }
+    setUploadingEvid(false);
+  };
+
+  const submitReport = async () => {
+    if (!reportReason) { toast({ title: "Select a reason", variant: "destructive" }); return; }
+    if (!requireAuth("report")) return;
+    setSubmittingReport(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("report-vendor", {
+        body: {
+          vendor_id: id,
+          reporter_id: user!.id,
+          reason: reportReason,
+          details: reportDetails || null,
+          evidence_url: reportEvidence || null,
+        },
+      });
+      if (error || !data?.success) throw new Error(error?.message || data?.error || "Failed to submit");
+      toast({
+        title: data.auto_suspended ? "🚨 Vendor suspended" : "Report submitted ✅",
+        description: data.message,
+      });
+      setReportOpen(false);
+      setReportReason(""); setReportDetails(""); setReportEvidence(null);
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setSubmittingReport(false);
+    }
+  };
+
   const trackContact = async (type: string) => {
     await supabase.from("vendor_contacts").insert({
       vendor_id: id!, contact_type: type, school_id: vendor?.schools?.id || null,
@@ -327,19 +380,17 @@ const VendorProfile = () => {
 
             {/* ── Info Column ── */}
             <div>
-              <div className="flex items-start gap-3 mb-2 flex-wrap">
-                <Avatar className="h-10 w-10 border-2 border-accent shrink-0">
+              <div className="flex items-center gap-3 mb-2 flex-wrap">
+                <Avatar className="h-12 w-12 border-2 border-accent">
                   {selectedImage ? <AvatarImage src={selectedImage} alt={vendor.business_name} /> : null}
                   <AvatarFallback className="bg-accent/10 text-accent">{vendor.business_name?.charAt(0) || "V"}</AvatarFallback>
                 </Avatar>
-                <div className="flex-1 min-w-0">
-                  <h1 className="text-lg sm:text-2xl font-bold text-foreground break-words">{vendor.business_name}</h1>
-                  {vendor.is_verified && (
-                    <Badge className="bg-primary/10 text-primary text-xs mt-1">
-                      <ShieldCheck className="h-3 w-3 mr-1" /> Verified
-                    </Badge>
-                  )}
-                </div>
+                <h1 className="text-xl sm:text-2xl font-bold text-foreground">{vendor.business_name}</h1>
+                {vendor.is_verified && (
+                  <Badge className="bg-primary/10 text-primary text-xs">
+                    <ShieldCheck className="h-3 w-3 mr-1" /> Verified
+                  </Badge>
+                )}
               </div>
 
               <div className="flex flex-wrap gap-2 mb-4">
@@ -356,7 +407,7 @@ const VendorProfile = () => {
               <Card className="border-border/50 mb-4">
                 <CardContent className="p-4">
                   <h3 className="font-semibold text-sm mb-3">Customer Ratings</h3>
-                  <div className="flex items-start gap-3 mb-4 flex-wrap sm:flex-nowrap">
+                  <div className="flex items-center gap-4 mb-4">
                     <div className="text-center">
                       <div className="text-3xl font-bold">{avgRating.toFixed(1)}</div>
                       <div className="flex items-center gap-0.5 justify-center my-1">
@@ -464,6 +515,21 @@ const VendorProfile = () => {
                 </CardContent>
               </Card>
 
+              {/* Report vendor — only for logged-in users */}
+              {user && (
+                <div className="flex justify-end mb-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground hover:text-destructive text-xs gap-1.5"
+                    onClick={() => setReportOpen(true)}
+                  >
+                    <Flag className="h-3.5 w-3.5" />
+                    Report Vendor
+                  </Button>
+                </div>
+              )}
+
               {/* Comments */}
               <Card className="border-border/50">
                 <CardContent className="p-4">
@@ -495,6 +561,79 @@ const VendorProfile = () => {
           </div>
         </div>
       </main>
+
+      {/* ── Report Dialog ── */}
+      <Dialog open={reportOpen} onOpenChange={setReportOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Flag className="h-4 w-4" /> Report Vendor
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2 text-sm">
+            <div className="p-3 rounded-lg bg-warning/10 border border-warning/20 flex items-start gap-2">
+              <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
+              <p className="text-xs text-muted-foreground">
+                After 5 verified reports this vendor will be automatically suspended and admin will be notified immediately.
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Reason <span className="text-destructive">*</span></Label>
+              <Select onValueChange={setReportReason} value={reportReason}>
+                <SelectTrigger><SelectValue placeholder="Select a reason" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Scam / Fraud">Scam / Fraud</SelectItem>
+                  <SelectItem value="Fake products">Fake products</SelectItem>
+                  <SelectItem value="Did not deliver">Did not deliver</SelectItem>
+                  <SelectItem value="Harassment">Harassment</SelectItem>
+                  <SelectItem value="Misleading information">Misleading information</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Details (optional)</Label>
+              <Textarea
+                placeholder="Describe what happened..."
+                value={reportDetails}
+                onChange={(e) => setReportDetails(e.target.value)}
+                rows={3}
+                className="text-sm resize-none"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Evidence Screenshot (optional)</Label>
+              <label className={`flex items-center justify-center gap-2 border-2 border-dashed rounded-lg p-3 cursor-pointer transition-colors ${
+                reportEvidence ? "border-success bg-success/5" : "border-border hover:border-primary"
+              }`}>
+                {uploadingEvid ? (
+                  <><Loader2 className="h-4 w-4 animate-spin" /><span className="text-xs">Uploading…</span></>
+                ) : reportEvidence ? (
+                  <><ShieldCheck className="h-4 w-4 text-success" /><span className="text-xs text-success font-medium">Screenshot uploaded ✅</span></>
+                ) : (
+                  <><Upload className="h-4 w-4 text-muted-foreground" /><span className="text-xs text-muted-foreground">Upload screenshot</span></>
+                )}
+                <input type="file" accept="image/*" className="hidden" onChange={uploadEvidence} disabled={uploadingEvid} />
+              </label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReportOpen(false)}>Cancel</Button>
+            <Button
+              variant="destructive"
+              onClick={submitReport}
+              disabled={!reportReason || submittingReport}
+            >
+              {submittingReport ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Flag className="h-4 w-4 mr-2" />}
+              Submit Report
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Footer />
     </div>
   );
