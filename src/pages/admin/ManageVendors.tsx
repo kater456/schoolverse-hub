@@ -375,6 +375,7 @@ const ManageVendors = () => {
                     ["Country",          detailVendor.country || "Nigeria"],
                     ["Category",         detailVendor.category],
                     ["Customer Contact", detailVendor.contact_number],
+                    ["Signup Email",     detailVendor._signup_email || "—"],
                     ["School",           detailVendor.schools?.name || "—"],
                     ["Campus Location",  detailVendor.campus_locations?.name || "—"],
                     ["Verified",         detailVendor.is_verified ? "✅ Yes" : "❌ No"],

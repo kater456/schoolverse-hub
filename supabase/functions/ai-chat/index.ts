@@ -9,8 +9,8 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY not configured");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -52,43 +52,50 @@ ${vendorList || "No vendors available at the moment."}
 When users ask about vendors, products, or services — search the list above and recommend the most relevant ones by name, category, location and contact.
 Keep responses short, friendly and conversational. You're talking to university students.`;
 
-    // Build Gemini conversation format
-    // Gemini uses "user" and "model" roles (not "assistant")
-    const geminiMessages = messages.map((m: any) => ({
-      role: m.role === "assistant" ? "model" : "user",
-      parts: [{ text: m.content }],
-    }));
-
-    // Prepend system prompt as first user message if conversation just started
-    const contents = [
-      { role: "user",  parts: [{ text: systemPrompt }] },
-      { role: "model", parts: [{ text: "Got it! I'm ready to help students find vendors and answer questions." }] },
-      ...geminiMessages,
+    // Build messages for Lovable AI (OpenAI-compatible format)
+    const aiMessages = [
+      { role: "system", content: systemPrompt },
+      ...messages.map((m: any) => ({
+        role: m.role === "assistant" ? "assistant" : "user",
+        content: m.content,
+      })),
     ];
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      "https://ai.gateway.lovable.dev/v1/chat/completions",
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+        },
         body: JSON.stringify({
-          contents,
-          generationConfig: {
-            maxOutputTokens: 500,
-            temperature: 0.7,
-          },
+          model: "google/gemini-3-flash-preview",
+          messages: aiMessages,
+          max_tokens: 500,
+          temperature: 0.7,
         }),
       }
     );
 
-    const data = await response.json();
-
     if (!response.ok) {
-      const errMsg = data?.error?.message || "Gemini API error";
-      throw new Error(errMsg);
+      if (response.status === 429) {
+        return new Response(JSON.stringify({ error: "Rate limited, please try again shortly." }), {
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (response.status === 402) {
+        return new Response(JSON.stringify({ error: "AI credits exhausted." }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const t = await response.text();
+      console.error("AI gateway error:", response.status, t);
+      throw new Error("AI gateway error");
     }
 
-    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text
+    const data = await response.json();
+    const reply = data.choices?.[0]?.message?.content
       || "Sorry, I couldn't generate a response right now.";
 
     return new Response(JSON.stringify({ reply }), {
