@@ -192,7 +192,7 @@ const ManageVendors = () => {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-52">
 
-                      <DropdownMenuItem onClick={() => setDetailVendor(v)}>
+                      <DropdownMenuItem onClick={() => openDetail(v)}>
                         <FileText className="h-4 w-4 mr-2" /> View Full Details
                       </DropdownMenuItem>
 
