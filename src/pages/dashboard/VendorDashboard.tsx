@@ -54,7 +54,7 @@ const VendorDashboard = () => {
     if (!user) return;
     const { data: v } = await supabase
       .from("vendors")
-      .select("*, schools(name), campus_locations(name), featured_listings(*)")
+      .select("*, schools(name), campus_locations(name), featured_listings(*), social_instagram, social_tiktok, social_twitter")
       .eq("user_id", user.id)
       .single();
 

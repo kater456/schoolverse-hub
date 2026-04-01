@@ -56,6 +56,19 @@ const ManageVendors = () => {
   const [actionLoading,  setActionLoading]  = useState<string | null>(null);
   const [promoteLoading, setPromoteLoading] = useState(false);
 
+  // Fetch signup email when detail dialog opens
+  const openDetail = async (v: any) => {
+    setDetailVendor({ ...v, _signup_email: "Loading..." });
+    try {
+      const { data } = await supabase.functions.invoke("get-user-email", {
+        body: { user_id: v.user_id },
+      });
+      setDetailVendor((prev: any) => prev ? { ...prev, _signup_email: data?.email || "—" } : prev);
+    } catch {
+      setDetailVendor((prev: any) => prev ? { ...prev, _signup_email: "—" } : prev);
+    }
+  };
+
   // Core patch helper
   const patch = async (id: string, payload: any, successMsg: string) => {
     const { error } = await supabase.from("vendors").update(payload as any).eq("id", id);
@@ -131,7 +144,7 @@ const ManageVendors = () => {
               {/* Clickable business name */}
               <TableCell>
                 <button
-                  onClick={() => setDetailVendor(v)}
+                 onClick={() => openDetail(v)}
                   className="flex items-center gap-1.5 font-medium text-foreground hover:text-primary hover:underline text-left transition-colors group"
                 >
                   <span className="group-hover:underline">{v.business_name}</span>
@@ -179,7 +192,7 @@ const ManageVendors = () => {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-52">
 
-                      <DropdownMenuItem onClick={() => setDetailVendor(v)}>
+                      <DropdownMenuItem onClick={() => openDetail(v)}>
                         <FileText className="h-4 w-4 mr-2" /> View Full Details
                       </DropdownMenuItem>
 
@@ -375,6 +388,7 @@ const ManageVendors = () => {
                     ["Country",          detailVendor.country || "Nigeria"],
                     ["Category",         detailVendor.category],
                     ["Customer Contact", detailVendor.contact_number],
+                    ["Signup Email",     detailVendor._signup_email || "—"],
                     ["School",           detailVendor.schools?.name || "—"],
                     ["Campus Location",  detailVendor.campus_locations?.name || "—"],
                     ["Verified",         detailVendor.is_verified ? "✅ Yes" : "❌ No"],
