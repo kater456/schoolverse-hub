@@ -144,7 +144,7 @@ const ManageVendors = () => {
               {/* Clickable business name */}
               <TableCell>
                 <button
-                  onClick={() => setDetailVendor(v)}
+                 onClick={() => openDetail(v)}
                   className="flex items-center gap-1.5 font-medium text-foreground hover:text-primary hover:underline text-left transition-colors group"
                 >
                   <span className="group-hover:underline">{v.business_name}</span>
