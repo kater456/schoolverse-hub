@@ -56,6 +56,19 @@ const ManageVendors = () => {
   const [actionLoading,  setActionLoading]  = useState<string | null>(null);
   const [promoteLoading, setPromoteLoading] = useState(false);
 
+  // Fetch signup email when detail dialog opens
+  const openDetail = async (v: any) => {
+    setDetailVendor({ ...v, _signup_email: "Loading..." });
+    try {
+      const { data } = await supabase.functions.invoke("get-user-email", {
+        body: { user_id: v.user_id },
+      });
+      setDetailVendor((prev: any) => prev ? { ...prev, _signup_email: data?.email || "—" } : prev);
+    } catch {
+      setDetailVendor((prev: any) => prev ? { ...prev, _signup_email: "—" } : prev);
+    }
+  };
+
   // Core patch helper
   const patch = async (id: string, payload: any, successMsg: string) => {
     const { error } = await supabase.from("vendors").update(payload as any).eq("id", id);
