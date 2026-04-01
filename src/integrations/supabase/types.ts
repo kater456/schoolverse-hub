@@ -939,6 +939,47 @@ export type Database = {
           },
         ]
       }
+      vendor_reports: {
+        Row: {
+          created_at: string | null
+          details: string | null
+          evidence_url: string | null
+          id: string
+          reason: string
+          reporter_id: string | null
+          status: string | null
+          vendor_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          details?: string | null
+          evidence_url?: string | null
+          id?: string
+          reason: string
+          reporter_id?: string | null
+          status?: string | null
+          vendor_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          details?: string | null
+          evidence_url?: string | null
+          id?: string
+          reason?: string
+          reporter_id?: string | null
+          status?: string | null
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_reports_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vendor_stats: {
         Row: {
           average_rating: number | null
@@ -1038,58 +1079,106 @@ export type Database = {
       }
       vendors: {
         Row: {
+          accepts_orders: boolean | null
           business_name: string
           campus_location_id: string | null
           category: string
           contact_number: string | null
           country: string | null
           created_at: string
+          delivery_available: boolean | null
           description: string | null
           id: string
           is_active: boolean | null
           is_approved: boolean | null
+          is_open: boolean | null
+          is_suspended: boolean | null
           is_verified: boolean | null
           messaging_enabled: boolean | null
+          payment_reference: string | null
+          payment_status: string | null
+          promoted_until: string | null
           reels_enabled: boolean | null
           school_id: string
+          social_instagram: string | null
+          social_tiktok: string | null
+          social_twitter: string | null
+          status_message: string | null
+          stock_status: string | null
+          strike_count: number | null
           updated_at: string
           user_id: string
+          verification_applied_at: string | null
+          verification_payment_ref: string | null
+          whatsapp_orders: boolean | null
         }
         Insert: {
+          accepts_orders?: boolean | null
           business_name: string
           campus_location_id?: string | null
           category: string
           contact_number?: string | null
           country?: string | null
           created_at?: string
+          delivery_available?: boolean | null
           description?: string | null
           id?: string
           is_active?: boolean | null
           is_approved?: boolean | null
+          is_open?: boolean | null
+          is_suspended?: boolean | null
           is_verified?: boolean | null
           messaging_enabled?: boolean | null
+          payment_reference?: string | null
+          payment_status?: string | null
+          promoted_until?: string | null
           reels_enabled?: boolean | null
           school_id: string
+          social_instagram?: string | null
+          social_tiktok?: string | null
+          social_twitter?: string | null
+          status_message?: string | null
+          stock_status?: string | null
+          strike_count?: number | null
           updated_at?: string
           user_id: string
+          verification_applied_at?: string | null
+          verification_payment_ref?: string | null
+          whatsapp_orders?: boolean | null
         }
         Update: {
+          accepts_orders?: boolean | null
           business_name?: string
           campus_location_id?: string | null
           category?: string
           contact_number?: string | null
           country?: string | null
           created_at?: string
+          delivery_available?: boolean | null
           description?: string | null
           id?: string
           is_active?: boolean | null
           is_approved?: boolean | null
+          is_open?: boolean | null
+          is_suspended?: boolean | null
           is_verified?: boolean | null
           messaging_enabled?: boolean | null
+          payment_reference?: string | null
+          payment_status?: string | null
+          promoted_until?: string | null
           reels_enabled?: boolean | null
           school_id?: string
+          social_instagram?: string | null
+          social_tiktok?: string | null
+          social_twitter?: string | null
+          status_message?: string | null
+          stock_status?: string | null
+          strike_count?: number | null
           updated_at?: string
           user_id?: string
+          verification_applied_at?: string | null
+          verification_payment_ref?: string | null
+          whatsapp_orders?: boolean | null
         }
         Relationships: [
           {
