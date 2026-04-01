@@ -507,7 +507,7 @@ const VendorProfile = () => {
                   )}
                   {vendor.messaging_enabled && vendor.contact_number && (
                     <Button variant="outline" className="w-full justify-start" onClick={() => trackContact("whatsapp")} asChild>
-                      <a href={`https://wa.me/${vendor.contact_number.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer">
+                      <a href={`https://wa.me/${vendor.contact_number.replace(/\D/g, "")}?text=${encodeURIComponent(`Hi! I'm reaching out from Campus Market 🛍️. I'm interested in your ${vendor.business_name} and would like to know more. Can you help me?`)}`} target="_blank" rel="noopener noreferrer">
                         <MessageCircle className="h-4 w-4 mr-2" />Message on WhatsApp
                       </a>
                     </Button>
