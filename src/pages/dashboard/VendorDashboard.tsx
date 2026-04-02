@@ -412,6 +412,14 @@ const VendorDashboard = () => {
             </TabsTrigger>
             <TabsTrigger value="control"><ToggleLeft className="h-4 w-4 mr-1" />Controls</TabsTrigger>
             <TabsTrigger value="deals"><Flame className="h-4 w-4 mr-1" />Deals</TabsTrigger>
+            <TabsTrigger value="notifications" className="relative">
+              <Bell className="h-4 w-4 mr-1" />Notifications
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[10px] rounded-full h-4 w-4 flex items-center justify-center">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
+            </TabsTrigger>
           </TabsList>
 
           {/* Products */}
