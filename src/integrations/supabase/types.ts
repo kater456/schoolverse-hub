@@ -907,6 +907,39 @@ export type Database = {
           },
         ]
       }
+      vendor_notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean
+          message: string | null
+          related_id: string | null
+          title: string
+          type: string
+          vendor_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message?: string | null
+          related_id?: string | null
+          title: string
+          type?: string
+          vendor_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message?: string | null
+          related_id?: string | null
+          title?: string
+          type?: string
+          vendor_id?: string
+        }
+        Relationships: []
+      }
       vendor_private_details: {
         Row: {
           created_at: string
