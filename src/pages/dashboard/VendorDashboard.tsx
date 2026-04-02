@@ -14,7 +14,7 @@ import {
   Eye, Heart, MessageSquare, Phone, ShoppingBag,
   BarChart3, Star, LogOut, Film, Loader2, CreditCard, CheckCircle, Package,
   User, Camera, Save, Share2, ShieldCheck, Copy,
-  Instagram, Twitter, Music2, FileCheck, Upload, ToggleLeft, Flame,
+  Instagram, Twitter, Music2, FileCheck, Upload, ToggleLeft, Flame, Bell,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import FeaturedPaymentModal from "@/components/vendor/FeaturedPaymentModal";
