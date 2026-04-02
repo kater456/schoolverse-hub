@@ -346,6 +346,17 @@ const VendorDashboard = () => {
               <CreditCard className="h-4 w-4 mr-1" /> Go Featured
             </Button>
           )}
+          <Button variant="ghost" size="icon" className="relative" onClick={() => {
+            const tabEl = document.querySelector('[data-state][value="notifications"]') as HTMLElement;
+            tabEl?.click();
+          }}>
+            <Bell className="h-4 w-4" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 bg-destructive text-destructive-foreground text-[10px] rounded-full h-4 w-4 flex items-center justify-center">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
+          </Button>
           <Button variant="ghost" size="icon" onClick={signOut}><LogOut className="h-4 w-4" /></Button>
           <ThemeToggle />
         </div>
