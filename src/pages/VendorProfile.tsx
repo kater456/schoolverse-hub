@@ -128,6 +128,7 @@ const VendorProfile = () => {
   const [hasRated, setHasRated]                 = useState(false);
   const [hoverRating, setHoverRating]           = useState(0);
   const [canRate, setCanRate]                   = useState(false);
+  const [activeDeals, setActiveDeals]           = useState<any[]>([]);
 
   // ── Report state ──────────────────────────────────────────────────────────
   const [reportOpen,     setReportOpen]     = useState(false);
@@ -189,6 +190,16 @@ const VendorProfile = () => {
             .eq("vendor_id", id).eq("user_id", user.id).eq("status", "completed").limit(1);
           setCanRate(!!txn && txn.length > 0);
         }
+
+        // Fetch active deals
+        const { data: dealsData } = await supabase
+          .from("vendor_deals")
+          .select("*")
+          .eq("vendor_id", id)
+          .eq("is_active", true)
+          .gt("expires_at", new Date().toISOString())
+          .order("expires_at", { ascending: true });
+        setActiveDeals(dealsData || []);
       }
       setIsLoading(false);
     };
@@ -380,17 +391,24 @@ const VendorProfile = () => {
 
             {/* ── Info Column ── */}
             <div>
-              <div className="flex items-center gap-3 mb-2 flex-wrap">
-                <Avatar className="h-12 w-12 border-2 border-accent">
+              <div className="flex items-start gap-3 mb-2 flex-wrap">
+                <Avatar className="h-10 w-10 border-2 border-accent shrink-0">
                   {selectedImage ? <AvatarImage src={selectedImage} alt={vendor.business_name} /> : null}
                   <AvatarFallback className="bg-accent/10 text-accent">{vendor.business_name?.charAt(0) || "V"}</AvatarFallback>
                 </Avatar>
-                <h1 className="text-xl sm:text-2xl font-bold text-foreground">{vendor.business_name}</h1>
-                {vendor.is_verified && (
-                  <Badge className="bg-primary/10 text-primary text-xs">
-                    <ShieldCheck className="h-3 w-3 mr-1" /> Verified
-                  </Badge>
-                )}
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-lg sm:text-2xl font-bold text-foreground break-words">{vendor.business_name}</h1>
+                  <div className="flex flex-wrap gap-1.5 mt-1">
+                    {vendor.is_verified && (
+                      <Badge className="bg-primary/10 text-primary text-xs">
+                        <ShieldCheck className="h-3 w-3 mr-1" /> Verified
+                      </Badge>
+                    )}
+                    {vendor.is_vendor_of_week && vendor.vendor_of_week_expires_at && new Date(vendor.vendor_of_week_expires_at) > new Date() && (
+                      <Badge className="bg-accent/20 text-accent text-xs">🏆 Vendor of the Week</Badge>
+                    )}
+                  </div>
+                </div>
               </div>
 
               <div className="flex flex-wrap gap-2 mb-4">
@@ -491,6 +509,48 @@ const VendorProfile = () => {
                           </div>X / Twitter
                         </a>
                       )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Active Deals */}
+              {activeDeals.length > 0 && (
+                <Card className="border-orange-400/40 bg-orange-500/5 mb-4">
+                  <CardContent className="p-4">
+                    <h3 className="font-semibold text-sm flex items-center gap-1.5 mb-3">
+                      🔥 Active Deals
+                    </h3>
+                    <div className="space-y-3">
+                      {activeDeals.map((deal) => {
+                        const diff  = new Date(deal.expires_at).getTime() - Date.now();
+                        const h     = Math.floor(diff / 3_600_000);
+                        const m     = Math.floor((diff % 3_600_000) / 60_000);
+                        const left  = h > 24 ? `${Math.floor(h/24)}d ${h%24}h left` : `${h}h ${m}m left`;
+                        const disc  = deal.original_price && deal.original_price > deal.deal_price
+                          ? Math.round(((deal.original_price - deal.deal_price) / deal.original_price) * 100)
+                          : null;
+                        return (
+                          <div key={deal.id} className="border-b border-orange-400/20 pb-3 last:border-0 last:pb-0">
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <p className="text-sm font-medium text-foreground">{deal.title}</p>
+                                {deal.description && <p className="text-xs text-muted-foreground mt-0.5">{deal.description}</p>}
+                                <div className="flex items-center gap-2 mt-1">
+                                  {deal.original_price && (
+                                    <span className="text-xs line-through text-muted-foreground">₦{deal.original_price.toLocaleString()}</span>
+                                  )}
+                                  <span className="text-sm font-bold text-success">₦{deal.deal_price.toLocaleString()}</span>
+                                  {disc && <Badge className="bg-success/20 text-success text-xs">-{disc}%</Badge>}
+                                </div>
+                              </div>
+                              <span className="text-xs text-orange-600 shrink-0 flex items-center gap-1">
+                                ⏰ {left}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </CardContent>
                 </Card>
