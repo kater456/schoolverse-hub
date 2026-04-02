@@ -14,7 +14,7 @@ import {
   Eye, Heart, MessageSquare, Phone, ShoppingBag,
   BarChart3, Star, LogOut, Film, Loader2, CreditCard, CheckCircle, Package,
   User, Camera, Save, Share2, ShieldCheck, Copy,
-  Instagram, Twitter, Music2, FileCheck, Upload, ToggleLeft,
+  Instagram, Twitter, Music2, FileCheck, Upload, ToggleLeft, Flame,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import FeaturedPaymentModal from "@/components/vendor/FeaturedPaymentModal";
@@ -23,6 +23,7 @@ import VendorVideoManager from "@/components/vendor/VendorVideoManager";
 import ThemeToggle from "@/components/ThemeToggle";
 import { compressImage } from "@/lib/compressImage";
 import VendorControlCenter from "@/components/vendor/VendorControlCenter";
+import VendorDealManager from "@/components/vendor/VendorDealManager";
 
 const VendorDashboard = () => {
   const { user, signOut } = useAuth();
@@ -54,7 +55,7 @@ const VendorDashboard = () => {
     if (!user) return;
     const { data: v } = await supabase
       .from("vendors")
-      .select("*, schools(name), campus_locations(name), featured_listings(*), social_instagram, social_tiktok, social_twitter")
+      .select("*, schools(name), campus_locations(name), featured_listings(*)")
       .eq("user_id", user.id)
       .single();
 
@@ -394,6 +395,7 @@ const VendorDashboard = () => {
               {vendor.is_verified ? "Verified ✅" : "Get Verified"}
             </TabsTrigger>
             <TabsTrigger value="control"><ToggleLeft className="h-4 w-4 mr-1" />Controls</TabsTrigger>
+            <TabsTrigger value="deals"><Flame className="h-4 w-4 mr-1" />Deals</TabsTrigger>
           </TabsList>
 
           {/* Products */}
@@ -758,6 +760,11 @@ const VendorDashboard = () => {
               vendor={vendor}
               onUpdate={(updates) => setVendor((v: any) => ({ ...v, ...updates }))}
             />
+          </TabsContent>
+
+          {/* ── Deals Tab ── */}
+          <TabsContent value="deals">
+            <VendorDealManager vendorId={vendor.id} />
           </TabsContent>
 
         </Tabs>
