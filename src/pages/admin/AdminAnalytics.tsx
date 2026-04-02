@@ -135,7 +135,7 @@ const AdminAnalytics = () => {
   };
 
   const clearVotw = async () => {
-    await supabase.from("vendors").update({ is_vendor_of_week: false, vendor_of_week_expires_at: null } as any)
+    await (supabase.from("vendors") as any).update({ is_vendor_of_week: false, vendor_of_week_expires_at: null })
       .eq("is_vendor_of_week", true);
     toast({ title: "Vendor of the Week cleared" });
     fetchAnalytics();
