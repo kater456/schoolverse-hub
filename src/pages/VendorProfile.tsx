@@ -231,6 +231,24 @@ const VendorProfile = () => {
     } else {
       await supabase.from("vendor_likes").insert({ vendor_id: id!, user_id: user!.id } as any);
       setLiked(true); setLikeCount((c) => c + 1);
+
+      // Notify vendor of new like
+      const { data: prof } = await supabase.from("profiles").select("first_name, last_name").eq("user_id", user!.id).maybeSingle();
+      const likerName = prof ? `${prof.first_name || ""} ${prof.last_name || ""}`.trim() || "Someone" : "Someone";
+      await (supabase.from("vendor_notifications") as any).insert({
+        vendor_id: id!, type: "like", title: "New Like ❤️",
+        message: `${likerName} liked your business!`,
+      });
+
+      // Check like milestones
+      const newCount = likeCount + 1;
+      const milestones = [10, 25, 50, 100, 250, 500, 1000];
+      if (milestones.includes(newCount)) {
+        await (supabase.from("vendor_notifications") as any).insert({
+          vendor_id: id!, type: "milestone", title: "🎉 Milestone Reached!",
+          message: `Your business just hit ${newCount} likes! You're growing fast.`,
+        });
+      }
     }
   };
 
