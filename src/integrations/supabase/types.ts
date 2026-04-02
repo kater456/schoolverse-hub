@@ -726,13 +726,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "vendor_comments_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["user_id"]
-          },
-          {
             foreignKeyName: "vendor_comments_vendor_id_fkey"
             columns: ["vendor_id"]
             isOneToOne: false

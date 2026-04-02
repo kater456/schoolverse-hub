@@ -1,0 +1,1 @@
+ALTER TABLE public.vendor_comments DROP CONSTRAINT IF EXISTS vendor_comments_user_id_fkey;
