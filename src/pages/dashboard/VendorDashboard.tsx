@@ -791,6 +791,59 @@ const VendorDashboard = () => {
             <VendorDealManager vendorId={vendor.id} />
           </TabsContent>
 
+          {/* ── Notifications Tab ── */}
+          <TabsContent value="notifications">
+            <Card className="border-border/50">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Bell className="h-4 w-4" /> Notifications
+                </CardTitle>
+                {unreadCount > 0 && (
+                  <Button size="sm" variant="outline" onClick={async () => {
+                    const unreadIds = notifications.filter((n: any) => !n.is_read).map((n: any) => n.id);
+                    if (unreadIds.length > 0) {
+                      await (supabase.from("vendor_notifications") as any).update({ is_read: true }).in("id", unreadIds);
+                      setNotifications((prev) => prev.map((n: any) => ({ ...n, is_read: true })));
+                      setUnreadCount(0);
+                    }
+                  }}>
+                    Mark all as read
+                  </Button>
+                )}
+              </CardHeader>
+              <CardContent>
+                {notifications.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">No notifications yet</p>
+                ) : (
+                  <div className="space-y-3 max-h-[500px] overflow-y-auto">
+                    {notifications.map((n: any) => (
+                      <div key={n.id} className={`flex items-start gap-3 p-3 rounded-lg border transition-colors ${
+                        n.is_read ? "border-border/30 bg-background" : "border-primary/30 bg-primary/5"
+                      }`}>
+                        <div className="shrink-0 mt-0.5">
+                          {n.type === "comment" && <MessageSquare className="h-4 w-4 text-accent" />}
+                          {n.type === "like" && <Heart className="h-4 w-4 text-destructive" />}
+                          {n.type === "milestone" && <Star className="h-4 w-4 text-yellow-500" />}
+                          {!["comment", "like", "milestone"].includes(n.type) && <Bell className="h-4 w-4 text-muted-foreground" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground">{n.title}</p>
+                          {n.message && <p className="text-xs text-muted-foreground mt-0.5">{n.message}</p>}
+                          <p className="text-[10px] text-muted-foreground mt-1">
+                            {new Date(n.created_at).toLocaleDateString()} · {new Date(n.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          </p>
+                        </div>
+                        {!n.is_read && (
+                          <div className="w-2 h-2 rounded-full bg-primary shrink-0 mt-2" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
         </Tabs>
       </main>
 
