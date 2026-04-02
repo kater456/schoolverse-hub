@@ -158,6 +158,17 @@ const VendorProfile = () => {
             vendor_id: id, viewer_id: user?.id || null, school_id: data.schools?.id || null,
           } as any);
           sessionStorage.setItem(viewKey, "1");
+
+          // Check view milestones
+          const { count: totalViews } = await supabase.from("vendor_views")
+            .select("id", { count: "exact", head: true }).eq("vendor_id", id);
+          const viewMilestones = [50, 100, 250, 500, 1000, 2500, 5000, 10000];
+          if (totalViews && viewMilestones.includes(totalViews)) {
+            await (supabase.from("vendor_notifications") as any).insert({
+              vendor_id: id, type: "milestone", title: "👀 Views Milestone!",
+              message: `Your business just reached ${totalViews.toLocaleString()} views! Keep it up.`,
+            });
+          }
         }
 
         const [viewsRes, likesRes, userLike, commentsRes, ratingsRes] = await Promise.all([
