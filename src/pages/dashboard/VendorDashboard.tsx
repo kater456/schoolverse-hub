@@ -90,12 +90,20 @@ const VendorDashboard = () => {
       supabase.from("vendor_comments").select("id", { count: "exact", head: true }).eq("vendor_id", v.id),
       supabase.from("vendor_contacts").select("id", { count: "exact", head: true }).eq("vendor_id", v.id),
       supabase.from("transactions").select("*").eq("vendor_id", v.id).order("created_at", { ascending: false }).limit(10),
-      supabase.from("vendor_comments").select("*, profiles:user_id(first_name, last_name)").eq("vendor_id", v.id).order("created_at", { ascending: false }).limit(5),
+      supabase.from("vendor_comments").select("*").eq("vendor_id", v.id).order("created_at", { ascending: false }).limit(5),
     ]);
 
     setStats({ views: views.count || 0, likes: likes.count || 0, comments: comments.count || 0, contacts: contacts.count || 0 });
     setTransactions(txns.data || []);
-    setRecentComments(cmts.data || []);
+    // Fetch commenter profiles separately
+    const cmtData = cmts.data || [];
+    const cmtUserIds = [...new Set(cmtData.map((c: any) => c.user_id))];
+    let cmtProfileMap: Record<string, any> = {};
+    if (cmtUserIds.length > 0) {
+      const { data: profs } = await supabase.from("profiles").select("user_id, first_name, last_name").in("user_id", cmtUserIds);
+      (profs || []).forEach((p: any) => { cmtProfileMap[p.user_id] = p; });
+    }
+    setRecentComments(cmtData.map((c: any) => ({ ...c, profiles: cmtProfileMap[c.user_id] || null })));
     setIsLoading(false);
   };
 

@@ -239,9 +239,12 @@ const VendorProfile = () => {
     if (!commentText.trim()) return;
     const { data, error } = await supabase.from("vendor_comments")
       .insert({ vendor_id: id!, user_id: user!.id, content: commentText.trim() } as any)
-      .select("*, profiles:user_id(first_name, last_name)").single();
-    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
-    else { setComments((prev) => [data, ...prev]); setCommentText(""); }
+      .select("*").single();
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    // Attach profile info
+    const { data: prof } = await supabase.from("profiles").select("user_id, first_name, last_name").eq("user_id", user!.id).maybeSingle();
+    const commentWithProfile = { ...data, profiles: prof || null };
+    setComments((prev) => [commentWithProfile, ...prev]); setCommentText("");
   };
 
   const submitRating = async () => {
