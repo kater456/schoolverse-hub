@@ -39,6 +39,8 @@ const VendorDashboard = () => {
   const [editContact, setEditContact] = useState("");
   const [contactEditsThisMonth, setContactEditsThisMonth] = useState(0);
   const [savingContact, setSavingContact] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   // Social media edit state
   const [socialInstagram, setSocialInstagram] = useState("");
