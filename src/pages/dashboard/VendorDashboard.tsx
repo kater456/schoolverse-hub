@@ -106,6 +106,12 @@ const VendorDashboard = () => {
       (profs || []).forEach((p: any) => { cmtProfileMap[p.user_id] = p; });
     }
     setRecentComments(cmtData.map((c: any) => ({ ...c, profiles: cmtProfileMap[c.user_id] || null })));
+    // Fetch notifications
+    const { data: notifData } = await (supabase.from("vendor_notifications") as any)
+      .select("*").eq("vendor_id", v.id).order("created_at", { ascending: false }).limit(50);
+    setNotifications(notifData || []);
+    setUnreadCount((notifData || []).filter((n: any) => !n.is_read).length);
+
     setIsLoading(false);
   };
 
