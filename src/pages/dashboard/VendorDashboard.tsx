@@ -14,7 +14,7 @@ import {
   Eye, Heart, MessageSquare, Phone, ShoppingBag,
   BarChart3, Star, LogOut, Film, Loader2, CreditCard, CheckCircle, Package,
   User, Camera, Save, Share2, ShieldCheck, Copy,
-  Instagram, Twitter, Music2, FileCheck, Upload, ToggleLeft, Flame,
+  Instagram, Twitter, Music2, FileCheck, Upload, ToggleLeft, Flame, Bell,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import FeaturedPaymentModal from "@/components/vendor/FeaturedPaymentModal";
@@ -39,6 +39,8 @@ const VendorDashboard = () => {
   const [editContact, setEditContact] = useState("");
   const [contactEditsThisMonth, setContactEditsThisMonth] = useState(0);
   const [savingContact, setSavingContact] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   // Social media edit state
   const [socialInstagram, setSocialInstagram] = useState("");
@@ -104,6 +106,12 @@ const VendorDashboard = () => {
       (profs || []).forEach((p: any) => { cmtProfileMap[p.user_id] = p; });
     }
     setRecentComments(cmtData.map((c: any) => ({ ...c, profiles: cmtProfileMap[c.user_id] || null })));
+    // Fetch notifications
+    const { data: notifData } = await (supabase.from("vendor_notifications") as any)
+      .select("*").eq("vendor_id", v.id).order("created_at", { ascending: false }).limit(50);
+    setNotifications(notifData || []);
+    setUnreadCount((notifData || []).filter((n: any) => !n.is_read).length);
+
     setIsLoading(false);
   };
 
@@ -338,6 +346,17 @@ const VendorDashboard = () => {
               <CreditCard className="h-4 w-4 mr-1" /> Go Featured
             </Button>
           )}
+          <Button variant="ghost" size="icon" className="relative" onClick={() => {
+            const tabEl = document.querySelector('[data-state][value="notifications"]') as HTMLElement;
+            tabEl?.click();
+          }}>
+            <Bell className="h-4 w-4" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 bg-destructive text-destructive-foreground text-[10px] rounded-full h-4 w-4 flex items-center justify-center">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
+          </Button>
           <Button variant="ghost" size="icon" onClick={signOut}><LogOut className="h-4 w-4" /></Button>
           <ThemeToggle />
         </div>
@@ -404,6 +423,14 @@ const VendorDashboard = () => {
             </TabsTrigger>
             <TabsTrigger value="control"><ToggleLeft className="h-4 w-4 mr-1" />Controls</TabsTrigger>
             <TabsTrigger value="deals"><Flame className="h-4 w-4 mr-1" />Deals</TabsTrigger>
+            <TabsTrigger value="notifications" className="relative">
+              <Bell className="h-4 w-4 mr-1" />Notifications
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[10px] rounded-full h-4 w-4 flex items-center justify-center">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
+            </TabsTrigger>
           </TabsList>
 
           {/* Products */}
@@ -773,6 +800,59 @@ const VendorDashboard = () => {
           {/* ── Deals Tab ── */}
           <TabsContent value="deals">
             <VendorDealManager vendorId={vendor.id} />
+          </TabsContent>
+
+          {/* ── Notifications Tab ── */}
+          <TabsContent value="notifications">
+            <Card className="border-border/50">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Bell className="h-4 w-4" /> Notifications
+                </CardTitle>
+                {unreadCount > 0 && (
+                  <Button size="sm" variant="outline" onClick={async () => {
+                    const unreadIds = notifications.filter((n: any) => !n.is_read).map((n: any) => n.id);
+                    if (unreadIds.length > 0) {
+                      await (supabase.from("vendor_notifications") as any).update({ is_read: true }).in("id", unreadIds);
+                      setNotifications((prev) => prev.map((n: any) => ({ ...n, is_read: true })));
+                      setUnreadCount(0);
+                    }
+                  }}>
+                    Mark all as read
+                  </Button>
+                )}
+              </CardHeader>
+              <CardContent>
+                {notifications.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">No notifications yet</p>
+                ) : (
+                  <div className="space-y-3 max-h-[500px] overflow-y-auto">
+                    {notifications.map((n: any) => (
+                      <div key={n.id} className={`flex items-start gap-3 p-3 rounded-lg border transition-colors ${
+                        n.is_read ? "border-border/30 bg-background" : "border-primary/30 bg-primary/5"
+                      }`}>
+                        <div className="shrink-0 mt-0.5">
+                          {n.type === "comment" && <MessageSquare className="h-4 w-4 text-accent" />}
+                          {n.type === "like" && <Heart className="h-4 w-4 text-destructive" />}
+                          {n.type === "milestone" && <Star className="h-4 w-4 text-yellow-500" />}
+                          {!["comment", "like", "milestone"].includes(n.type) && <Bell className="h-4 w-4 text-muted-foreground" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground">{n.title}</p>
+                          {n.message && <p className="text-xs text-muted-foreground mt-0.5">{n.message}</p>}
+                          <p className="text-[10px] text-muted-foreground mt-1">
+                            {new Date(n.created_at).toLocaleDateString()} · {new Date(n.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          </p>
+                        </div>
+                        {!n.is_read && (
+                          <div className="w-2 h-2 rounded-full bg-primary shrink-0 mt-2" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
         </Tabs>
