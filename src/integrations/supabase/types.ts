@@ -726,6 +726,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "vendor_comments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "vendor_comments_vendor_id_fkey"
             columns: ["vendor_id"]
             isOneToOne: false
@@ -792,6 +799,50 @@ export type Database = {
           },
           {
             foreignKeyName: "vendor_contacts_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendor_deals: {
+        Row: {
+          created_at: string | null
+          deal_price: number | null
+          description: string | null
+          expires_at: string
+          id: string
+          is_active: boolean | null
+          original_price: number | null
+          title: string
+          vendor_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          deal_price?: number | null
+          description?: string | null
+          expires_at: string
+          id?: string
+          is_active?: boolean | null
+          original_price?: number | null
+          title: string
+          vendor_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          deal_price?: number | null
+          description?: string | null
+          expires_at?: string
+          id?: string
+          is_active?: boolean | null
+          original_price?: number | null
+          title?: string
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_deals_vendor_id_fkey"
             columns: ["vendor_id"]
             isOneToOne: false
             referencedRelation: "vendors"
@@ -1080,6 +1131,7 @@ export type Database = {
       vendors: {
         Row: {
           accepts_orders: boolean | null
+          brand_name: string | null
           business_name: string
           campus_location_id: string | null
           category: string
@@ -1093,8 +1145,10 @@ export type Database = {
           is_approved: boolean | null
           is_open: boolean | null
           is_suspended: boolean | null
+          is_vendor_of_week: boolean | null
           is_verified: boolean | null
           messaging_enabled: boolean | null
+          parent_vendor_id: string | null
           payment_reference: string | null
           payment_status: string | null
           promoted_until: string | null
@@ -1105,15 +1159,18 @@ export type Database = {
           social_twitter: string | null
           status_message: string | null
           stock_status: string | null
+          store_number: number | null
           strike_count: number | null
           updated_at: string
           user_id: string
+          vendor_of_week_expires_at: string | null
           verification_applied_at: string | null
           verification_payment_ref: string | null
           whatsapp_orders: boolean | null
         }
         Insert: {
           accepts_orders?: boolean | null
+          brand_name?: string | null
           business_name: string
           campus_location_id?: string | null
           category: string
@@ -1127,8 +1184,10 @@ export type Database = {
           is_approved?: boolean | null
           is_open?: boolean | null
           is_suspended?: boolean | null
+          is_vendor_of_week?: boolean | null
           is_verified?: boolean | null
           messaging_enabled?: boolean | null
+          parent_vendor_id?: string | null
           payment_reference?: string | null
           payment_status?: string | null
           promoted_until?: string | null
@@ -1139,15 +1198,18 @@ export type Database = {
           social_twitter?: string | null
           status_message?: string | null
           stock_status?: string | null
+          store_number?: number | null
           strike_count?: number | null
           updated_at?: string
           user_id: string
+          vendor_of_week_expires_at?: string | null
           verification_applied_at?: string | null
           verification_payment_ref?: string | null
           whatsapp_orders?: boolean | null
         }
         Update: {
           accepts_orders?: boolean | null
+          brand_name?: string | null
           business_name?: string
           campus_location_id?: string | null
           category?: string
@@ -1161,8 +1223,10 @@ export type Database = {
           is_approved?: boolean | null
           is_open?: boolean | null
           is_suspended?: boolean | null
+          is_vendor_of_week?: boolean | null
           is_verified?: boolean | null
           messaging_enabled?: boolean | null
+          parent_vendor_id?: string | null
           payment_reference?: string | null
           payment_status?: string | null
           promoted_until?: string | null
@@ -1173,9 +1237,11 @@ export type Database = {
           social_twitter?: string | null
           status_message?: string | null
           stock_status?: string | null
+          store_number?: number | null
           strike_count?: number | null
           updated_at?: string
           user_id?: string
+          vendor_of_week_expires_at?: string | null
           verification_applied_at?: string | null
           verification_payment_ref?: string | null
           whatsapp_orders?: boolean | null
@@ -1186,6 +1252,13 @@ export type Database = {
             columns: ["campus_location_id"]
             isOneToOne: false
             referencedRelation: "campus_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendors_parent_vendor_id_fkey"
+            columns: ["parent_vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
             referencedColumns: ["id"]
           },
           {

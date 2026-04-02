@@ -192,8 +192,8 @@ const VendorProfile = () => {
         }
 
         // Fetch active deals
-        const { data: dealsData } = await supabase
-          .from("vendor_deals")
+        const { data: dealsData } = await (supabase
+          .from("vendor_deals") as any)
           .select("*")
           .eq("vendor_id", id)
           .eq("is_active", true)

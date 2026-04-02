@@ -115,13 +115,13 @@ const AdminAnalytics = () => {
   const setVendorOfWeek = async (vendorId: string) => {
     setSavingVotw(true);
     // Clear previous VOTW
-    await supabase.from("vendors").update({ is_vendor_of_week: false, vendor_of_week_expires_at: null } as any)
+    await (supabase.from("vendors") as any).update({ is_vendor_of_week: false, vendor_of_week_expires_at: null })
       .eq("is_vendor_of_week", true);
 
     // Set new VOTW for 7 days
     const expires = new Date(Date.now() + 7 * 86_400_000).toISOString();
-    const { error } = await supabase.from("vendors")
-      .update({ is_vendor_of_week: true, vendor_of_week_expires_at: expires } as any)
+    const { error } = await (supabase.from("vendors") as any)
+      .update({ is_vendor_of_week: true, vendor_of_week_expires_at: expires })
       .eq("id", vendorId);
 
     if (error) {
@@ -135,7 +135,7 @@ const AdminAnalytics = () => {
   };
 
   const clearVotw = async () => {
-    await supabase.from("vendors").update({ is_vendor_of_week: false, vendor_of_week_expires_at: null } as any)
+    await (supabase.from("vendors") as any).update({ is_vendor_of_week: false, vendor_of_week_expires_at: null })
       .eq("is_vendor_of_week", true);
     toast({ title: "Vendor of the Week cleared" });
     fetchAnalytics();
