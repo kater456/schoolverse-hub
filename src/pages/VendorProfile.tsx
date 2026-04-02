@@ -245,6 +245,29 @@ const VendorProfile = () => {
     const { data: prof } = await supabase.from("profiles").select("user_id, first_name, last_name").eq("user_id", user!.id).maybeSingle();
     const commentWithProfile = { ...data, profiles: prof || null };
     setComments((prev) => [commentWithProfile, ...prev]); setCommentText("");
+
+    // Send notification to vendor
+    const commenterName = prof ? `${prof.first_name || ""} ${prof.last_name || ""}`.trim() || "Someone" : "Someone";
+    await (supabase.from("vendor_notifications") as any).insert({
+      vendor_id: id!,
+      type: "comment",
+      title: "New Comment",
+      message: `${commenterName} commented: "${commentText.trim().slice(0, 80)}"`,
+      related_id: data.id,
+    });
+
+    // Check milestones for comments
+    const { count: totalComments } = await supabase.from("vendor_comments")
+      .select("id", { count: "exact", head: true }).eq("vendor_id", id!);
+    const milestones = [10, 25, 50, 100, 250, 500, 1000];
+    if (totalComments && milestones.includes(totalComments)) {
+      await (supabase.from("vendor_notifications") as any).insert({
+        vendor_id: id!,
+        type: "milestone",
+        title: "🎉 Milestone Reached!",
+        message: `Your business just hit ${totalComments} comments! Keep up the great work.`,
+      });
+    }
   };
 
   const submitRating = async () => {
