@@ -164,14 +164,23 @@ const VendorProfile = () => {
           supabase.from("vendor_views").select("id", { count: "exact", head: true }).eq("vendor_id", id),
           supabase.from("vendor_likes").select("id", { count: "exact", head: true }).eq("vendor_id", id),
           user ? supabase.from("vendor_likes").select("id").eq("vendor_id", id).eq("user_id", user.id) : Promise.resolve({ data: [] }),
-          supabase.from("vendor_comments").select("*, profiles:user_id(first_name, last_name)").eq("vendor_id", id).order("created_at", { ascending: false }).limit(20),
+          supabase.from("vendor_comments").select("*").eq("vendor_id", id).order("created_at", { ascending: false }).limit(20),
           supabase.from("vendor_ratings").select("*").eq("vendor_id", id),
         ]);
 
         setViewCount(viewsRes.count || 0);
         setLikeCount(likesRes.count || 0);
         setLiked((userLike as any).data?.length > 0);
-        setComments(commentsRes.data || []);
+
+        // Fetch commenter profiles separately
+        const rawComments = commentsRes.data || [];
+        const userIds = [...new Set(rawComments.map((c: any) => c.user_id))];
+        let profileMap: Record<string, any> = {};
+        if (userIds.length > 0) {
+          const { data: profiles } = await supabase.from("profiles").select("user_id, first_name, last_name").in("user_id", userIds);
+          (profiles || []).forEach((p: any) => { profileMap[p.user_id] = p; });
+        }
+        setComments(rawComments.map((c: any) => ({ ...c, profiles: profileMap[c.user_id] || null })));
 
         const allRatings = ratingsRes.data || [];
         setRatings(allRatings);
@@ -230,9 +239,12 @@ const VendorProfile = () => {
     if (!commentText.trim()) return;
     const { data, error } = await supabase.from("vendor_comments")
       .insert({ vendor_id: id!, user_id: user!.id, content: commentText.trim() } as any)
-      .select("*, profiles:user_id(first_name, last_name)").single();
-    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
-    else { setComments((prev) => [data, ...prev]); setCommentText(""); }
+      .select("*").single();
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    // Attach profile info
+    const { data: prof } = await supabase.from("profiles").select("user_id, first_name, last_name").eq("user_id", user!.id).maybeSingle();
+    const commentWithProfile = { ...data, profiles: prof || null };
+    setComments((prev) => [commentWithProfile, ...prev]); setCommentText("");
   };
 
   const submitRating = async () => {
