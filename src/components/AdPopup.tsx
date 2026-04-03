@@ -176,7 +176,7 @@ const AdPopup = () => {
       .eq("id", ad.id);
     // Log to ad_events if table exists
     try {
-      await supabase.from("ad_events").insert({
+      await (supabase as any).from("ad_events").insert({
         ad_id: ad.id,
         event_type: "view",
         school_id: userSchoolId || null,
