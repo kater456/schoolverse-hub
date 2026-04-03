@@ -23,7 +23,7 @@ const AdminChats = () => {
   useEffect(() => { loadConversations(); }, []);
 
   const loadConversations = async () => {
-    const { data } = await supabase
+    const { data } = await (supabase as any)
       .from("conversations")
       .select("*, vendors(id, business_name, is_verified)")
       .order("last_message_at", { ascending: false });
