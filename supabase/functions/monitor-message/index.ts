@@ -5,9 +5,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-const SUPABASE_URL   = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_KEY   = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -27,7 +27,7 @@ Deno.serve(async (req) => {
     let detectedPrice = null;
     let summary = null;
 
-    if (GEMINI_API_KEY) {
+    if (LOVABLE_API_KEY) {
       const prompt = `You are a safety monitor for Campus Market, a student marketplace platform in Nigeria.
 
 Analyze this chat message and respond ONLY with valid JSON (no markdown, no explanation):
@@ -52,53 +52,57 @@ Rules:
 - summary = one sentence describing what the message is about, or null if plain greeting`;
 
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+        "https://ai.gateway.lovable.dev/v1/chat/completions",
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify({
-            contents: [{ role: "user", parts: [{ text: prompt }] }],
-            generationConfig: { maxOutputTokens: 200, temperature: 0.1 },
+            model: "google/gemini-2.5-flash-lite",
+            messages: [{ role: "user", content: prompt }],
+            temperature: 0.1,
+            max_tokens: 200,
           }),
         }
       );
 
       if (res.ok) {
         const data = await res.json();
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        const text = data.choices?.[0]?.message?.content || "";
         try {
           const clean = text.replace(/```json|```/g, "").trim();
           const parsed = JSON.parse(clean);
-          flagged       = parsed.is_suspicious || false;
-          flagReason    = parsed.flag_reason || null;
+          flagged = parsed.is_suspicious || false;
+          flagReason = parsed.flag_reason || null;
           detectedPrice = parsed.detected_price || null;
-          summary       = parsed.summary || null;
+          summary = parsed.summary || null;
 
-          // Log detected agreement/price to conversation
           if (parsed.agreement_detected && detectedPrice) {
             await supabase.from("conversations").update({
               last_message: content,
               last_message_at: new Date().toISOString(),
             }).eq("id", conversation_id);
           }
-        } catch (_) {}
+        } catch (_) { /* parse error, skip */ }
+      } else {
+        console.error("AI gateway error:", res.status, await res.text());
       }
     }
 
-    // Update message if flagged
     if (message_id && (flagged || detectedPrice)) {
-      await supabase.from("messages").update({
+      await (supabase as any).from("messages").update({
         ai_flagged: flagged,
         ai_flag_reason: flagReason,
-      } as any).eq("id", message_id);
+      }).eq("id", message_id);
     }
 
-    // Flag conversation if suspicious
     if (flagged) {
-      await supabase.from("conversations").update({
+      await (supabase as any).from("conversations").update({
         is_flagged: true,
         flagged_reason: flagReason,
-      } as any).eq("id", conversation_id);
+      }).eq("id", conversation_id);
     }
 
     return new Response(
