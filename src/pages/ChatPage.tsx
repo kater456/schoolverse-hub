@@ -78,7 +78,7 @@ const ChatPage = () => {
       setOtherParty(profile);
     }
 
-    const { data: msgs } = await supabase
+    const { data: msgs } = await (supabase as any)
       .from("messages")
       .select("*")
       .eq("conversation_id", conversationId)
