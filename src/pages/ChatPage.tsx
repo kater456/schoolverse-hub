@@ -95,9 +95,9 @@ const ChatPage = () => {
 
     // Reset unread count
     if (iAmVendor) {
-      await supabase.from("conversations").update({ vendor_unread: 0 } as any).eq("id", conversationId);
+      await (supabase as any).from("conversations").update({ vendor_unread: 0 }).eq("id", conversationId);
     } else {
-      await supabase.from("conversations").update({ buyer_unread: 0 } as any).eq("id", conversationId);
+      await (supabase as any).from("conversations").update({ buyer_unread: 0 }).eq("id", conversationId);
     }
 
     setLoading(false);
