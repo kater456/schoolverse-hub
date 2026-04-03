@@ -20,6 +20,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import ContactVendorButton from "@/components/ContactVendorButton";
 
 // ── Lightbox ──────────────────────────────────────────────────────────────────
 const Lightbox = ({ images, startIndex, onClose }: {
@@ -158,40 +159,20 @@ const VendorProfile = () => {
             vendor_id: id, viewer_id: user?.id || null, school_id: data.schools?.id || null,
           } as any);
           sessionStorage.setItem(viewKey, "1");
-
-          // Check view milestones
-          const { count: totalViews } = await supabase.from("vendor_views")
-            .select("id", { count: "exact", head: true }).eq("vendor_id", id);
-          const viewMilestones = [50, 100, 250, 500, 1000, 2500, 5000, 10000];
-          if (totalViews && viewMilestones.includes(totalViews)) {
-            await (supabase.from("vendor_notifications") as any).insert({
-              vendor_id: id, type: "milestone", title: "👀 Views Milestone!",
-              message: `Your business just reached ${totalViews.toLocaleString()} views! Keep it up.`,
-            });
-          }
         }
 
         const [viewsRes, likesRes, userLike, commentsRes, ratingsRes] = await Promise.all([
           supabase.from("vendor_views").select("id", { count: "exact", head: true }).eq("vendor_id", id),
           supabase.from("vendor_likes").select("id", { count: "exact", head: true }).eq("vendor_id", id),
           user ? supabase.from("vendor_likes").select("id").eq("vendor_id", id).eq("user_id", user.id) : Promise.resolve({ data: [] }),
-          supabase.from("vendor_comments").select("*").eq("vendor_id", id).order("created_at", { ascending: false }).limit(20),
+          supabase.from("vendor_comments").select("*, profiles:user_id(first_name, last_name)").eq("vendor_id", id).order("created_at", { ascending: false }).limit(20),
           supabase.from("vendor_ratings").select("*").eq("vendor_id", id),
         ]);
 
         setViewCount(viewsRes.count || 0);
         setLikeCount(likesRes.count || 0);
         setLiked((userLike as any).data?.length > 0);
-
-        // Fetch commenter profiles separately
-        const rawComments = commentsRes.data || [];
-        const userIds = [...new Set(rawComments.map((c: any) => c.user_id))];
-        let profileMap: Record<string, any> = {};
-        if (userIds.length > 0) {
-          const { data: profiles } = await supabase.from("profiles").select("user_id, first_name, last_name").in("user_id", userIds);
-          (profiles || []).forEach((p: any) => { profileMap[p.user_id] = p; });
-        }
-        setComments(rawComments.map((c: any) => ({ ...c, profiles: profileMap[c.user_id] || null })));
+        setComments(commentsRes.data || []);
 
         const allRatings = ratingsRes.data || [];
         setRatings(allRatings);
@@ -212,8 +193,8 @@ const VendorProfile = () => {
         }
 
         // Fetch active deals
-        const { data: dealsData } = await (supabase
-          .from("vendor_deals") as any)
+        const { data: dealsData } = await supabase
+          .from("vendor_deals")
           .select("*")
           .eq("vendor_id", id)
           .eq("is_active", true)
@@ -242,24 +223,6 @@ const VendorProfile = () => {
     } else {
       await supabase.from("vendor_likes").insert({ vendor_id: id!, user_id: user!.id } as any);
       setLiked(true); setLikeCount((c) => c + 1);
-
-      // Notify vendor of new like
-      const { data: prof } = await supabase.from("profiles").select("first_name, last_name").eq("user_id", user!.id).maybeSingle();
-      const likerName = prof ? `${prof.first_name || ""} ${prof.last_name || ""}`.trim() || "Someone" : "Someone";
-      await (supabase.from("vendor_notifications") as any).insert({
-        vendor_id: id!, type: "like", title: "New Like ❤️",
-        message: `${likerName} liked your business!`,
-      });
-
-      // Check like milestones
-      const newCount = likeCount + 1;
-      const milestones = [10, 25, 50, 100, 250, 500, 1000];
-      if (milestones.includes(newCount)) {
-        await (supabase.from("vendor_notifications") as any).insert({
-          vendor_id: id!, type: "milestone", title: "🎉 Milestone Reached!",
-          message: `Your business just hit ${newCount} likes! You're growing fast.`,
-        });
-      }
     }
   };
 
@@ -268,35 +231,9 @@ const VendorProfile = () => {
     if (!commentText.trim()) return;
     const { data, error } = await supabase.from("vendor_comments")
       .insert({ vendor_id: id!, user_id: user!.id, content: commentText.trim() } as any)
-      .select("*").single();
-    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-    // Attach profile info
-    const { data: prof } = await supabase.from("profiles").select("user_id, first_name, last_name").eq("user_id", user!.id).maybeSingle();
-    const commentWithProfile = { ...data, profiles: prof || null };
-    setComments((prev) => [commentWithProfile, ...prev]); setCommentText("");
-
-    // Send notification to vendor
-    const commenterName = prof ? `${prof.first_name || ""} ${prof.last_name || ""}`.trim() || "Someone" : "Someone";
-    await (supabase.from("vendor_notifications") as any).insert({
-      vendor_id: id!,
-      type: "comment",
-      title: "New Comment",
-      message: `${commenterName} commented: "${commentText.trim().slice(0, 80)}"`,
-      related_id: data.id,
-    });
-
-    // Check milestones for comments
-    const { count: totalComments } = await supabase.from("vendor_comments")
-      .select("id", { count: "exact", head: true }).eq("vendor_id", id!);
-    const milestones = [10, 25, 50, 100, 250, 500, 1000];
-    if (totalComments && milestones.includes(totalComments)) {
-      await (supabase.from("vendor_notifications") as any).insert({
-        vendor_id: id!,
-        type: "milestone",
-        title: "🎉 Milestone Reached!",
-        message: `Your business just hit ${totalComments} comments! Keep up the great work.`,
-      });
-    }
+      .select("*, profiles:user_id(first_name, last_name)").single();
+    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+    else { setComments((prev) => [data, ...prev]); setCommentText(""); }
   };
 
   const submitRating = async () => {
@@ -624,6 +561,16 @@ const VendorProfile = () => {
               <Card className="border-border/50 mb-4">
                 <CardContent className="p-4 space-y-3">
                   <h3 className="font-semibold text-sm">Contact</h3>
+
+                  {/* In-platform messaging — primary CTA */}
+                  <ContactVendorButton
+                    vendorId={vendor.id}
+                    vendorUserId={vendor.user_id}
+                    variant="default"
+                    className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
+                    label="Message on Campus Market"
+                  />
+
                   {vendor.contact_number && (
                     <Button variant="outline" className="w-full justify-start" onClick={() => trackContact("call")} asChild>
                       <a href={`tel:${vendor.contact_number}`}><Phone className="h-4 w-4 mr-2" />{vendor.contact_number}</a>
