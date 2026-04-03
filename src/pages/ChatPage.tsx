@@ -53,7 +53,7 @@ const ChatPage = () => {
   const load = useCallback(async () => {
     if (!conversationId || !user) return;
 
-    const { data: conv } = await supabase
+    const { data: conv } = await (supabase as any)
       .from("conversations")
       .select("*, vendors(id, business_name, user_id, vendor_images(image_url, is_primary))")
       .eq("id", conversationId)
