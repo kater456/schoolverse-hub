@@ -110,7 +110,7 @@ const AdPopup = () => {
 
     const fetchAds = async () => {
       const now = new Date().toISOString();
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("platform_ads")
         .select("*")
         .eq("is_active", true)
@@ -176,7 +176,7 @@ const AdPopup = () => {
       .eq("id", ad.id);
     // Log to ad_events if table exists
     try {
-      await supabase.from("ad_events").insert({
+      await (supabase as any).from("ad_events").insert({
         ad_id: ad.id,
         event_type: "view",
         school_id: userSchoolId || null,
@@ -191,7 +191,7 @@ const AdPopup = () => {
       .update({ click_count: (ad.click_count || 0) + 1 } as any)
       .eq("id", ad.id);
     try {
-      await supabase.from("ad_events").insert({
+      await (supabase as any).from("ad_events").insert({
         ad_id: ad.id,
         event_type: "click",
         school_id: userSchoolId || null,

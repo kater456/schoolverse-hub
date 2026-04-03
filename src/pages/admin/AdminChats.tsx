@@ -23,7 +23,7 @@ const AdminChats = () => {
   useEffect(() => { loadConversations(); }, []);
 
   const loadConversations = async () => {
-    const { data } = await supabase
+    const { data } = await (supabase as any)
       .from("conversations")
       .select("*, vendors(id, business_name, is_verified)")
       .order("last_message_at", { ascending: false });
@@ -48,7 +48,7 @@ const AdminChats = () => {
   const openConversation = async (conv: any) => {
     setSelected(conv);
     setLoadingMsgs(true);
-    const { data } = await supabase
+    const { data } = await (supabase as any)
       .from("messages")
       .select("*")
       .eq("conversation_id", conv.id)
@@ -58,8 +58,8 @@ const AdminChats = () => {
   };
 
   const resolveFlag = async (convId: string) => {
-    await supabase.from("conversations")
-      .update({ is_flagged: false, flagged_reason: null } as any)
+    await (supabase as any).from("conversations")
+      .update({ is_flagged: false, flagged_reason: null })
       .eq("id", convId);
     setConversations((prev) => prev.map((c) => c.id === convId ? { ...c, is_flagged: false } : c));
     if (selected?.id === convId) setSelected((s: any) => ({ ...s, is_flagged: false }));

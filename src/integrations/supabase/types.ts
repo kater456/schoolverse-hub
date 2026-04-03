@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      ad_events: {
+        Row: {
+          ad_id: string | null
+          created_at: string | null
+          event_type: string
+          id: string
+          school_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          ad_id?: string | null
+          created_at?: string | null
+          event_type: string
+          id?: string
+          school_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          ad_id?: string | null
+          created_at?: string | null
+          event_type?: string
+          id?: string
+          school_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_events_ad_id_fkey"
+            columns: ["ad_id"]
+            isOneToOne: false
+            referencedRelation: "platform_ads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_activity_log: {
         Row: {
           action: string
@@ -76,6 +111,53 @@ export type Database = {
           },
         ]
       }
+      conversations: {
+        Row: {
+          buyer_id: string | null
+          buyer_unread: number | null
+          created_at: string | null
+          flagged_reason: string | null
+          id: string
+          is_flagged: boolean | null
+          last_message: string | null
+          last_message_at: string | null
+          vendor_id: string | null
+          vendor_unread: number | null
+        }
+        Insert: {
+          buyer_id?: string | null
+          buyer_unread?: number | null
+          created_at?: string | null
+          flagged_reason?: string | null
+          id?: string
+          is_flagged?: boolean | null
+          last_message?: string | null
+          last_message_at?: string | null
+          vendor_id?: string | null
+          vendor_unread?: number | null
+        }
+        Update: {
+          buyer_id?: string | null
+          buyer_unread?: number | null
+          created_at?: string | null
+          flagged_reason?: string | null
+          id?: string
+          is_flagged?: boolean | null
+          last_message?: string | null
+          last_message_at?: string | null
+          vendor_id?: string | null
+          vendor_unread?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       featured_listings: {
         Row: {
           amount: number
@@ -116,6 +198,56 @@ export type Database = {
             columns: ["vendor_id"]
             isOneToOne: false
             referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          ai_flag_reason: string | null
+          ai_flagged: boolean | null
+          content: string | null
+          conversation_id: string | null
+          created_at: string | null
+          file_url: string | null
+          id: string
+          is_flagged: boolean | null
+          is_read: boolean | null
+          message_type: string | null
+          sender_id: string | null
+        }
+        Insert: {
+          ai_flag_reason?: string | null
+          ai_flagged?: boolean | null
+          content?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          file_url?: string | null
+          id?: string
+          is_flagged?: boolean | null
+          is_read?: boolean | null
+          message_type?: string | null
+          sender_id?: string | null
+        }
+        Update: {
+          ai_flag_reason?: string | null
+          ai_flagged?: boolean | null
+          content?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          file_url?: string | null
+          id?: string
+          is_flagged?: boolean | null
+          is_read?: boolean | null
+          message_type?: string | null
+          sender_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
             referencedColumns: ["id"]
           },
         ]
@@ -214,34 +346,64 @@ export type Database = {
       }
       platform_ads: {
         Row: {
+          advertiser_name: string | null
+          click_count: number | null
           created_at: string
+          description: string | null
           display_duration: number
+          display_position: string | null
+          ends_at: string | null
           id: string
+          image_url: string | null
           is_active: boolean
+          link_url: string | null
           media_type: string
           media_url: string
+          school_ids: string[] | null
+          target_type: string | null
           title: string
           updated_at: string
+          view_count: number | null
         }
         Insert: {
+          advertiser_name?: string | null
+          click_count?: number | null
           created_at?: string
+          description?: string | null
           display_duration?: number
+          display_position?: string | null
+          ends_at?: string | null
           id?: string
+          image_url?: string | null
           is_active?: boolean
+          link_url?: string | null
           media_type?: string
           media_url: string
+          school_ids?: string[] | null
+          target_type?: string | null
           title?: string
           updated_at?: string
+          view_count?: number | null
         }
         Update: {
+          advertiser_name?: string | null
+          click_count?: number | null
           created_at?: string
+          description?: string | null
           display_duration?: number
+          display_position?: string | null
+          ends_at?: string | null
           id?: string
+          image_url?: string | null
           is_active?: boolean
+          link_url?: string | null
           media_type?: string
           media_url?: string
+          school_ids?: string[] | null
+          target_type?: string | null
           title?: string
           updated_at?: string
+          view_count?: number | null
         }
         Relationships: []
       }

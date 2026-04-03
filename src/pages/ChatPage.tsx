@@ -53,7 +53,7 @@ const ChatPage = () => {
   const load = useCallback(async () => {
     if (!conversationId || !user) return;
 
-    const { data: conv } = await supabase
+    const { data: conv } = await (supabase as any)
       .from("conversations")
       .select("*, vendors(id, business_name, user_id, vendor_images(image_url, is_primary))")
       .eq("id", conversationId)
@@ -78,7 +78,7 @@ const ChatPage = () => {
       setOtherParty(profile);
     }
 
-    const { data: msgs } = await supabase
+    const { data: msgs } = await (supabase as any)
       .from("messages")
       .select("*")
       .eq("conversation_id", conversationId)
@@ -87,17 +87,17 @@ const ChatPage = () => {
     setMessages((msgs as Message[]) || []);
 
     // Mark messages as read
-    await supabase.from("messages")
-      .update({ is_read: true } as any)
+    await (supabase as any).from("messages")
+      .update({ is_read: true })
       .eq("conversation_id", conversationId)
       .neq("sender_id", user.id)
       .eq("is_read", false);
 
     // Reset unread count
     if (iAmVendor) {
-      await supabase.from("conversations").update({ vendor_unread: 0 } as any).eq("id", conversationId);
+      await (supabase as any).from("conversations").update({ vendor_unread: 0 }).eq("id", conversationId);
     } else {
-      await supabase.from("conversations").update({ buyer_unread: 0 } as any).eq("id", conversationId);
+      await (supabase as any).from("conversations").update({ buyer_unread: 0 }).eq("id", conversationId);
     }
 
     setLoading(false);
@@ -127,7 +127,7 @@ const ChatPage = () => {
 
         // Mark as read if not our message
         if (newMsg.sender_id !== user?.id) {
-          supabase.from("messages").update({ is_read: true } as any).eq("id", newMsg.id);
+          (supabase as any).from("messages").update({ is_read: true }).eq("id", newMsg.id);
         }
       })
       .subscribe();
@@ -140,7 +140,7 @@ const ChatPage = () => {
     if (type === "text" && !content.trim()) return;
 
     setSending(true);
-    const { data: msg, error } = await supabase
+    const { data: msg, error } = await (supabase as any)
       .from("messages")
       .insert({
         conversation_id: conversationId,
@@ -162,11 +162,11 @@ const ChatPage = () => {
 
     // Update conversation last message
     const lastMsg = type === "text" ? content.trim() : type === "receipt" ? "📎 Payment receipt" : "📷 Image";
-    await supabase.from("conversations").update({
+    await (supabase as any).from("conversations").update({
       last_message: lastMsg,
       last_message_at: new Date().toISOString(),
       ...(isVendor ? { buyer_unread: (conversation?.buyer_unread || 0) + 1 } : { vendor_unread: (conversation?.vendor_unread || 0) + 1 }),
-    } as any).eq("id", conversationId);
+    }).eq("id", conversationId);
 
     // Run AI monitoring in background (don't await)
     if (type === "text" && msg) {
