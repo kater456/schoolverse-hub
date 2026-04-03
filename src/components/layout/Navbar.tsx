@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X, ShoppingBag, Search, Film, LogOut, Plus } from "lucide-react";
+import { Menu, X, ShoppingBag, Search, Film, LogOut, Plus, MessageCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -10,37 +10,53 @@ const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { user, userRole, signOut } = useAuth();
   const [isApprovedVendor, setIsApprovedVendor] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const role = userRole?.role as string;
   const vendorDashLink = role === "vendor" ? "/vendor-dashboard" : null;
-  const subAdminLink = role === "sub_admin" || role === "admin" ? "/sub-admin" : null;
+  const subAdminLink   = role === "sub_admin" || role === "admin" ? "/sub-admin" : null;
 
   useEffect(() => {
-    if (!user) { setIsApprovedVendor(false); return; }
+    if (!user) { setIsApprovedVendor(false); setUnreadCount(0); return; }
+
     const check = async () => {
       const { data } = await supabase
-        .from("vendors")
-        .select("id, is_approved")
-        .eq("user_id", user.id)
-        .eq("is_approved", true)
-        .maybeSingle();
+        .from("vendors").select("id, is_approved")
+        .eq("user_id", user.id).eq("is_approved", true).maybeSingle();
       setIsApprovedVendor(!!data);
     };
     check();
 
-    // Listen for realtime vendor approval
-    const channel = supabase
-      .channel("vendor-approval-navbar")
+    // Fetch unread message count
+    const fetchUnread = async () => {
+      // Get vendor id if vendor
+      const { data: vendorData } = await supabase.from("vendors")
+        .select("id").eq("user_id", user.id).eq("is_approved", true).maybeSingle();
+
+      let total = 0;
+      if (vendorData) {
+        const { data: convs } = await supabase.from("conversations")
+          .select("vendor_unread").eq("vendor_id", vendorData.id);
+        total += (convs || []).reduce((s: number, c: any) => s + (c.vendor_unread || 0), 0);
+      }
+      const { data: buyerConvs } = await supabase.from("conversations")
+        .select("buyer_unread").eq("buyer_id", user.id);
+      total += (buyerConvs || []).reduce((s: number, c: any) => s + (c.buyer_unread || 0), 0);
+      setUnreadCount(total);
+    };
+    fetchUnread();
+
+    // Realtime vendor approval
+    const channel = supabase.channel("vendor-approval-navbar")
       .on("postgres_changes", {
-        event: "UPDATE",
-        schema: "public",
-        table: "vendors",
+        event: "UPDATE", schema: "public", table: "vendors",
         filter: `user_id=eq.${user.id}`,
       }, (payload) => {
-        if (payload.new?.is_approved) {
-          setIsApprovedVendor(true);
-        }
+        if (payload.new?.is_approved) setIsApprovedVendor(true);
       })
+      .on("postgres_changes", {
+        event: "*", schema: "public", table: "conversations",
+      }, () => fetchUnread())
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
@@ -64,6 +80,16 @@ const Navbar = () => {
             <Link to="/reels" className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
               <Film className="h-4 w-4" /> Reels
             </Link>
+            {user && (
+              <Link to="/messages" className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors relative">
+                <MessageCircle className="h-4 w-4" /> Messages
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1.5 -right-2 w-4 h-4 rounded-full bg-accent text-accent-foreground text-[9px] font-bold flex items-center justify-center">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
+              </Link>
+            )}
             {user && userRole?.role === "super_admin" && (
               <Link to="/admin" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Admin</Link>
             )}
@@ -106,6 +132,16 @@ const Navbar = () => {
 
           <div className="flex items-center gap-2 md:hidden">
             <ThemeToggle />
+            {user && (
+              <Link to="/messages" className="relative p-2">
+                <MessageCircle className="h-5 w-5 text-muted-foreground" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-accent text-accent-foreground text-[9px] font-bold flex items-center justify-center">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
+              </Link>
+            )}
             <button onClick={() => setIsOpen(!isOpen)} className="p-2 rounded-lg hover:bg-secondary transition-colors">
               {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
@@ -115,8 +151,18 @@ const Navbar = () => {
         {isOpen && (
           <div className="md:hidden py-4 border-t border-border/50 animate-fade-in">
             <div className="flex flex-col gap-2">
-              <Link to="/browse" className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg" onClick={() => setIsOpen(false)}>Browse Marketplace</Link>
-              <Link to="/reels" className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg" onClick={() => setIsOpen(false)}>Reels</Link>
+              <Link to="/browse"  className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg" onClick={() => setIsOpen(false)}>Browse Marketplace</Link>
+              <Link to="/reels"   className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg" onClick={() => setIsOpen(false)}>Reels</Link>
+              {user && (
+                <Link to="/messages" className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg flex items-center gap-2" onClick={() => setIsOpen(false)}>
+                  Messages
+                  {unreadCount > 0 && (
+                    <span className="w-5 h-5 rounded-full bg-accent text-accent-foreground text-[10px] font-bold flex items-center justify-center">
+                      {unreadCount}
+                    </span>
+                  )}
+                </Link>
+              )}
               {user && userRole?.role === "super_admin" && (
                 <Link to="/admin" className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg" onClick={() => setIsOpen(false)}>Admin Dashboard</Link>
               )}
