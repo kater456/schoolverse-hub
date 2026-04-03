@@ -35,7 +35,7 @@ const Navbar = () => {
 
       let total = 0;
       if (vendorData) {
-        const { data: convs } = await supabase.from("conversations")
+        const { data: convs } = await (supabase as any).from("conversations")
           .select("vendor_unread").eq("vendor_id", vendorData.id);
         total += (convs || []).reduce((s: number, c: any) => s + (c.vendor_unread || 0), 0);
       }
