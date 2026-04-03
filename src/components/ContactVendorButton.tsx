@@ -42,7 +42,7 @@ const ContactVendorButton = ({
     setLoading(true);
 
     // Check if conversation already exists
-    const { data: existing } = await supabase
+    const { data: existing } = await (supabase as any)
       .from("conversations")
       .select("id")
       .eq("vendor_id", vendorId)
