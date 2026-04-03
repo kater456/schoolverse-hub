@@ -191,7 +191,7 @@ const AdPopup = () => {
       .update({ click_count: (ad.click_count || 0) + 1 } as any)
       .eq("id", ad.id);
     try {
-      await supabase.from("ad_events").insert({
+      await (supabase as any).from("ad_events").insert({
         ad_id: ad.id,
         event_type: "click",
         school_id: userSchoolId || null,

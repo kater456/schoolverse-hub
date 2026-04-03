@@ -34,7 +34,7 @@ const MessagesPage = () => {
   const loadConversations = async () => {
     if (!user) return;
 
-    const { data } = await supabase
+    const { data } = await (supabase as any)
       .from("conversations")
       .select(`
         *,

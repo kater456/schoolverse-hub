@@ -56,7 +56,7 @@ const ContactVendorButton = ({
     }
 
     // Create new conversation
-    const { data: conv, error } = await supabase
+    const { data: conv, error } = await (supabase as any)
       .from("conversations")
       .insert({
         vendor_id: vendorId,

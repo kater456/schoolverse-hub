@@ -162,11 +162,11 @@ const ChatPage = () => {
 
     // Update conversation last message
     const lastMsg = type === "text" ? content.trim() : type === "receipt" ? "📎 Payment receipt" : "📷 Image";
-    await supabase.from("conversations").update({
+    await (supabase as any).from("conversations").update({
       last_message: lastMsg,
       last_message_at: new Date().toISOString(),
       ...(isVendor ? { buyer_unread: (conversation?.buyer_unread || 0) + 1 } : { vendor_unread: (conversation?.vendor_unread || 0) + 1 }),
-    } as any).eq("id", conversationId);
+    }).eq("id", conversationId);
 
     // Run AI monitoring in background (don't await)
     if (type === "text" && msg) {

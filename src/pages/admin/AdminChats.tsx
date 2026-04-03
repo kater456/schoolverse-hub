@@ -58,8 +58,8 @@ const AdminChats = () => {
   };
 
   const resolveFlag = async (convId: string) => {
-    await supabase.from("conversations")
-      .update({ is_flagged: false, flagged_reason: null } as any)
+    await (supabase as any).from("conversations")
+      .update({ is_flagged: false, flagged_reason: null })
       .eq("id", convId);
     setConversations((prev) => prev.map((c) => c.id === convId ? { ...c, is_flagged: false } : c));
     if (selected?.id === convId) setSelected((s: any) => ({ ...s, is_flagged: false }));

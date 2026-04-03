@@ -39,7 +39,7 @@ const Navbar = () => {
           .select("vendor_unread").eq("vendor_id", vendorData.id);
         total += (convs || []).reduce((s: number, c: any) => s + (c.vendor_unread || 0), 0);
       }
-      const { data: buyerConvs } = await supabase.from("conversations")
+      const { data: buyerConvs } = await (supabase as any).from("conversations")
         .select("buyer_unread").eq("buyer_id", user.id);
       total += (buyerConvs || []).reduce((s: number, c: any) => s + (c.buyer_unread || 0), 0);
       setUnreadCount(total);
