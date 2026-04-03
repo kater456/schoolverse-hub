@@ -140,7 +140,7 @@ const ChatPage = () => {
     if (type === "text" && !content.trim()) return;
 
     setSending(true);
-    const { data: msg, error } = await supabase
+    const { data: msg, error } = await (supabase as any)
       .from("messages")
       .insert({
         conversation_id: conversationId,
