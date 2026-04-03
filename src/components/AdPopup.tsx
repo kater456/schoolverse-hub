@@ -110,7 +110,7 @@ const AdPopup = () => {
 
     const fetchAds = async () => {
       const now = new Date().toISOString();
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("platform_ads")
         .select("*")
         .eq("is_active", true)
