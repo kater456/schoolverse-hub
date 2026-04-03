@@ -127,7 +127,7 @@ const ChatPage = () => {
 
         // Mark as read if not our message
         if (newMsg.sender_id !== user?.id) {
-          supabase.from("messages").update({ is_read: true } as any).eq("id", newMsg.id);
+          (supabase as any).from("messages").update({ is_read: true }).eq("id", newMsg.id);
         }
       })
       .subscribe();
