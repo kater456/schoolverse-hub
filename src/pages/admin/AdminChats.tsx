@@ -48,7 +48,7 @@ const AdminChats = () => {
   const openConversation = async (conv: any) => {
     setSelected(conv);
     setLoadingMsgs(true);
-    const { data } = await supabase
+    const { data } = await (supabase as any)
       .from("messages")
       .select("*")
       .eq("conversation_id", conv.id)
