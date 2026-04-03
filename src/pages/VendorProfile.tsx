@@ -215,6 +215,17 @@ const VendorProfile = () => {
     return true;
   };
 
+  const sendNotification = async (vendorId: string, type: string, title: string, message: string) => {
+    // Insert notification
+    await (supabase as any).from("vendor_notifications").insert({
+      vendor_id: vendorId, type, title, message, is_read: false,
+    });
+    // Send email (best-effort, don't await)
+    supabase.functions.invoke("send-vendor-notification-email", {
+      body: { vendor_id: vendorId, type, title, message },
+    }).catch(() => {});
+  };
+
   const toggleLike = async () => {
     if (!requireAuth("like")) return;
     if (liked) {
@@ -222,7 +233,16 @@ const VendorProfile = () => {
       setLiked(false); setLikeCount((c) => c - 1);
     } else {
       await supabase.from("vendor_likes").insert({ vendor_id: id!, user_id: user!.id } as any);
-      setLiked(true); setLikeCount((c) => c + 1);
+      setLiked(true); setLikeCount((c) => {
+        const newCount = c + 1;
+        // Check milestones
+        const milestones = [10, 50, 100, 500, 1000];
+        if (milestones.includes(newCount)) {
+          sendNotification(id!, "milestone", `${newCount} Likes! 🎉`, `Your business just hit ${newCount} likes! Keep up the great work.`);
+        }
+        return newCount;
+      });
+      sendNotification(id!, "like", "New Like ❤️", `Someone liked your business!`);
     }
   };
 
@@ -233,7 +253,11 @@ const VendorProfile = () => {
       .insert({ vendor_id: id!, user_id: user!.id, content: commentText.trim() } as any)
       .select("*, profiles:user_id(first_name, last_name)").single();
     if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
-    else { setComments((prev) => [data, ...prev]); setCommentText(""); }
+    else {
+      setComments((prev) => [data, ...prev]);
+      setCommentText("");
+      sendNotification(id!, "comment", "New Comment 💬", `Someone commented: "${commentText.trim().slice(0, 100)}"`);
+    }
   };
 
   const submitRating = async () => {
