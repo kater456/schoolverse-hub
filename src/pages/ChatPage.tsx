@@ -87,8 +87,8 @@ const ChatPage = () => {
     setMessages((msgs as Message[]) || []);
 
     // Mark messages as read
-    await supabase.from("messages")
-      .update({ is_read: true } as any)
+    await (supabase as any).from("messages")
+      .update({ is_read: true })
       .eq("conversation_id", conversationId)
       .neq("sender_id", user.id)
       .eq("is_read", false);
