@@ -15,7 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   MapPin, Phone, MessageCircle, Heart, MessageSquare, Eye,
   Send, Loader2, Star, ShieldCheck, Instagram, Twitter, Music2,
-  ZoomIn, X, ChevronLeft, ChevronRight, Flag, Upload, AlertTriangle,
+  ZoomIn, X, ChevronLeft, ChevronRight, Flag, Upload, AlertTriangle, Share2, Copy, Check,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -130,6 +130,7 @@ const VendorProfile = () => {
   const [hoverRating, setHoverRating]           = useState(0);
   const [canRate, setCanRate]                   = useState(false);
   const [activeDeals, setActiveDeals]           = useState<any[]>([]);
+  const [shareOpen,   setShareOpen]             = useState(false);
 
   // ── Report state ──────────────────────────────────────────────────────────
   const [reportOpen,     setReportOpen]     = useState(false);
@@ -140,6 +141,9 @@ const VendorProfile = () => {
   const [submittingReport, setSubmittingReport] = useState(false);
 
   useEffect(() => {
+    // Always scroll to top when opening a vendor profile
+    window.scrollTo({ top: 0, behavior: "instant" });
+
     const fetchVendor = async () => {
       if (!id) return;
       const { data } = await supabase
@@ -215,17 +219,6 @@ const VendorProfile = () => {
     return true;
   };
 
-  const sendNotification = async (vendorId: string, type: string, title: string, message: string) => {
-    // Insert notification
-    await (supabase as any).from("vendor_notifications").insert({
-      vendor_id: vendorId, type, title, message, is_read: false,
-    });
-    // Send email (best-effort, don't await)
-    supabase.functions.invoke("send-vendor-notification-email", {
-      body: { vendor_id: vendorId, type, title, message },
-    }).catch(() => {});
-  };
-
   const toggleLike = async () => {
     if (!requireAuth("like")) return;
     if (liked) {
@@ -233,16 +226,7 @@ const VendorProfile = () => {
       setLiked(false); setLikeCount((c) => c - 1);
     } else {
       await supabase.from("vendor_likes").insert({ vendor_id: id!, user_id: user!.id } as any);
-      setLiked(true); setLikeCount((c) => {
-        const newCount = c + 1;
-        // Check milestones
-        const milestones = [10, 50, 100, 500, 1000];
-        if (milestones.includes(newCount)) {
-          sendNotification(id!, "milestone", `${newCount} Likes! 🎉`, `Your business just hit ${newCount} likes! Keep up the great work.`);
-        }
-        return newCount;
-      });
-      sendNotification(id!, "like", "New Like ❤️", `Someone liked your business!`);
+      setLiked(true); setLikeCount((c) => c + 1);
     }
   };
 
@@ -253,11 +237,7 @@ const VendorProfile = () => {
       .insert({ vendor_id: id!, user_id: user!.id, content: commentText.trim() } as any)
       .select("*, profiles:user_id(first_name, last_name)").single();
     if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
-    else {
-      setComments((prev) => [data, ...prev]);
-      setCommentText("");
-      sendNotification(id!, "comment", "New Comment 💬", `Someone commented: "${commentText.trim().slice(0, 100)}"`);
-    }
+    else { setComments((prev) => [data, ...prev]); setCommentText(""); }
   };
 
   const submitRating = async () => {
@@ -610,20 +590,29 @@ const VendorProfile = () => {
                 </CardContent>
               </Card>
 
-              {/* Report vendor — only for logged-in users */}
-              {user && (
-                <div className="flex justify-end mb-2">
+              {/* Share & Report row */}
+              <div className="flex items-center justify-between mb-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs gap-1.5 text-muted-foreground hover:text-foreground"
+                  onClick={() => setShareOpen(true)}
+                >
+                  <Share2 className="h-3.5 w-3.5" /> Share Business
+                </Button>
+
+                {/* Report vendor — only for logged-in users */}
+                {user && (
                   <Button
                     variant="ghost"
                     size="sm"
                     className="text-muted-foreground hover:text-destructive text-xs gap-1.5"
                     onClick={() => setReportOpen(true)}
                   >
-                    <Flag className="h-3.5 w-3.5" />
-                    Report Vendor
+                    <Flag className="h-3.5 w-3.5" /> Report
                   </Button>
-                </div>
-              )}
+                )}
+              </div>
 
               {/* Comments */}
               <Card className="border-border/50">
@@ -656,6 +645,102 @@ const VendorProfile = () => {
           </div>
         </div>
       </main>
+
+      {/* ── Share Dialog ── */}
+      <Dialog open={shareOpen} onOpenChange={setShareOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Share2 className="h-4 w-4 text-accent" /> Share {vendor?.business_name}
+            </DialogTitle>
+          </DialogHeader>
+          {vendor && (() => {
+            const slug = vendor.business_name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+            const url  = `${window.location.origin}/vendor/${vendor.id}/${slug}`;
+            const text = `Check out ${vendor.business_name} on Campus Market! 🛍️ Find great ${vendor.category} on your campus.\n\n${url}`;
+            const [copied, setCopied] = useState(false);
+
+            const copyLink = () => {
+              navigator.clipboard.writeText(url);
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
+            };
+
+            return (
+              <div className="space-y-3 py-1">
+                {/* Copy link */}
+                <div className="flex gap-2">
+                  <input
+                    readOnly
+                    value={url}
+                    className="flex-1 text-xs bg-muted rounded-lg px-3 py-2 text-muted-foreground border border-border/50 truncate"
+                  />
+                  <Button size="sm" variant="outline" onClick={copyLink} className="shrink-0 h-9">
+                    {copied ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                </div>
+
+                {/* Share options */}
+                <div className="grid grid-cols-2 gap-2">
+                  {/* WhatsApp */}
+                  <a
+                    href={`https://wa.me/?text=${encodeURIComponent(text)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setShareOpen(false)}
+                    className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-border/50 hover:bg-muted/50 transition-colors text-sm font-medium text-foreground"
+                  >
+                    <span className="text-lg">💬</span> WhatsApp
+                  </a>
+
+                  {/* Twitter/X */}
+                  <a
+                    href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setShareOpen(false)}
+                    className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-border/50 hover:bg-muted/50 transition-colors text-sm font-medium text-foreground"
+                  >
+                    <Twitter className="h-4 w-4 text-sky-500" /> X / Twitter
+                  </a>
+
+                  {/* Facebook */}
+                  <a
+                    href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setShareOpen(false)}
+                    className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-border/50 hover:bg-muted/50 transition-colors text-sm font-medium text-foreground"
+                  >
+                    <span className="text-lg">📘</span> Facebook
+                  </a>
+
+                  {/* Instagram stories - copy link */}
+                  <button
+                    onClick={() => { copyLink(); setShareOpen(false); toast({ title: "Link copied! Paste in Instagram story 📸" }); }}
+                    className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-border/50 hover:bg-muted/50 transition-colors text-sm font-medium text-foreground"
+                  >
+                    <Instagram className="h-4 w-4 text-pink-500" /> Instagram
+                  </button>
+                </div>
+
+                {/* Native share if available */}
+                {typeof navigator.share === "function" && (
+                  <Button
+                    className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
+                    onClick={() => {
+                      navigator.share({ title: vendor.business_name, text, url });
+                      setShareOpen(false);
+                    }}
+                  >
+                    <Share2 className="h-4 w-4 mr-2" /> Share via...
+                  </Button>
+                )}
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
 
       {/* ── Report Dialog ── */}
       <Dialog open={reportOpen} onOpenChange={setReportOpen}>
