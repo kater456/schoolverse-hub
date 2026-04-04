@@ -131,6 +131,7 @@ const VendorProfile = () => {
   const [canRate, setCanRate]                   = useState(false);
   const [activeDeals, setActiveDeals]           = useState<any[]>([]);
   const [shareOpen,   setShareOpen]             = useState(false);
+  const [copied,      setCopied]                = useState(false);
 
   // ── Report state ──────────────────────────────────────────────────────────
   const [reportOpen,     setReportOpen]     = useState(false);
@@ -658,7 +659,6 @@ const VendorProfile = () => {
             const slug = vendor.business_name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
             const url  = `${window.location.origin}/vendor/${vendor.id}/${slug}`;
             const text = `Check out ${vendor.business_name} on Campus Market! 🛍️ Find great ${vendor.category} on your campus.\n\n${url}`;
-            const [copied, setCopied] = useState(false);
 
             const copyLink = () => {
               navigator.clipboard.writeText(url);
@@ -682,57 +682,31 @@ const VendorProfile = () => {
 
                 {/* Share options */}
                 <div className="grid grid-cols-2 gap-2">
-                  {/* WhatsApp */}
-                  <a
-                    href={`https://wa.me/?text=${encodeURIComponent(text)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => setShareOpen(false)}
-                    className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-border/50 hover:bg-muted/50 transition-colors text-sm font-medium text-foreground"
-                  >
+                  <a href={`https://wa.me/?text=${encodeURIComponent(text)}`}
+                    target="_blank" rel="noopener noreferrer" onClick={() => setShareOpen(false)}
+                    className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-border/50 hover:bg-muted/50 transition-colors text-sm font-medium text-foreground">
                     <span className="text-lg">💬</span> WhatsApp
                   </a>
-
-                  {/* Twitter/X */}
-                  <a
-                    href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => setShareOpen(false)}
-                    className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-border/50 hover:bg-muted/50 transition-colors text-sm font-medium text-foreground"
-                  >
+                  <a href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`}
+                    target="_blank" rel="noopener noreferrer" onClick={() => setShareOpen(false)}
+                    className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-border/50 hover:bg-muted/50 transition-colors text-sm font-medium text-foreground">
                     <Twitter className="h-4 w-4 text-sky-500" /> X / Twitter
                   </a>
-
-                  {/* Facebook */}
-                  <a
-                    href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => setShareOpen(false)}
-                    className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-border/50 hover:bg-muted/50 transition-colors text-sm font-medium text-foreground"
-                  >
+                  <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`}
+                    target="_blank" rel="noopener noreferrer" onClick={() => setShareOpen(false)}
+                    className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-border/50 hover:bg-muted/50 transition-colors text-sm font-medium text-foreground">
                     <span className="text-lg">📘</span> Facebook
                   </a>
-
-                  {/* Instagram stories - copy link */}
                   <button
                     onClick={() => { copyLink(); setShareOpen(false); toast({ title: "Link copied! Paste in Instagram story 📸" }); }}
-                    className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-border/50 hover:bg-muted/50 transition-colors text-sm font-medium text-foreground"
-                  >
+                    className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-border/50 hover:bg-muted/50 transition-colors text-sm font-medium text-foreground">
                     <Instagram className="h-4 w-4 text-pink-500" /> Instagram
                   </button>
                 </div>
 
-                {/* Native share if available */}
                 {typeof navigator.share === "function" && (
-                  <Button
-                    className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
-                    onClick={() => {
-                      navigator.share({ title: vendor.business_name, text, url });
-                      setShareOpen(false);
-                    }}
-                  >
+                  <Button className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
+                    onClick={() => { navigator.share({ title: vendor.business_name, text, url }); setShareOpen(false); }}>
                     <Share2 className="h-4 w-4 mr-2" /> Share via...
                   </Button>
                 )}
