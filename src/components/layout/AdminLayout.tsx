@@ -5,18 +5,19 @@ import { useAuth } from "@/hooks/useAuth";
 import ThemeToggle from "@/components/ThemeToggle";
 import {
   LayoutDashboard, Users, GraduationCap, MapPin, Star,
-  LogOut, ShoppingBag, BarChart3, UserCog, Megaphone,
+  LogOut, ShoppingBag, BarChart3, UserCog, Megaphone, MessageCircle,
 } from "lucide-react";
 
 const navItems = [
-  { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/vendors", label: "Vendors", icon: Users },
-  { href: "/admin/schools", label: "Schools", icon: GraduationCap },
-  { href: "/admin/locations", label: "Campus Locations", icon: MapPin },
-  { href: "/admin/featured", label: "Featured", icon: Star },
-  { href: "/admin/ads", label: "Ads", icon: Megaphone },
-  { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
-  { href: "/admin/sub-admins", label: "Sub-Admins", icon: UserCog },
+  { href: "/admin",            label: "Dashboard",        icon: LayoutDashboard },
+  { href: "/admin/vendors",    label: "Vendors",          icon: Users },
+  { href: "/admin/schools",    label: "Schools",          icon: GraduationCap },
+  { href: "/admin/locations",  label: "Campus Locations", icon: MapPin },
+  { href: "/admin/featured",   label: "Featured",         icon: Star },
+  { href: "/admin/ads",        label: "Ads",              icon: Megaphone },
+  { href: "/admin/analytics",  label: "Analytics",        icon: BarChart3 },
+  { href: "/admin/chats",      label: "Chat Oversight",   icon: MessageCircle },
+  { href: "/admin/sub-admins", label: "Sub-Admins",       icon: UserCog },
 ];
 
 const AdminLayout = ({ children }: { children: ReactNode }) => {
@@ -25,6 +26,7 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
 
   return (
     <div className="min-h-screen bg-background flex">
+      {/* ── Sidebar (desktop) ── */}
       <aside className="w-64 bg-sidebar border-r border-sidebar-border hidden md:flex flex-col">
         <div className="p-4 border-b border-sidebar-border">
           <Link to="/" className="flex items-center gap-2">
@@ -34,7 +36,8 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
             <span className="font-bold text-sidebar-foreground">Campus Market</span>
           </Link>
         </div>
-        <nav className="flex-1 p-3 space-y-1">
+
+        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
             const isActive = location.pathname === item.href;
             return (
@@ -54,25 +57,36 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
             );
           })}
         </nav>
+
         <div className="p-3 border-t border-sidebar-border space-y-1">
           <div className="flex items-center justify-between px-3 py-1">
             <span className="text-xs text-sidebar-foreground/50">Theme</span>
             <ThemeToggle />
           </div>
-          <Button variant="ghost" className="w-full justify-start gap-2 text-sidebar-foreground/70" onClick={signOut}>
+          <Button
+            variant="ghost"
+            className="w-full justify-start gap-2 text-sidebar-foreground/70"
+            onClick={signOut}
+          >
             <LogOut className="h-4 w-4" />
             Sign Out
           </Button>
         </div>
       </aside>
 
+      {/* ── Main content ── */}
       <main className="flex-1 overflow-auto">
-        <div className="md:hidden flex items-center gap-3 p-4 border-b border-border overflow-x-auto">
+        {/* Mobile nav bar */}
+        <div className="md:hidden flex items-center gap-2 p-3 border-b border-border overflow-x-auto">
           {navItems.map((item) => {
             const isActive = location.pathname === item.href;
             return (
               <Link key={item.href} to={item.href}>
-                <Button size="sm" variant={isActive ? "default" : "ghost"} className="whitespace-nowrap">
+                <Button
+                  size="sm"
+                  variant={isActive ? "default" : "ghost"}
+                  className="whitespace-nowrap shrink-0"
+                >
                   <item.icon className="h-4 w-4 mr-1" />
                   {item.label}
                 </Button>
@@ -80,6 +94,7 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
             );
           })}
         </div>
+
         <div className="p-6">{children}</div>
       </main>
     </div>
