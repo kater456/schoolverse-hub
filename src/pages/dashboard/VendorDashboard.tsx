@@ -14,7 +14,7 @@ import {
   Eye, Heart, MessageSquare, Phone, ShoppingBag,
   BarChart3, Star, LogOut, Film, Loader2, CreditCard, CheckCircle, Package,
   User, Camera, Save, Share2, ShieldCheck, Copy,
-  Instagram, Twitter, Music2, FileCheck, Upload, ToggleLeft, Flame, Bell,
+  Instagram, Twitter, Music2, FileCheck, Upload, ToggleLeft, Flame,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import FeaturedPaymentModal from "@/components/vendor/FeaturedPaymentModal";
@@ -39,8 +39,6 @@ const VendorDashboard = () => {
   const [editContact, setEditContact] = useState("");
   const [contactEditsThisMonth, setContactEditsThisMonth] = useState(0);
   const [savingContact, setSavingContact] = useState(false);
-  const [notifications, setNotifications] = useState<any[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
 
   // Social media edit state
   const [socialInstagram, setSocialInstagram] = useState("");
@@ -92,26 +90,12 @@ const VendorDashboard = () => {
       supabase.from("vendor_comments").select("id", { count: "exact", head: true }).eq("vendor_id", v.id),
       supabase.from("vendor_contacts").select("id", { count: "exact", head: true }).eq("vendor_id", v.id),
       supabase.from("transactions").select("*").eq("vendor_id", v.id).order("created_at", { ascending: false }).limit(10),
-      supabase.from("vendor_comments").select("*").eq("vendor_id", v.id).order("created_at", { ascending: false }).limit(5),
+      supabase.from("vendor_comments").select("*, profiles:user_id(first_name, last_name)").eq("vendor_id", v.id).order("created_at", { ascending: false }).limit(5),
     ]);
 
     setStats({ views: views.count || 0, likes: likes.count || 0, comments: comments.count || 0, contacts: contacts.count || 0 });
     setTransactions(txns.data || []);
-    // Fetch commenter profiles separately
-    const cmtData = cmts.data || [];
-    const cmtUserIds = [...new Set(cmtData.map((c: any) => c.user_id))];
-    let cmtProfileMap: Record<string, any> = {};
-    if (cmtUserIds.length > 0) {
-      const { data: profs } = await supabase.from("profiles").select("user_id, first_name, last_name").in("user_id", cmtUserIds);
-      (profs || []).forEach((p: any) => { cmtProfileMap[p.user_id] = p; });
-    }
-    setRecentComments(cmtData.map((c: any) => ({ ...c, profiles: cmtProfileMap[c.user_id] || null })));
-    // Fetch notifications
-    const { data: notifData } = await (supabase.from("vendor_notifications") as any)
-      .select("*").eq("vendor_id", v.id).order("created_at", { ascending: false }).limit(50);
-    setNotifications(notifData || []);
-    setUnreadCount((notifData || []).filter((n: any) => !n.is_read).length);
-
+    setRecentComments(cmts.data || []);
     setIsLoading(false);
   };
 
@@ -346,17 +330,6 @@ const VendorDashboard = () => {
               <CreditCard className="h-4 w-4 mr-1" /> Go Featured
             </Button>
           )}
-          <Button variant="ghost" size="icon" className="relative" onClick={() => {
-            const tabEl = document.querySelector('[data-state][value="notifications"]') as HTMLElement;
-            tabEl?.click();
-          }}>
-            <Bell className="h-4 w-4" />
-            {unreadCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 bg-destructive text-destructive-foreground text-[10px] rounded-full h-4 w-4 flex items-center justify-center">
-                {unreadCount > 9 ? "9+" : unreadCount}
-              </span>
-            )}
-          </Button>
           <Button variant="ghost" size="icon" onClick={signOut}><LogOut className="h-4 w-4" /></Button>
           <ThemeToggle />
         </div>
@@ -423,14 +396,6 @@ const VendorDashboard = () => {
             </TabsTrigger>
             <TabsTrigger value="control"><ToggleLeft className="h-4 w-4 mr-1" />Controls</TabsTrigger>
             <TabsTrigger value="deals"><Flame className="h-4 w-4 mr-1" />Deals</TabsTrigger>
-            <TabsTrigger value="notifications" className="relative">
-              <Bell className="h-4 w-4 mr-1" />Notifications
-              {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[10px] rounded-full h-4 w-4 flex items-center justify-center">
-                  {unreadCount > 9 ? "9+" : unreadCount}
-                </span>
-              )}
-            </TabsTrigger>
           </TabsList>
 
           {/* Products */}
@@ -454,19 +419,77 @@ const VendorDashboard = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <Input value={`${window.location.origin}/vendor/${vendor.id}/${vendor.business_name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`} readOnly className="bg-muted text-sm" />
-                    <Button size="sm" variant="outline" onClick={() => {
-                      navigator.clipboard.writeText(`${window.location.origin}/vendor/${vendor.id}/${vendor.business_name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`);
-                      toast({ title: "Link copied!" });
-                    }}>
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <div className="flex flex-col items-center gap-2 p-4 bg-white rounded-lg border border-border/50">
-                    <QRCodeSVG value={`${window.location.origin}/vendor/${vendor.id}/${vendor.business_name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`} size={160} level="M" includeMargin />
-                    <p className="text-xs text-muted-foreground">Scan to visit your business page</p>
-                  </div>
+                  {(() => {
+                    const slug = vendor.business_name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+                    const url  = `${window.location.origin}/vendor/${vendor.id}/${slug}`;
+                    const shareText = `I just joined Campus Market! 🛍️ Find my ${vendor.category} business — ${vendor.business_name} — right here on campus. Check it out and place your order!`;
+                    return (
+                      <>
+                        {/* Copy link */}
+                        <div className="flex items-center gap-2">
+                          <Input value={url} readOnly className="bg-muted text-sm" />
+                          <Button size="sm" variant="outline" onClick={() => {
+                            navigator.clipboard.writeText(url);
+                            toast({ title: "Link copied!" });
+                          }}>
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        </div>
+
+                        {/* Share to socials */}
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-2 font-medium">Share to your handles:</p>
+                          <div className="grid grid-cols-2 gap-2">
+                            <a
+                              href={`https://wa.me/?text=${encodeURIComponent(`${shareText}\n\n${url}`)}`}
+                              target="_blank" rel="noopener noreferrer"
+                              className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-border/50 hover:bg-muted/50 transition-colors text-sm font-medium text-foreground"
+                            >
+                              <span className="text-lg">💬</span> WhatsApp
+                            </a>
+                            <a
+                              href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`${shareText}\n\n${url}`)}`}
+                              target="_blank" rel="noopener noreferrer"
+                              className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-border/50 hover:bg-muted/50 transition-colors text-sm font-medium text-foreground"
+                            >
+                              <Twitter className="h-4 w-4 text-sky-500" /> X / Twitter
+                            </a>
+                            <a
+                              href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`}
+                              target="_blank" rel="noopener noreferrer"
+                              className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-border/50 hover:bg-muted/50 transition-colors text-sm font-medium text-foreground"
+                            >
+                              <span className="text-lg">📘</span> Facebook
+                            </a>
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(`${shareText}\n\n${url}`);
+                                toast({ title: "Caption copied! Paste in Instagram 📸" });
+                              }}
+                              className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-border/50 hover:bg-muted/50 transition-colors text-sm font-medium text-foreground"
+                            >
+                              <Instagram className="h-4 w-4 text-pink-500" /> Instagram
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Native share */}
+                        {typeof navigator.share === "function" && (
+                          <Button variant="outline" className="w-full" onClick={() => {
+                            navigator.share({ title: vendor.business_name, text: shareText, url });
+                          }}>
+                            <Share2 className="h-4 w-4 mr-2" /> Share via...
+                          </Button>
+                        )}
+
+                        {/* QR Code */}
+                        <div className="flex flex-col items-center gap-2 p-4 bg-white rounded-lg border border-border/50">
+                          <QRCodeSVG value={url} size={160} level="M" includeMargin />
+                          <p className="text-xs text-muted-foreground">Scan to visit your business page</p>
+                        </div>
+                      </>
+                    );
+                  })()}
                 </CardContent>
               </Card>
 
@@ -800,59 +823,6 @@ const VendorDashboard = () => {
           {/* ── Deals Tab ── */}
           <TabsContent value="deals">
             <VendorDealManager vendorId={vendor.id} />
-          </TabsContent>
-
-          {/* ── Notifications Tab ── */}
-          <TabsContent value="notifications">
-            <Card className="border-border/50">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Bell className="h-4 w-4" /> Notifications
-                </CardTitle>
-                {unreadCount > 0 && (
-                  <Button size="sm" variant="outline" onClick={async () => {
-                    const unreadIds = notifications.filter((n: any) => !n.is_read).map((n: any) => n.id);
-                    if (unreadIds.length > 0) {
-                      await (supabase.from("vendor_notifications") as any).update({ is_read: true }).in("id", unreadIds);
-                      setNotifications((prev) => prev.map((n: any) => ({ ...n, is_read: true })));
-                      setUnreadCount(0);
-                    }
-                  }}>
-                    Mark all as read
-                  </Button>
-                )}
-              </CardHeader>
-              <CardContent>
-                {notifications.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-8">No notifications yet</p>
-                ) : (
-                  <div className="space-y-3 max-h-[500px] overflow-y-auto">
-                    {notifications.map((n: any) => (
-                      <div key={n.id} className={`flex items-start gap-3 p-3 rounded-lg border transition-colors ${
-                        n.is_read ? "border-border/30 bg-background" : "border-primary/30 bg-primary/5"
-                      }`}>
-                        <div className="shrink-0 mt-0.5">
-                          {n.type === "comment" && <MessageSquare className="h-4 w-4 text-accent" />}
-                          {n.type === "like" && <Heart className="h-4 w-4 text-destructive" />}
-                          {n.type === "milestone" && <Star className="h-4 w-4 text-yellow-500" />}
-                          {!["comment", "like", "milestone"].includes(n.type) && <Bell className="h-4 w-4 text-muted-foreground" />}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-foreground">{n.title}</p>
-                          {n.message && <p className="text-xs text-muted-foreground mt-0.5">{n.message}</p>}
-                          <p className="text-[10px] text-muted-foreground mt-1">
-                            {new Date(n.created_at).toLocaleDateString()} · {new Date(n.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                          </p>
-                        </div>
-                        {!n.is_read && (
-                          <div className="w-2 h-2 rounded-full bg-primary shrink-0 mt-2" />
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
           </TabsContent>
 
         </Tabs>
