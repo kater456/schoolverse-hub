@@ -392,6 +392,17 @@ const ManageVendors = () => {
                     <Megaphone className="h-3.5 w-3.5 mr-1" /> Promote
                   </Button>
                 )}
+                {detailVendor.is_store_upgraded && detailVendor.store_upgrade_expires_at && new Date(detailVendor.store_upgrade_expires_at) > new Date() ? (
+                  <Button size="sm" variant="outline" className="text-muted-foreground"
+                    onClick={() => removeStoreUpgrade(detailVendor.id)}>
+                    <Crown className="h-3.5 w-3.5 mr-1" /> Remove Store Upgrade
+                  </Button>
+                ) : (
+                  <Button size="sm" variant="outline" className="text-accent border-accent/40"
+                    onClick={() => upgradeStore(detailVendor)}>
+                    <Crown className="h-3.5 w-3.5 mr-1" /> Upgrade Store
+                  </Button>
+                )}
               </div>
 
               {/* Payment banner */}
