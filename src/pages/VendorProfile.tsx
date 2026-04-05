@@ -130,6 +130,7 @@ const VendorProfile = () => {
   const [hoverRating, setHoverRating]           = useState(0);
   const [canRate, setCanRate]                   = useState(false);
   const [activeDeals, setActiveDeals]           = useState<any[]>([]);
+  const [vendorProducts, setVendorProducts]     = useState<any[]>([]);
   const [shareOpen,   setShareOpen]             = useState(false);
   const [copied,      setCopied]                = useState(false);
 
@@ -206,6 +207,15 @@ const VendorProfile = () => {
           .gt("expires_at", new Date().toISOString())
           .order("expires_at", { ascending: true });
         setActiveDeals(dealsData || []);
+
+        // Fetch vendor products
+        const { data: productsData } = await (supabase as any)
+          .from("vendor_products")
+          .select("*")
+          .eq("vendor_id", id)
+          .eq("is_active", true)
+          .order("display_order", { ascending: true });
+        setVendorProducts(productsData || []);
       }
       setIsLoading(false);
     };
