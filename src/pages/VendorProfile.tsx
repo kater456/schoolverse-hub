@@ -130,6 +130,7 @@ const VendorProfile = () => {
   const [hoverRating, setHoverRating]           = useState(0);
   const [canRate, setCanRate]                   = useState(false);
   const [activeDeals, setActiveDeals]           = useState<any[]>([]);
+  const [vendorProducts, setVendorProducts]     = useState<any[]>([]);
   const [shareOpen,   setShareOpen]             = useState(false);
   const [copied,      setCopied]                = useState(false);
 
@@ -206,6 +207,15 @@ const VendorProfile = () => {
           .gt("expires_at", new Date().toISOString())
           .order("expires_at", { ascending: true });
         setActiveDeals(dealsData || []);
+
+        // Fetch vendor products
+        const { data: productsData } = await (supabase as any)
+          .from("vendor_products")
+          .select("*")
+          .eq("vendor_id", id)
+          .eq("is_active", true)
+          .order("display_order", { ascending: true });
+        setVendorProducts(productsData || []);
       }
       setIsLoading(false);
     };
@@ -560,6 +570,58 @@ const VendorProfile = () => {
                     </div>
                   </CardContent>
                 </Card>
+              )}
+
+              {/* Vendor Products */}
+              {vendorProducts.length > 0 && (
+                <Card className="border-border/50 mb-4">
+                  <CardContent className="p-4">
+                    <h3 className="font-semibold text-sm mb-3">🛍️ Products & Prices</h3>
+                    <div className={`gap-3 ${vendor.store_layout === "list" ? "space-y-3" : vendor.store_layout === "showcase" ? "space-y-4" : "grid grid-cols-2"}`}>
+                      {vendorProducts.map((p: any) => (
+                        vendor.store_layout === "list" ? (
+                          <div key={p.id} className="flex items-center gap-3 border-b border-border/30 pb-3 last:border-0">
+                            {p.image_url && <img src={p.image_url} alt={p.name} className="w-14 h-14 rounded-lg object-cover shrink-0" />}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-foreground truncate">{p.name}</p>
+                              {p.description && <p className="text-xs text-muted-foreground line-clamp-1">{p.description}</p>}
+                            </div>
+                            <span className="text-sm font-bold text-success shrink-0">₦{p.price.toLocaleString()}</span>
+                          </div>
+                        ) : vendor.store_layout === "showcase" ? (
+                          <div key={p.id} className="rounded-xl overflow-hidden border border-border/50">
+                            {p.image_url && <img src={p.image_url} alt={p.name} className="w-full h-40 object-cover" />}
+                            <div className="p-3">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <p className="font-semibold text-sm text-foreground">{p.name}</p>
+                                  {p.category && <Badge variant="outline" className="text-[10px] mt-1">{p.category}</Badge>}
+                                </div>
+                                <span className="font-bold text-success">₦{p.price.toLocaleString()}</span>
+                              </div>
+                              {p.description && <p className="text-xs text-muted-foreground mt-1">{p.description}</p>}
+                            </div>
+                          </div>
+                        ) : (
+                          <div key={p.id} className="rounded-xl overflow-hidden border border-border/50">
+                            {p.image_url && <img src={p.image_url} alt={p.name} className="w-full h-24 object-cover" />}
+                            <div className="p-2">
+                              <p className="text-xs font-semibold text-foreground truncate">{p.name}</p>
+                              <span className="text-xs font-bold text-success">₦{p.price.toLocaleString()}</span>
+                            </div>
+                          </div>
+                        )
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Store Banner (upgraded stores) */}
+              {vendor.banner_url && vendor.is_store_upgraded && vendor.store_upgrade_expires_at && new Date(vendor.store_upgrade_expires_at) > new Date() && (
+                <div className="mb-4 rounded-xl overflow-hidden border border-border/50">
+                  <img src={vendor.banner_url} alt="Store banner" className="w-full h-28 object-cover" />
+                </div>
               )}
 
               {/* Contact */}

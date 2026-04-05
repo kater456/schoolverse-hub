@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Eye, Heart, MessageSquare, Phone, ShoppingBag,
   BarChart3, Star, LogOut, Film, Loader2, CreditCard, CheckCircle, Package,
-  User, Camera, Save, Share2, ShieldCheck, Copy,
+  User, Camera, Save, Share2, ShieldCheck, Copy, Crown,
   Instagram, Twitter, Music2, FileCheck, Upload, ToggleLeft, Flame,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
@@ -24,6 +24,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import { compressImage } from "@/lib/compressImage";
 import VendorControlCenter from "@/components/vendor/VendorControlCenter";
 import VendorDealManager from "@/components/vendor/VendorDealManager";
+import VendorStoreUpgrade from "@/components/vendor/VendorStoreUpgrade";
 
 const VendorDashboard = () => {
   const { user, signOut } = useAuth();
@@ -396,6 +397,7 @@ const VendorDashboard = () => {
             </TabsTrigger>
             <TabsTrigger value="control"><ToggleLeft className="h-4 w-4 mr-1" />Controls</TabsTrigger>
             <TabsTrigger value="deals"><Flame className="h-4 w-4 mr-1" />Deals</TabsTrigger>
+            <TabsTrigger value="store"><Crown className="h-4 w-4 mr-1" />Store</TabsTrigger>
           </TabsList>
 
           {/* Products */}
@@ -823,6 +825,14 @@ const VendorDashboard = () => {
           {/* ── Deals Tab ── */}
           <TabsContent value="deals">
             <VendorDealManager vendorId={vendor.id} />
+          </TabsContent>
+
+          {/* ── Store Upgrade Tab ── */}
+          <TabsContent value="store">
+            <VendorStoreUpgrade
+              vendor={vendor}
+              onUpdate={(v) => setVendor((prev: any) => ({ ...prev, ...v }))}
+            />
           </TabsContent>
 
         </Tabs>

@@ -18,7 +18,7 @@ import {
 import {
   Check, X, Loader2, FileText, ShieldCheck, Globe, Ban,
   CreditCard, Banknote, CircleSlash, MoreVertical, ShieldOff, Megaphone,
-  UserX, UserCheck, Star, ExternalLink,
+  UserX, UserCheck, Star, ExternalLink, Crown,
 } from "lucide-react";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -90,6 +90,32 @@ const ManageVendors = () => {
   const reactivateVendor = (id: string) => run(id, () => patch(id, { is_active: true, is_approved: false, is_suspended: false }, "Vendor restored to pending"));
   const overridePayment  = (id: string) => run(id, () => patch(id, { payment_status: "overridden" }, "Payment overridden ✅"));
   const removePromotion  = (id: string) => run(id, () => patch(id, { promoted_until: null }, "Promotion removed"));
+
+  const upgradeStore = async (v: any) => {
+    const endsAt = new Date(Date.now() + 30 * 86400000).toISOString();
+    await run(v.id, async () => {
+      await (supabase as any).from("vendor_store_upgrades").insert({
+        vendor_id: v.id,
+        payment_status: "confirmed",
+        payment_reference: "admin_manual",
+        amount: 0,
+        confirmed_by: (await supabase.auth.getUser()).data.user?.id,
+        starts_at: new Date().toISOString(),
+        ends_at: endsAt,
+      });
+      await patch(v.id, { is_store_upgraded: true, store_upgrade_expires_at: endsAt }, "Store upgraded manually ✅");
+      await (supabase as any).from("vendor_notifications").insert({
+        vendor_id: v.id, type: "store_upgrade",
+        title: "🎉 Store Upgraded by Admin!",
+        message: "Your premium store has been activated by an admin for 30 days.",
+        is_read: false,
+      });
+    });
+  };
+
+  const removeStoreUpgrade = (id: string) => run(id, () =>
+    patch(id, { is_store_upgraded: false, store_upgrade_expires_at: null }, "Store upgrade removed")
+  );
 
   const toggleSuspend = (v: any) => run(v.id, () =>
     patch(v.id,
@@ -243,6 +269,17 @@ const ManageVendors = () => {
                         </DropdownMenuItem>
                       )}
 
+
+                      {v.is_store_upgraded && v.store_upgrade_expires_at && new Date(v.store_upgrade_expires_at) > new Date() ? (
+                        <DropdownMenuItem onClick={() => removeStoreUpgrade(v.id)} className="text-muted-foreground">
+                          <Crown className="h-4 w-4 mr-2" /> Remove Store Upgrade
+                        </DropdownMenuItem>
+                      ) : (
+                        <DropdownMenuItem onClick={() => upgradeStore(v)} className="text-accent focus:text-accent">
+                          <Crown className="h-4 w-4 mr-2" /> Upgrade Store
+                        </DropdownMenuItem>
+                      )}
+
                       <DropdownMenuSeparator />
 
                       {v.is_active && (
@@ -355,6 +392,17 @@ const ManageVendors = () => {
                     <Megaphone className="h-3.5 w-3.5 mr-1" /> Promote
                   </Button>
                 )}
+                {detailVendor.is_store_upgraded && detailVendor.store_upgrade_expires_at && new Date(detailVendor.store_upgrade_expires_at) > new Date() ? (
+                  <Button size="sm" variant="outline" className="text-muted-foreground"
+                    onClick={() => removeStoreUpgrade(detailVendor.id)}>
+                    <Crown className="h-3.5 w-3.5 mr-1" /> Remove Store Upgrade
+                  </Button>
+                ) : (
+                  <Button size="sm" variant="outline" className="text-accent border-accent/40"
+                    onClick={() => upgradeStore(detailVendor)}>
+                    <Crown className="h-3.5 w-3.5 mr-1" /> Upgrade Store
+                  </Button>
+                )}
               </div>
 
               {/* Payment banner */}
@@ -393,6 +441,9 @@ const ManageVendors = () => {
                     ["Campus Location",  detailVendor.campus_locations?.name || "—"],
                     ["Verified",         detailVendor.is_verified ? "✅ Yes" : "❌ No"],
                     ["Reels Enabled",    detailVendor.reels_enabled ? "✅ Yes" : "❌ No"],
+                    ["Store Upgraded",   detailVendor.is_store_upgraded && detailVendor.store_upgrade_expires_at && new Date(detailVendor.store_upgrade_expires_at) > new Date()
+                      ? `✅ Until ${new Date(detailVendor.store_upgrade_expires_at).toLocaleDateString()}`
+                      : "❌ No"],
                     ["Registered",       new Date(detailVendor.created_at).toLocaleDateString()],
                   ].map(([label, value]) => (
                     <p key={label}><strong className="text-foreground">{label}:</strong> {value}</p>
