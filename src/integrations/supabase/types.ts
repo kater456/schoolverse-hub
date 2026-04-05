@@ -1143,6 +1143,56 @@ export type Database = {
           },
         ]
       }
+      vendor_products: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string | null
+          display_order: number | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          name: string
+          price: number
+          updated_at: string
+          vendor_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name: string
+          price?: number
+          updated_at?: string
+          vendor_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name?: string
+          price?: number
+          updated_at?: string
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_products_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vendor_ratings: {
         Row: {
           created_at: string
@@ -1248,6 +1298,50 @@ export type Database = {
           },
         ]
       }
+      vendor_store_upgrades: {
+        Row: {
+          amount: number
+          confirmed_by: string | null
+          created_at: string
+          ends_at: string
+          id: string
+          payment_reference: string | null
+          payment_status: string
+          starts_at: string
+          vendor_id: string
+        }
+        Insert: {
+          amount?: number
+          confirmed_by?: string | null
+          created_at?: string
+          ends_at?: string
+          id?: string
+          payment_reference?: string | null
+          payment_status?: string
+          starts_at?: string
+          vendor_id: string
+        }
+        Update: {
+          amount?: number
+          confirmed_by?: string | null
+          created_at?: string
+          ends_at?: string
+          id?: string
+          payment_reference?: string | null
+          payment_status?: string
+          starts_at?: string
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_store_upgrades_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vendor_videos: {
         Row: {
           created_at: string
@@ -1319,6 +1413,7 @@ export type Database = {
       vendors: {
         Row: {
           accepts_orders: boolean | null
+          banner_url: string | null
           brand_name: string | null
           business_name: string
           campus_location_id: string | null
@@ -1332,6 +1427,7 @@ export type Database = {
           is_active: boolean | null
           is_approved: boolean | null
           is_open: boolean | null
+          is_store_upgraded: boolean | null
           is_suspended: boolean | null
           is_vendor_of_week: boolean | null
           is_verified: boolean | null
@@ -1347,7 +1443,10 @@ export type Database = {
           social_twitter: string | null
           status_message: string | null
           stock_status: string | null
+          store_layout: string | null
           store_number: number | null
+          store_theme_color: string | null
+          store_upgrade_expires_at: string | null
           strike_count: number | null
           updated_at: string
           user_id: string
@@ -1358,6 +1457,7 @@ export type Database = {
         }
         Insert: {
           accepts_orders?: boolean | null
+          banner_url?: string | null
           brand_name?: string | null
           business_name: string
           campus_location_id?: string | null
@@ -1371,6 +1471,7 @@ export type Database = {
           is_active?: boolean | null
           is_approved?: boolean | null
           is_open?: boolean | null
+          is_store_upgraded?: boolean | null
           is_suspended?: boolean | null
           is_vendor_of_week?: boolean | null
           is_verified?: boolean | null
@@ -1386,7 +1487,10 @@ export type Database = {
           social_twitter?: string | null
           status_message?: string | null
           stock_status?: string | null
+          store_layout?: string | null
           store_number?: number | null
+          store_theme_color?: string | null
+          store_upgrade_expires_at?: string | null
           strike_count?: number | null
           updated_at?: string
           user_id: string
@@ -1397,6 +1501,7 @@ export type Database = {
         }
         Update: {
           accepts_orders?: boolean | null
+          banner_url?: string | null
           brand_name?: string | null
           business_name?: string
           campus_location_id?: string | null
@@ -1410,6 +1515,7 @@ export type Database = {
           is_active?: boolean | null
           is_approved?: boolean | null
           is_open?: boolean | null
+          is_store_upgraded?: boolean | null
           is_suspended?: boolean | null
           is_vendor_of_week?: boolean | null
           is_verified?: boolean | null
@@ -1425,7 +1531,10 @@ export type Database = {
           social_twitter?: string | null
           status_message?: string | null
           stock_status?: string | null
+          store_layout?: string | null
           store_number?: number | null
+          store_theme_color?: string | null
+          store_upgrade_expires_at?: string | null
           strike_count?: number | null
           updated_at?: string
           user_id?: string
