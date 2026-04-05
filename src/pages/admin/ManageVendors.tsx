@@ -269,6 +269,17 @@ const ManageVendors = () => {
                         </DropdownMenuItem>
                       )}
 
+
+                      {v.is_store_upgraded && v.store_upgrade_expires_at && new Date(v.store_upgrade_expires_at) > new Date() ? (
+                        <DropdownMenuItem onClick={() => removeStoreUpgrade(v.id)} className="text-muted-foreground">
+                          <Crown className="h-4 w-4 mr-2" /> Remove Store Upgrade
+                        </DropdownMenuItem>
+                      ) : (
+                        <DropdownMenuItem onClick={() => upgradeStore(v)} className="text-accent focus:text-accent">
+                          <Crown className="h-4 w-4 mr-2" /> Upgrade Store
+                        </DropdownMenuItem>
+                      )}
+
                       <DropdownMenuSeparator />
 
                       {v.is_active && (
