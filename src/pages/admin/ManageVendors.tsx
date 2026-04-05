@@ -441,6 +441,9 @@ const ManageVendors = () => {
                     ["Campus Location",  detailVendor.campus_locations?.name || "—"],
                     ["Verified",         detailVendor.is_verified ? "✅ Yes" : "❌ No"],
                     ["Reels Enabled",    detailVendor.reels_enabled ? "✅ Yes" : "❌ No"],
+                    ["Store Upgraded",   detailVendor.is_store_upgraded && detailVendor.store_upgrade_expires_at && new Date(detailVendor.store_upgrade_expires_at) > new Date()
+                      ? `✅ Until ${new Date(detailVendor.store_upgrade_expires_at).toLocaleDateString()}`
+                      : "❌ No"],
                     ["Registered",       new Date(detailVendor.created_at).toLocaleDateString()],
                   ].map(([label, value]) => (
                     <p key={label}><strong className="text-foreground">{label}:</strong> {value}</p>
