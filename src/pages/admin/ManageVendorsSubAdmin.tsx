@@ -56,6 +56,7 @@ const ManageVendorsSubAdmin = () => {
   const [promoteDays,    setPromoteDays]    = useState("");
   const [actionLoading,  setActionLoading]  = useState<string | null>(null);
   const [promoteLoading, setPromoteLoading] = useState(false);
+  const [searchQuery,    setSearchQuery]    = useState("");
 
   const getSchoolId = () => (userRole as any)?.assigned_school_id || (userRole as any)?.school_id;
 
@@ -134,9 +135,19 @@ const ManageVendorsSubAdmin = () => {
     setPromoteLoading(false);
   };
 
-  const pendingVendors  = vendors.filter((v) => v.is_active !== false && !v.is_approved);
-  const approvedVendors = vendors.filter((v) => v.is_active !== false && v.is_approved);
-  const removedVendors  = vendors.filter((v) => v.is_active === false);
+  const filterBySearch = (list: any[]) => {
+    if (!searchQuery.trim()) return list;
+    const q = searchQuery.toLowerCase();
+    return list.filter((v: any) =>
+      v.business_name?.toLowerCase().includes(q) ||
+      v.category?.toLowerCase().includes(q) ||
+      v.contact_number?.toLowerCase().includes(q)
+    );
+  };
+
+  const pendingVendors  = filterBySearch(vendors.filter((v) => v.is_active !== false && !v.is_approved));
+  const approvedVendors = filterBySearch(vendors.filter((v) => v.is_active !== false && v.is_approved));
+  const removedVendors  = filterBySearch(vendors.filter((v) => v.is_active === false));
 
   // ── Table renderer ──────────────────────────────────────────────────────────
   const renderTable = (list: any[], showReactivate = false) => (
