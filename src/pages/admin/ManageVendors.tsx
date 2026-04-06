@@ -6,6 +6,7 @@ import AdminLayout from "@/components/layout/AdminLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -55,6 +56,7 @@ const ManageVendors = () => {
   const [promoteDays,    setPromoteDays]    = useState("");
   const [actionLoading,  setActionLoading]  = useState<string | null>(null);
   const [promoteLoading, setPromoteLoading] = useState(false);
+  const [searchQuery,    setSearchQuery]    = useState("");
 
   // Fetch signup email when detail dialog opens
   const openDetail = async (v: any) => {
@@ -139,8 +141,19 @@ const ManageVendors = () => {
     setPromoteLoading(false);
   };
 
-  const activeVendors   = vendors.filter((v: any) => v.is_active !== false);
-  const rejectedVendors = vendors.filter((v: any) => v.is_active === false);
+  const filterBySearch = (list: any[]) => {
+    if (!searchQuery.trim()) return list;
+    const q = searchQuery.toLowerCase();
+    return list.filter((v: any) =>
+      v.business_name?.toLowerCase().includes(q) ||
+      v.category?.toLowerCase().includes(q) ||
+      v.schools?.name?.toLowerCase().includes(q) ||
+      v.contact_number?.toLowerCase().includes(q)
+    );
+  };
+
+  const activeVendors   = filterBySearch(vendors.filter((v: any) => v.is_active !== false));
+  const rejectedVendors = filterBySearch(vendors.filter((v: any) => v.is_active === false));
 
   // ── Table renderer ──────────────────────────────────────────────────────────
   const renderTable = (list: any[], showReactivate = false) => (
