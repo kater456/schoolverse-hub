@@ -17,7 +17,7 @@ import {
 import {
   Check, X, Loader2, ShieldCheck, Globe, Ban,
   CreditCard, Banknote, CircleSlash, MoreVertical, ShieldOff, Megaphone,
-  UserX, UserCheck, Star, Film,
+  UserX, UserCheck, Star, Film, Search,
 } from "lucide-react";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
