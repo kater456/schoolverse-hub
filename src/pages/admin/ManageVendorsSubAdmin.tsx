@@ -17,7 +17,7 @@ import {
 import {
   Check, X, Loader2, ShieldCheck, Globe, Ban,
   CreditCard, Banknote, CircleSlash, MoreVertical, ShieldOff, Megaphone,
-  UserX, UserCheck, Star, Film,
+  UserX, UserCheck, Star, Film, Search,
 } from "lucide-react";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -56,6 +56,7 @@ const ManageVendorsSubAdmin = () => {
   const [promoteDays,    setPromoteDays]    = useState("");
   const [actionLoading,  setActionLoading]  = useState<string | null>(null);
   const [promoteLoading, setPromoteLoading] = useState(false);
+  const [searchQuery,    setSearchQuery]    = useState("");
 
   const getSchoolId = () => (userRole as any)?.assigned_school_id || (userRole as any)?.school_id;
 
@@ -134,9 +135,19 @@ const ManageVendorsSubAdmin = () => {
     setPromoteLoading(false);
   };
 
-  const pendingVendors  = vendors.filter((v) => v.is_active !== false && !v.is_approved);
-  const approvedVendors = vendors.filter((v) => v.is_active !== false && v.is_approved);
-  const removedVendors  = vendors.filter((v) => v.is_active === false);
+  const filterBySearch = (list: any[]) => {
+    if (!searchQuery.trim()) return list;
+    const q = searchQuery.toLowerCase();
+    return list.filter((v: any) =>
+      v.business_name?.toLowerCase().includes(q) ||
+      v.category?.toLowerCase().includes(q) ||
+      v.contact_number?.toLowerCase().includes(q)
+    );
+  };
+
+  const pendingVendors  = filterBySearch(vendors.filter((v) => v.is_active !== false && !v.is_approved));
+  const approvedVendors = filterBySearch(vendors.filter((v) => v.is_active !== false && v.is_approved));
+  const removedVendors  = filterBySearch(vendors.filter((v) => v.is_active === false));
 
   // ── Table renderer ──────────────────────────────────────────────────────────
   const renderTable = (list: any[], showReactivate = false) => (
@@ -299,6 +310,18 @@ const ManageVendorsSubAdmin = () => {
 
   return (
     <>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+        <h2 className="text-lg font-semibold">Vendors</h2>
+        <div className="relative w-full sm:w-72">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search vendors..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+      </div>
       <Tabs defaultValue="pending" className="space-y-4">
         <TabsList>
           <TabsTrigger value="pending">

@@ -6,6 +6,7 @@ import AdminLayout from "@/components/layout/AdminLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -55,6 +56,7 @@ const ManageVendors = () => {
   const [promoteDays,    setPromoteDays]    = useState("");
   const [actionLoading,  setActionLoading]  = useState<string | null>(null);
   const [promoteLoading, setPromoteLoading] = useState(false);
+  const [searchQuery,    setSearchQuery]    = useState("");
 
   // Fetch signup email when detail dialog opens
   const openDetail = async (v: any) => {
@@ -139,8 +141,19 @@ const ManageVendors = () => {
     setPromoteLoading(false);
   };
 
-  const activeVendors   = vendors.filter((v: any) => v.is_active !== false);
-  const rejectedVendors = vendors.filter((v: any) => v.is_active === false);
+  const filterBySearch = (list: any[]) => {
+    if (!searchQuery.trim()) return list;
+    const q = searchQuery.toLowerCase();
+    return list.filter((v: any) =>
+      v.business_name?.toLowerCase().includes(q) ||
+      v.category?.toLowerCase().includes(q) ||
+      v.schools?.name?.toLowerCase().includes(q) ||
+      v.contact_number?.toLowerCase().includes(q)
+    );
+  };
+
+  const activeVendors   = filterBySearch(vendors.filter((v: any) => v.is_active !== false));
+  const rejectedVendors = filterBySearch(vendors.filter((v: any) => v.is_active === false));
 
   // ── Table renderer ──────────────────────────────────────────────────────────
   const renderTable = (list: any[], showReactivate = false) => (
@@ -310,7 +323,18 @@ const ManageVendors = () => {
 
   return (
     <AdminLayout>
-      <h1 className="text-2xl font-bold mb-6">Manage Vendors</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <h1 className="text-2xl font-bold">Manage Vendors</h1>
+        <div className="relative w-full sm:w-72">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search vendors..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+      </div>
 
       {isLoading ? (
         <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin" /></div>
