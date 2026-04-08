@@ -42,15 +42,20 @@ const MessagesPage = () => {
       `)
       .order("last_message_at", { ascending: false });
 
+    // FIX: Show conversations that have messages OR that have unread counts
+    // (previously, new conversations with unread badges were hidden because last_message was null)
     const convs = (data || []).filter((c: any) => {
-      // Filter out conversations with no messages (phantom conversations)
-      return c.last_message !== null || c.last_message_at !== null;
+      return (
+        c.last_message !== null ||
+        c.last_message_at !== null ||
+        (c.vendor_unread || 0) > 0 ||
+        (c.buyer_unread || 0) > 0
+      );
     });
-    
+
     const buyerIds = convs.map((c: any) => c.buyer_id).filter(Boolean);
     let profiles: any[] = [];
     if (buyerIds.length > 0) {
-      // Fix: use user_id instead of id to match buyer profiles
       const { data: profs } = await supabase
         .from("profiles")
         .select("user_id, first_name, last_name")
@@ -186,7 +191,7 @@ const MessagesPage = () => {
                       </span>
                     </div>
                     <p className={`text-xs truncate mt-0.5 ${unread > 0 ? "text-foreground font-medium" : "text-muted-foreground"}`}>
-                      {conv.last_message || "Start the conversation…"}
+                      {conv.last_message || "Tap to start the conversation…"}
                     </p>
                   </div>
                 </button>
