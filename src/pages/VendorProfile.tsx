@@ -133,6 +133,7 @@ const VendorProfile = () => {
   const [vendorProducts, setVendorProducts]     = useState<any[]>([]);
   const [shareOpen,   setShareOpen]             = useState(false);
   const [copied,      setCopied]                = useState(false);
+  const [vendorOnline, setVendorOnline]         = useState(false);
 
   // ── Report state ──────────────────────────────────────────────────────────
   const [reportOpen,     setReportOpen]     = useState(false);
