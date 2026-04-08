@@ -209,8 +209,10 @@ export type Database = {
           content: string | null
           conversation_id: string | null
           created_at: string | null
+          edited_at: string | null
           file_url: string | null
           id: string
+          is_deleted: boolean | null
           is_flagged: boolean | null
           is_read: boolean | null
           message_type: string | null
@@ -222,8 +224,10 @@ export type Database = {
           content?: string | null
           conversation_id?: string | null
           created_at?: string | null
+          edited_at?: string | null
           file_url?: string | null
           id?: string
+          is_deleted?: boolean | null
           is_flagged?: boolean | null
           is_read?: boolean | null
           message_type?: string | null
@@ -235,8 +239,10 @@ export type Database = {
           content?: string | null
           conversation_id?: string | null
           created_at?: string | null
+          edited_at?: string | null
           file_url?: string | null
           id?: string
+          is_deleted?: boolean | null
           is_flagged?: boolean | null
           is_read?: boolean | null
           message_type?: string | null
@@ -1101,6 +1107,35 @@ export type Database = {
           vendor_id?: string
         }
         Relationships: []
+      }
+      vendor_presence: {
+        Row: {
+          is_online: boolean
+          last_seen: string
+          user_id: string
+          vendor_id: string | null
+        }
+        Insert: {
+          is_online?: boolean
+          last_seen?: string
+          user_id: string
+          vendor_id?: string | null
+        }
+        Update: {
+          is_online?: boolean
+          last_seen?: string
+          user_id?: string
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_presence_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vendor_private_details: {
         Row: {
