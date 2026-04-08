@@ -421,12 +421,22 @@ const VendorProfile = () => {
             {/* ── Info Column ── */}
             <div>
               <div className="flex items-start gap-3 mb-2 flex-wrap">
-                <Avatar className="h-10 w-10 border-2 border-accent shrink-0">
-                  {selectedImage ? <AvatarImage src={selectedImage} alt={vendor.business_name} /> : null}
-                  <AvatarFallback className="bg-accent/10 text-accent">{vendor.business_name?.charAt(0) || "V"}</AvatarFallback>
-                </Avatar>
+                <div className="relative shrink-0">
+                  <Avatar className="h-10 w-10 border-2 border-accent">
+                    {selectedImage ? <AvatarImage src={selectedImage} alt={vendor.business_name} /> : null}
+                    <AvatarFallback className="bg-accent/10 text-accent">{vendor.business_name?.charAt(0) || "V"}</AvatarFallback>
+                  </Avatar>
+                  {vendorOnline && (
+                    <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-green-500 border-2 border-background" />
+                  )}
+                </div>
                 <div className="flex-1 min-w-0">
-                  <h1 className="text-lg sm:text-2xl font-bold text-foreground break-words">{vendor.business_name}</h1>
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-lg sm:text-2xl font-bold text-foreground break-words">{vendor.business_name}</h1>
+                    {vendorOnline && (
+                      <Badge className="bg-green-500/20 text-green-600 text-[10px] px-1.5 py-0 h-5">● Live</Badge>
+                    )}
+                  </div>
                   <div className="flex flex-wrap gap-1.5 mt-1">
                     {vendor.is_verified && (
                       <Badge className="bg-primary/10 text-primary text-xs">
