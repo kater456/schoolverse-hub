@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -33,6 +33,7 @@ interface ApprovedSchool {
 }
 
 const Index = () => {
+  const navigate = useNavigate();
   const [schools, setSchools] = useState<ApprovedSchool[]>([]);
   const [loadingSchools, setLoadingSchools] = useState(true);
 
@@ -45,6 +46,31 @@ const Index = () => {
     sessionStorage.setItem("splash_shown", "1");
     setShowSplash(false);
   };
+
+  // ── Swipe-left-to-Reels ─────────────────────────────────────────────────────
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (touchStartX.current === null || touchStartY.current === null) return;
+
+    const deltaX = touchStartX.current - e.changedTouches[0].clientX;
+    const deltaY = Math.abs(touchStartY.current - e.changedTouches[0].clientY);
+
+    // Swipe left: horizontal movement > 60px, horizontal > vertical (not a scroll)
+    if (deltaX > 60 && deltaX > deltaY * 1.5) {
+      navigate("/reels");
+    }
+
+    touchStartX.current = null;
+    touchStartY.current = null;
+  }, [navigate]);
+  // ────────────────────────────────────────────────────────────────────────────
 
   useEffect(() => {
     const fetchSchools = async () => {
@@ -84,7 +110,11 @@ const Index = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div
+      className="min-h-screen bg-background"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
 
       {/* Splash — sits on top of everything, shows once per session */}
       {showSplash && <SplashScreen onEnter={handleSplashEnter} />}
@@ -115,6 +145,11 @@ const Index = () => {
                 </Link>
               </Button>
             </div>
+
+            {/* Swipe hint — visible on mobile only */}
+            <p className="mt-6 text-xs text-primary-foreground/50 md:hidden animate-pulse select-none">
+              ← Swipe left for Reels
+            </p>
           </div>
         </section>
 
