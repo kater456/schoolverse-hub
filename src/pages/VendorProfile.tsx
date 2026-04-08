@@ -217,6 +217,18 @@ const VendorProfile = () => {
           .eq("is_active", true)
           .order("display_order", { ascending: true });
         setVendorProducts(productsData || []);
+
+        // Fetch vendor online status
+        const { data: presence } = await (supabase as any)
+          .from("vendor_presence")
+          .select("is_online, last_seen")
+          .eq("vendor_id", id)
+          .maybeSingle();
+        if (presence) {
+          const lastSeen = new Date(presence.last_seen).getTime();
+          const isRecentlyActive = Date.now() - lastSeen < 5 * 60 * 1000;
+          setVendorOnline(presence.is_online && isRecentlyActive);
+        }
       }
       setIsLoading(false);
     };
