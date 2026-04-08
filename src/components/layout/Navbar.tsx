@@ -18,6 +18,11 @@ const Navbar = () => {
   const vendorDashLink = role === "vendor" ? "/vendor-dashboard" : null;
   const subAdminLink   = role === "sub_admin" || role === "admin" ? "/sub-admin" : null;
 
+  // Determine where the avatar/initials should link to based on role
+  const profileLink = isApprovedVendor
+    ? "/vendor-dashboard"
+    : vendorDashLink || subAdminLink || "/messages";
+
   useEffect(() => {
     if (!user) { setIsApprovedVendor(false); setUnreadCount(0); setUserInitials(""); return; }
 
@@ -131,8 +136,8 @@ const Navbar = () => {
                     <Link to="/register-vendor">Sell on Campus</Link>
                   </Button>
                 )}
-                {/* User avatar with initials */}
-                <Link to="/portal/profile">
+                {/* FIX: Avatar now links to the correct page based on role */}
+                <Link to={profileLink}>
                   <Avatar className="h-8 w-8 cursor-pointer border border-border hover:border-accent transition-colors">
                     <AvatarFallback className="bg-accent/10 text-accent text-xs font-semibold">
                       {userInitials}
@@ -167,7 +172,8 @@ const Navbar = () => {
                     </span>
                   )}
                 </Link>
-                <Link to="/portal/profile">
+                {/* FIX: Mobile avatar also links to correct page */}
+                <Link to={profileLink}>
                   <Avatar className="h-7 w-7 border border-border">
                     <AvatarFallback className="bg-accent/10 text-accent text-[10px] font-semibold">
                       {userInitials}
