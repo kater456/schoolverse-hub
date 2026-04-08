@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/layout/Navbar";
 import { Badge } from "@/components/ui/badge";
@@ -13,9 +13,12 @@ const Reels = () => {
   const [muted, setMuted] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Scroll / swipe state
+  const touchStartY = useRef<number | null>(null);
+  const wheelCooldown = useRef(false);
+
   useEffect(() => {
     const fetchReels = async () => {
-      // Get vendors with reels enabled and their videos
       const { data } = await supabase
         .from("vendors")
         .select("id, business_name, category, vendor_videos(*), vendor_images(*), schools(name)")
@@ -39,13 +42,13 @@ const Reels = () => {
     fetchReels();
   }, []);
 
-  const goNext = () => {
-    if (currentIndex < reels.length - 1) setCurrentIndex(currentIndex + 1);
-  };
+  const goNext = useCallback(() => {
+    setCurrentIndex((prev) => Math.min(prev + 1, reels.length - 1));
+  }, [reels.length]);
 
-  const goPrev = () => {
-    if (currentIndex > 0) setCurrentIndex(currentIndex - 1);
-  };
+  const goPrev = useCallback(() => {
+    setCurrentIndex((prev) => Math.max(prev - 1, 0));
+  }, []);
 
   // Keyboard navigation
   useEffect(() => {
@@ -55,7 +58,50 @@ const Reels = () => {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [currentIndex, reels.length]);
+  }, [goNext, goPrev]);
+
+  // Mouse wheel / trackpad scroll navigation
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      if (wheelCooldown.current) return;
+
+      // deltaY > 0 = scrolling down = next reel
+      if (e.deltaY > 30) {
+        goNext();
+      } else if (e.deltaY < -30) {
+        goPrev();
+      }
+
+      // Debounce so one scroll = one reel
+      wheelCooldown.current = true;
+      setTimeout(() => { wheelCooldown.current = false; }, 600);
+    };
+
+    el.addEventListener("wheel", handleWheel, { passive: false });
+    return () => el.removeEventListener("wheel", handleWheel);
+  }, [goNext, goPrev]);
+
+  // Touch swipe up/down navigation
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (touchStartY.current === null) return;
+    const deltaY = touchStartY.current - e.changedTouches[0].clientY;
+
+    // Swipe up = next reel, swipe down = prev reel
+    if (deltaY > 50) {
+      goNext();
+    } else if (deltaY < -50) {
+      goPrev();
+    }
+    touchStartY.current = null;
+  }, [goNext, goPrev]);
 
   if (isLoading) {
     return (
@@ -91,7 +137,12 @@ const Reels = () => {
   return (
     <div className="min-h-screen bg-foreground">
       <Navbar />
-      <div className="fixed inset-0 pt-16 flex items-center justify-center" ref={containerRef}>
+      <div
+        className="fixed inset-0 pt-16 flex items-center justify-center"
+        ref={containerRef}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         {/* Reel Container */}
         <div className="relative w-full max-w-md h-[calc(100vh-4rem)] bg-foreground">
           {/* Video */}
@@ -139,7 +190,7 @@ const Reels = () => {
             </button>
           </div>
 
-          {/* Navigation */}
+          {/* Navigation buttons */}
           <div className="absolute right-3 top-1/2 -translate-y-1/2 flex flex-col gap-2">
             <button
               onClick={goPrev}
@@ -163,6 +214,13 @@ const Reels = () => {
               {currentIndex + 1} / {reels.length}
             </span>
           </div>
+
+          {/* Scroll hint — mobile only, fades after first interaction */}
+          {reels.length > 1 && (
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 md:hidden pointer-events-none">
+              <p className="text-background/40 text-xs animate-pulse select-none">Swipe up for next reel</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
