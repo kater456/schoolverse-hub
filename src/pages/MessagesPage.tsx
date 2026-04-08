@@ -20,13 +20,12 @@ const MessagesPage = () => {
     if (!user) return;
     loadConversations();
 
-    // Check if user is a vendor
     supabase.from("vendors").select("id").eq("user_id", user.id).eq("is_approved", true)
       .maybeSingle().then(({ data }) => { if (data) setVendorId(data.id); });
 
-    // Real-time updates
     const channel = supabase.channel("inbox-updates")
       .on("postgres_changes", { event: "*", schema: "public", table: "conversations" }, () => loadConversations())
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, () => loadConversations())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [user]);
@@ -43,21 +42,25 @@ const MessagesPage = () => {
       `)
       .order("last_message_at", { ascending: false });
 
-    // Get buyer profiles separately
-    const convs = data || [];
+    const convs = (data || []).filter((c: any) => {
+      // Filter out conversations with no messages (phantom conversations)
+      return c.last_message !== null || c.last_message_at !== null;
+    });
+    
     const buyerIds = convs.map((c: any) => c.buyer_id).filter(Boolean);
     let profiles: any[] = [];
     if (buyerIds.length > 0) {
+      // Fix: use user_id instead of id to match buyer profiles
       const { data: profs } = await supabase
         .from("profiles")
-        .select("id, first_name, last_name")
-        .in("id", buyerIds);
+        .select("user_id, first_name, last_name")
+        .in("user_id", buyerIds);
       profiles = profs || [];
     }
 
     const enriched = convs.map((c: any) => ({
       ...c,
-      buyer_profile: profiles.find((p) => p.id === c.buyer_id),
+      buyer_profile: profiles.find((p) => p.user_id === c.buyer_id),
     }));
 
     setConversations(enriched);
@@ -110,7 +113,6 @@ const MessagesPage = () => {
           </Badge>
         </div>
 
-        {/* Search */}
         <div className="relative mb-4">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input

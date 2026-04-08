@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Menu, X, ShoppingBag, Search, Film, LogOut, Plus, MessageCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,13 +12,14 @@ const Navbar = () => {
   const { user, userRole, signOut } = useAuth();
   const [isApprovedVendor, setIsApprovedVendor] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [userInitials, setUserInitials] = useState("");
 
   const role = userRole?.role as string;
   const vendorDashLink = role === "vendor" ? "/vendor-dashboard" : null;
   const subAdminLink   = role === "sub_admin" || role === "admin" ? "/sub-admin" : null;
 
   useEffect(() => {
-    if (!user) { setIsApprovedVendor(false); setUnreadCount(0); return; }
+    if (!user) { setIsApprovedVendor(false); setUnreadCount(0); setUserInitials(""); return; }
 
     const check = async () => {
       const { data } = await supabase
@@ -27,9 +29,25 @@ const Navbar = () => {
     };
     check();
 
+    // Get user profile for initials
+    const fetchProfile = async () => {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("first_name, last_name")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (profile) {
+        const first = (profile.first_name || "").charAt(0).toUpperCase();
+        const last = (profile.last_name || "").charAt(0).toUpperCase();
+        setUserInitials(first + last || user.email?.charAt(0).toUpperCase() || "U");
+      } else {
+        setUserInitials(user.email?.charAt(0).toUpperCase() || "U");
+      }
+    };
+    fetchProfile();
+
     // Fetch unread message count
     const fetchUnread = async () => {
-      // Get vendor id if vendor
       const { data: vendorData } = await supabase.from("vendors")
         .select("id").eq("user_id", user.id).eq("is_approved", true).maybeSingle();
 
@@ -46,7 +64,6 @@ const Navbar = () => {
     };
     fetchUnread();
 
-    // Realtime vendor approval
     const channel = supabase.channel("vendor-approval-navbar")
       .on("postgres_changes", {
         event: "UPDATE", schema: "public", table: "vendors",
@@ -114,6 +131,14 @@ const Navbar = () => {
                     <Link to="/register-vendor">Sell on Campus</Link>
                   </Button>
                 )}
+                {/* User avatar with initials */}
+                <Link to="/portal/profile">
+                  <Avatar className="h-8 w-8 cursor-pointer border border-border hover:border-accent transition-colors">
+                    <AvatarFallback className="bg-accent/10 text-accent text-xs font-semibold">
+                      {userInitials}
+                    </AvatarFallback>
+                  </Avatar>
+                </Link>
                 <Button variant="ghost" size="icon" onClick={signOut}>
                   <LogOut className="h-4 w-4" />
                 </Button>
@@ -133,14 +158,23 @@ const Navbar = () => {
           <div className="flex items-center gap-2 md:hidden">
             <ThemeToggle />
             {user && (
-              <Link to="/messages" className="relative p-2">
-                <MessageCircle className="h-5 w-5 text-muted-foreground" />
-                {unreadCount > 0 && (
-                  <span className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-accent text-accent-foreground text-[9px] font-bold flex items-center justify-center">
-                    {unreadCount > 9 ? "9+" : unreadCount}
-                  </span>
-                )}
-              </Link>
+              <>
+                <Link to="/messages" className="relative p-2">
+                  <MessageCircle className="h-5 w-5 text-muted-foreground" />
+                  {unreadCount > 0 && (
+                    <span className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-accent text-accent-foreground text-[9px] font-bold flex items-center justify-center">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
+                </Link>
+                <Link to="/portal/profile">
+                  <Avatar className="h-7 w-7 border border-border">
+                    <AvatarFallback className="bg-accent/10 text-accent text-[10px] font-semibold">
+                      {userInitials}
+                    </AvatarFallback>
+                  </Avatar>
+                </Link>
+              </>
             )}
             <button onClick={() => setIsOpen(!isOpen)} className="p-2 rounded-lg hover:bg-secondary transition-colors">
               {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}

@@ -11,8 +11,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { compressImage } from "@/lib/compressImage";
 import {
   Send, ArrowLeft, Paperclip, Image, AlertTriangle, ShieldCheck,
-  CheckCheck, Check, Loader2, Receipt, X, MoreVertical,
+  CheckCheck, Check, Loader2, Receipt, X, MoreVertical, Pencil, Trash2,
 } from "lucide-react";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Message {
   id: string;
@@ -25,7 +28,11 @@ interface Message {
   ai_flagged: boolean;
   ai_flag_reason: string | null;
   created_at: string;
+  edited_at: string | null;
+  is_deleted: boolean;
 }
+
+const EDIT_DELETE_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
 const ChatPage = () => {
   const { conversationId } = useParams<{ conversationId: string }>();
@@ -42,11 +49,21 @@ const ChatPage = () => {
   const [uploading,     setUploading]     = useState(false);
   const [loading,       setLoading]       = useState(true);
   const [isVendor,      setIsVendor]      = useState(false);
+  const [editingMsg,    setEditingMsg]    = useState<Message | null>(null);
+  const [editText,      setEditText]      = useState("");
+  const [isOnline,      setIsOnline]      = useState(false);
   const bottomRef  = useRef<HTMLDivElement>(null);
   const inputRef   = useRef<HTMLInputElement>(null);
 
   const scrollToBottom = () => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const canEditOrDelete = (msg: Message) => {
+    if (msg.sender_id !== user?.id) return false;
+    if (msg.is_deleted) return false;
+    const elapsed = Date.now() - new Date(msg.created_at).getTime();
+    return elapsed <= EDIT_DELETE_WINDOW_MS;
   };
 
   // Load conversation + messages
@@ -55,7 +72,7 @@ const ChatPage = () => {
 
     const { data: conv } = await (supabase as any)
       .from("conversations")
-      .select("*, vendors(id, business_name, user_id, vendor_images(image_url, is_primary))")
+      .select("*, vendors(id, business_name, user_id, is_verified, vendor_images(image_url, is_primary))")
       .eq("id", conversationId)
       .single();
 
@@ -67,13 +84,27 @@ const ChatPage = () => {
     const iAmVendor = v?.user_id === user.id;
     setIsVendor(iAmVendor);
 
+    // Check vendor online status
+    if (!iAmVendor && v?.user_id) {
+      const { data: presence } = await supabase
+        .from("vendor_presence" as any)
+        .select("is_online, last_seen")
+        .eq("user_id", v.user_id)
+        .maybeSingle();
+      if (presence) {
+        const lastSeen = new Date((presence as any).last_seen).getTime();
+        const isRecentlyActive = Date.now() - lastSeen < 5 * 60 * 1000; // 5 min
+        setIsOnline((presence as any).is_online && isRecentlyActive);
+      }
+    }
+
     // Get other party profile
     const otherId = iAmVendor ? conv.buyer_id : null;
     if (otherId) {
       const { data: profile } = await supabase
         .from("profiles")
         .select("first_name, last_name")
-        .eq("id", otherId)
+        .eq("user_id", otherId)
         .maybeSingle();
       setOtherParty(profile);
     }
@@ -106,7 +137,46 @@ const ChatPage = () => {
 
   useEffect(() => { load(); }, [load]);
 
-  // Real-time subscription
+  // Update presence heartbeat if vendor
+  useEffect(() => {
+    if (!user) return;
+
+    // Check if user is a vendor, then update presence
+    const updatePresence = async () => {
+      const { data: vendorData } = await supabase.from("vendors")
+        .select("id").eq("user_id", user.id).eq("is_approved", true).maybeSingle();
+      if (!vendorData) return;
+
+      // Upsert presence
+      await (supabase as any).from("vendor_presence").upsert({
+        user_id: user.id,
+        vendor_id: vendorData.id,
+        last_seen: new Date().toISOString(),
+        is_online: true,
+      }, { onConflict: "user_id" });
+    };
+
+    updatePresence();
+    const interval = setInterval(updatePresence, 60000); // Every 60s
+
+    // Set offline on unmount
+    return () => {
+      clearInterval(interval);
+      supabase.from("vendors").select("id").eq("user_id", user.id).eq("is_approved", true)
+        .maybeSingle().then(({ data }) => {
+          if (data) {
+            (supabase as any).from("vendor_presence").upsert({
+              user_id: user.id,
+              vendor_id: data.id,
+              last_seen: new Date().toISOString(),
+              is_online: false,
+            }, { onConflict: "user_id" });
+          }
+        });
+    };
+  }, [user]);
+
+  // Real-time subscription for INSERT, UPDATE, DELETE
   useEffect(() => {
     if (!conversationId) return;
 
@@ -130,6 +200,24 @@ const ChatPage = () => {
           (supabase as any).from("messages").update({ is_read: true }).eq("id", newMsg.id);
         }
       })
+      .on("postgres_changes", {
+        event: "UPDATE",
+        schema: "public",
+        table: "messages",
+        filter: `conversation_id=eq.${conversationId}`,
+      }, (payload) => {
+        const updated = payload.new as Message;
+        setMessages((prev) => prev.map((m) => m.id === updated.id ? updated : m));
+      })
+      .on("postgres_changes", {
+        event: "DELETE",
+        schema: "public",
+        table: "messages",
+        filter: `conversation_id=eq.${conversationId}`,
+      }, (payload) => {
+        const deletedId = (payload.old as any).id;
+        setMessages((prev) => prev.map((m) => m.id === deletedId ? { ...m, is_deleted: true, content: null } : m));
+      })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
@@ -150,6 +238,7 @@ const ChatPage = () => {
         file_url: fileUrl || null,
         is_read: false,
         ai_flagged: false,
+        is_deleted: false,
       } as any)
       .select()
       .single();
@@ -168,7 +257,7 @@ const ChatPage = () => {
       ...(isVendor ? { buyer_unread: (conversation?.buyer_unread || 0) + 1 } : { vendor_unread: (conversation?.vendor_unread || 0) + 1 }),
     }).eq("id", conversationId);
 
-    // Run AI monitoring in background (don't await)
+    // Run AI monitoring in background
     if (type === "text" && msg) {
       supabase.functions.invoke("monitor-message", {
         body: { conversation_id: conversationId, message_id: msg.id, content: content.trim() },
@@ -178,6 +267,29 @@ const ChatPage = () => {
     setInputText("");
     setSending(false);
     inputRef.current?.focus();
+  };
+
+  const handleEditMessage = async () => {
+    if (!editingMsg || !editText.trim()) return;
+    const { error } = await (supabase as any).from("messages")
+      .update({ content: editText.trim(), edited_at: new Date().toISOString() })
+      .eq("id", editingMsg.id)
+      .eq("sender_id", user?.id);
+    if (error) {
+      toast({ title: "Failed to edit", variant: "destructive" });
+    }
+    setEditingMsg(null);
+    setEditText("");
+  };
+
+  const handleDeleteMessage = async (msgId: string) => {
+    const { error } = await (supabase as any).from("messages")
+      .update({ is_deleted: true, content: null })
+      .eq("id", msgId)
+      .eq("sender_id", user?.id);
+    if (error) {
+      toast({ title: "Failed to delete", variant: "destructive" });
+    }
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: "image" | "receipt") => {
@@ -244,12 +356,18 @@ const ChatPage = () => {
           <ArrowLeft className="h-5 w-5" />
         </button>
 
-        <Avatar className="h-9 w-9 border border-border">
-          {vendorAvatar && !isVendor ? <AvatarImage src={vendorAvatar} /> : null}
-          <AvatarFallback className="bg-accent/10 text-accent text-sm">
-            {otherName.charAt(0).toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
+        <div className="relative">
+          <Avatar className="h-9 w-9 border border-border">
+            {vendorAvatar && !isVendor ? <AvatarImage src={vendorAvatar} /> : null}
+            <AvatarFallback className="bg-accent/10 text-accent text-sm">
+              {otherName.charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          {/* Online indicator */}
+          {!isVendor && isOnline && (
+            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-500 border-2 border-background" />
+          )}
+        </div>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
@@ -259,7 +377,11 @@ const ChatPage = () => {
             )}
           </div>
           <p className="text-xs text-muted-foreground">
-            {isVendor ? "Buyer" : vendor?.category}
+            {!isVendor && isOnline ? (
+              <span className="text-green-500 font-medium">Online</span>
+            ) : (
+              isVendor ? "Buyer" : vendor?.category
+            )}
           </p>
         </div>
 
@@ -276,6 +398,17 @@ const ChatPage = () => {
         )}
       </div>
 
+      {/* ── Edit bar ── */}
+      {editingMsg && (
+        <div className="flex items-center gap-2 px-4 py-2 bg-accent/10 border-b border-border">
+          <Pencil className="h-4 w-4 text-accent shrink-0" />
+          <span className="text-xs text-accent font-medium flex-1 truncate">Editing message</span>
+          <button onClick={() => { setEditingMsg(null); setEditText(""); }} className="p-1 rounded hover:bg-muted">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
       {/* ── Messages ── */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
         {/* Disclaimer */}
@@ -289,15 +422,16 @@ const ChatPage = () => {
 
         {groupedMessages.map(({ date, msgs }) => (
           <div key={date} className="space-y-2">
-            {/* Date divider */}
             <div className="flex justify-center">
               <span className="text-[10px] text-muted-foreground bg-muted px-3 py-1 rounded-full">{date}</span>
             </div>
 
             {msgs.map((msg) => {
               const isMine = msg.sender_id === user?.id;
+              const showActions = canEditOrDelete(msg);
+
               return (
-                <div key={msg.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
+                <div key={msg.id} className={`flex ${isMine ? "justify-end" : "justify-start"} group`}>
                   <div className={`max-w-[78%] ${isMine ? "items-end" : "items-start"} flex flex-col gap-0.5`}>
                     {/* AI flag warning */}
                     {msg.ai_flagged && (
@@ -307,44 +441,84 @@ const ChatPage = () => {
                       </div>
                     )}
 
-                    {/* Message bubble */}
-                    <div className={`rounded-2xl px-3.5 py-2 ${
-                      isMine
-                        ? "bg-accent text-accent-foreground rounded-tr-sm"
-                        : "bg-muted text-foreground rounded-tl-sm"
-                    } ${msg.ai_flagged ? "border border-destructive/40" : ""}`}>
-
-                      {/* Image */}
-                      {msg.message_type === "image" && msg.file_url && (
-                        <a href={msg.file_url} target="_blank" rel="noopener noreferrer">
-                          <img src={msg.file_url} alt="Image" className="rounded-lg max-w-full max-h-48 object-cover mb-1" />
-                        </a>
+                    <div className="flex items-start gap-1">
+                      {/* Actions dropdown (own messages only) */}
+                      {isMine && showActions && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button className="p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-muted mt-1">
+                              <MoreVertical className="h-3.5 w-3.5 text-muted-foreground" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-32">
+                            {msg.message_type === "text" && !msg.is_deleted && (
+                              <DropdownMenuItem onClick={() => {
+                                setEditingMsg(msg);
+                                setEditText(msg.content || "");
+                              }}>
+                                <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => handleDeleteMessage(msg.id)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       )}
 
-                      {/* Receipt */}
-                      {msg.message_type === "receipt" && msg.file_url && (
-                        <a href={msg.file_url} target="_blank" rel="noopener noreferrer"
-                          className="flex items-center gap-2 py-1">
-                          <div className="w-8 h-8 rounded-lg bg-success/20 flex items-center justify-center">
-                            <Receipt className="h-4 w-4 text-success" />
-                          </div>
-                          <div>
-                            <p className="text-xs font-medium">Payment Receipt</p>
-                            <p className="text-[10px] opacity-70">Tap to view</p>
-                          </div>
-                        </a>
-                      )}
+                      {/* Message bubble */}
+                      <div className={`rounded-2xl px-3.5 py-2 ${
+                        msg.is_deleted
+                          ? "bg-muted/50 italic"
+                          : isMine
+                            ? "bg-accent text-accent-foreground rounded-tr-sm"
+                            : "bg-muted text-foreground rounded-tl-sm"
+                      } ${msg.ai_flagged ? "border border-destructive/40" : ""}`}>
 
-                      {/* Text */}
-                      {msg.content && (
-                        <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{msg.content}</p>
-                      )}
+                        {msg.is_deleted ? (
+                          <p className="text-sm text-muted-foreground">🚫 This message was deleted</p>
+                        ) : (
+                          <>
+                            {/* Image */}
+                            {msg.message_type === "image" && msg.file_url && (
+                              <a href={msg.file_url} target="_blank" rel="noopener noreferrer">
+                                <img src={msg.file_url} alt="Image" className="rounded-lg max-w-full max-h-48 object-cover mb-1" />
+                              </a>
+                            )}
+
+                            {/* Receipt */}
+                            {msg.message_type === "receipt" && msg.file_url && (
+                              <a href={msg.file_url} target="_blank" rel="noopener noreferrer"
+                                className="flex items-center gap-2 py-1">
+                                <div className="w-8 h-8 rounded-lg bg-success/20 flex items-center justify-center">
+                                  <Receipt className="h-4 w-4 text-success" />
+                                </div>
+                                <div>
+                                  <p className="text-xs font-medium">Payment Receipt</p>
+                                  <p className="text-[10px] opacity-70">Tap to view</p>
+                                </div>
+                              </a>
+                            )}
+
+                            {/* Text */}
+                            {msg.content && (
+                              <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{msg.content}</p>
+                            )}
+                          </>
+                        )}
+                      </div>
                     </div>
 
-                    {/* Time + read indicator */}
+                    {/* Time + read indicator + edited label */}
                     <div className={`flex items-center gap-1 ${isMine ? "flex-row-reverse" : ""}`}>
                       <span className="text-[10px] text-muted-foreground">{formatTime(msg.created_at)}</span>
-                      {isMine && (
+                      {msg.edited_at && !msg.is_deleted && (
+                        <span className="text-[9px] text-muted-foreground italic">edited</span>
+                      )}
+                      {isMine && !msg.is_deleted && (
                         msg.is_read
                           ? <CheckCheck className="h-3 w-3 text-accent" />
                           : <Check className="h-3 w-3 text-muted-foreground" />
@@ -378,45 +552,48 @@ const ChatPage = () => {
       <div className="border-t border-border bg-background px-3 py-3 pb-safe">
         <div className="flex items-end gap-2 max-w-2xl mx-auto">
           {/* Attachment menu */}
-          <div className="flex gap-1 shrink-0">
-            <label className="w-9 h-9 rounded-full border border-border flex items-center justify-center cursor-pointer hover:bg-muted transition-colors" title="Send image">
-              <Image className="h-4 w-4 text-muted-foreground" />
-              <input type="file" accept="image/*" className="hidden"
-                onChange={(e) => handleFileUpload(e, "image")} disabled={uploading} />
-            </label>
-            <label className="w-9 h-9 rounded-full border border-border flex items-center justify-center cursor-pointer hover:bg-muted transition-colors" title="Send receipt">
-              <Receipt className="h-4 w-4 text-muted-foreground" />
-              <input type="file" accept="image/*,.pdf" className="hidden"
-                onChange={(e) => handleFileUpload(e, "receipt")} disabled={uploading} />
-            </label>
-          </div>
+          {!editingMsg && (
+            <div className="flex gap-1 shrink-0">
+              <label className="w-9 h-9 rounded-full border border-border flex items-center justify-center cursor-pointer hover:bg-muted transition-colors" title="Send image">
+                <Image className="h-4 w-4 text-muted-foreground" />
+                <input type="file" accept="image/*" className="hidden"
+                  onChange={(e) => handleFileUpload(e, "image")} disabled={uploading} />
+              </label>
+              <label className="w-9 h-9 rounded-full border border-border flex items-center justify-center cursor-pointer hover:bg-muted transition-colors" title="Send receipt">
+                <Receipt className="h-4 w-4 text-muted-foreground" />
+                <input type="file" accept="image/*,.pdf" className="hidden"
+                  onChange={(e) => handleFileUpload(e, "receipt")} disabled={uploading} />
+              </label>
+            </div>
+          )}
 
           {/* Text input */}
           <div className="flex-1 flex items-end bg-muted rounded-2xl px-3 py-2 gap-2">
             <Input
               ref={inputRef}
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
+              value={editingMsg ? editText : inputText}
+              onChange={(e) => editingMsg ? setEditText(e.target.value) : setInputText(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
-                  sendMessage(inputText);
+                  if (editingMsg) handleEditMessage();
+                  else sendMessage(inputText);
                 }
               }}
-              placeholder="Type a message…"
+              placeholder={editingMsg ? "Edit message…" : "Type a message…"}
               className="border-0 bg-transparent p-0 h-auto focus-visible:ring-0 text-sm"
               disabled={sending || uploading}
             />
             {uploading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground shrink-0" />}
           </div>
 
-          {/* Send */}
+          {/* Send / Save */}
           <button
-            onClick={() => sendMessage(inputText)}
-            disabled={!inputText.trim() || sending || uploading}
+            onClick={() => editingMsg ? handleEditMessage() : sendMessage(inputText)}
+            disabled={editingMsg ? !editText.trim() : (!inputText.trim() || sending || uploading)}
             className="w-9 h-9 rounded-full bg-accent text-accent-foreground flex items-center justify-center hover:bg-accent/90 disabled:opacity-50 transition-all shrink-0"
           >
-            {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : editingMsg ? <Check className="h-4 w-4" /> : <Send className="h-4 w-4" />}
           </button>
         </div>
       </div>
