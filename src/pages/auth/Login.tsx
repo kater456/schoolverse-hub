@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { GraduationCap, Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
-import { lovable } from "@/integrations/lovable/index";
+
 
 const Login = () => {
   const [formData, setFormData] = useState({ email: "", password: "" });
