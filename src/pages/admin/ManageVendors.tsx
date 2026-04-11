@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAllVendors } from "@/hooks/useVendors";
 import { useToast } from "@/hooks/use-toast";
@@ -6,12 +6,13 @@ import AdminLayout from "@/components/layout/AdminLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Search, GraduationCap } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuSeparator, DropdownMenuTrigger,
@@ -22,7 +23,7 @@ import {
   UserX, UserCheck, Star, ExternalLink, Crown,
 } from "lucide-react";
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 const PaymentBadge = ({ status }: { status?: string }) => {
   if (!status || status === "unpaid")
@@ -58,9 +59,22 @@ const ManageVendors = () => {
   const [promoteLoading, setPromoteLoading] = useState(false);
   const [searchQuery,    setSearchQuery]    = useState("");
 
+  // School change state
+  const [schools,          setSchools]          = useState<any[]>([]);
+  const [selectedSchoolId, setSelectedSchoolId] = useState("");
+  const [changingSchool,   setChangingSchool]   = useState(false);
+
+  // Load all schools for the dropdown
+  useEffect(() => {
+    supabase.from("schools").select("id, name").order("name").then(({ data }) => {
+      setSchools(data || []);
+    });
+  }, []);
+
   // Fetch signup email when detail dialog opens
   const openDetail = async (v: any) => {
     setDetailVendor({ ...v, _signup_email: "Loading..." });
+    setSelectedSchoolId(v.school_id || "");
     try {
       const { data } = await supabase.functions.invoke("get-user-email", {
         body: { user_id: v.user_id },
@@ -71,13 +85,28 @@ const ManageVendors = () => {
     }
   };
 
+  // Change vendor school
+  const changeSchool = async () => {
+    if (!detailVendor || !selectedSchoolId || selectedSchoolId === detailVendor.school_id) return;
+    setChangingSchool(true);
+    const schoolName = schools.find((s) => s.id === selectedSchoolId)?.name || "—";
+    const { error } = await supabase.from("vendors").update({ school_id: selectedSchoolId } as any).eq("id", detailVendor.id);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: `School changed to ${schoolName} ✅` });
+      setDetailVendor((prev: any) => prev ? { ...prev, school_id: selectedSchoolId, schools: { name: schoolName } } : prev);
+      refetch();
+    }
+    setChangingSchool(false);
+  };
+
   // Core patch helper
   const patch = async (id: string, payload: any, successMsg: string) => {
     const { error } = await supabase.from("vendors").update(payload as any).eq("id", id);
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return false; }
     toast({ title: successMsg });
     refetch();
-    // Optimistically update the open detail panel
     setDetailVendor((prev: any) => prev?.id === id ? { ...prev, ...payload } : prev);
     return true;
   };
@@ -179,11 +208,9 @@ const ManageVendors = () => {
 
           return (
             <TableRow key={v.id} className={v.is_suspended ? "opacity-60" : ""}>
-
-              {/* Clickable business name */}
               <TableCell>
                 <button
-                 onClick={() => openDetail(v)}
+                  onClick={() => openDetail(v)}
                   className="flex items-center gap-1.5 font-medium text-foreground hover:text-primary hover:underline text-left transition-colors group"
                 >
                   <span className="group-hover:underline">{v.business_name}</span>
@@ -215,7 +242,6 @@ const ManageVendors = () => {
                   : <span className="text-xs text-muted-foreground">—</span>}
               </TableCell>
 
-              {/* 3-dot menu */}
               <TableCell>
                 {showReactivate ? (
                   <Button size="sm" variant="outline" onClick={() => reactivateVendor(v.id)}
@@ -281,7 +307,6 @@ const ManageVendors = () => {
                           <Megaphone className="h-4 w-4 mr-2" /> Promote Vendor
                         </DropdownMenuItem>
                       )}
-
 
                       {v.is_store_upgraded && v.store_upgrade_expires_at && new Date(v.store_upgrade_expires_at) > new Date() ? (
                         <DropdownMenuItem onClick={() => removeStoreUpgrade(v.id)} className="text-muted-foreground">
@@ -451,6 +476,36 @@ const ManageVendors = () => {
                 </div>
               )}
 
+              {/* ── Change School ── */}
+              <div className="p-3 rounded-lg border border-blue-400/30 bg-blue-500/5 space-y-2">
+                <h4 className="font-semibold text-foreground flex items-center gap-2">
+                  <GraduationCap className="h-4 w-4 text-blue-500" /> Change Vendor's School
+                </h4>
+                <p className="text-xs text-muted-foreground">
+                  Current school: <strong className="text-foreground">{detailVendor.schools?.name || "None assigned"}</strong>
+                </p>
+                <div className="flex gap-2">
+                  <Select value={selectedSchoolId} onValueChange={setSelectedSchoolId}>
+                    <SelectTrigger className="flex-1 h-9 text-sm">
+                      <SelectValue placeholder="Select new school…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {schools.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    size="sm"
+                    onClick={changeSchool}
+                    disabled={changingSchool || !selectedSchoolId || selectedSchoolId === detailVendor.school_id}
+                    className="h-9 px-4 bg-blue-500 text-white hover:bg-blue-600 border-0"
+                  >
+                    {changingSchool ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Save"}
+                  </Button>
+                </div>
+              </div>
+
               {/* ── Public info ── */}
               <div>
                 <h4 className="font-semibold mb-2 text-foreground pb-1 border-b border-border/50">📢 Public Information</h4>
@@ -478,7 +533,7 @@ const ManageVendors = () => {
                 </div>
               </div>
 
-              {/* ── Private info (Super Admin sees ID doc) ── */}
+              {/* ── Private info ── */}
               {pd ? (
                 <div>
                   <h4 className="font-semibold mb-2 text-destructive pb-1 border-b border-border/50">🔒 Private Information (Super Admin Only)</h4>
@@ -551,9 +606,7 @@ const ManageVendors = () => {
               <Label htmlFor="promo-days-admin">Number of days</Label>
               <Input
                 id="promo-days-admin"
-                type="number"
-                min="1"
-                max="365"
+                type="number" min="1" max="365"
                 placeholder="e.g. 7"
                 value={promoteDays}
                 onChange={(e) => setPromoteDays(e.target.value)}
@@ -575,9 +628,7 @@ const ManageVendors = () => {
               onClick={handlePromote}
               disabled={!promoteDays || isNaN(Number(promoteDays)) || Number(promoteDays) < 1 || promoteLoading}
             >
-              {promoteLoading
-                ? <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                : <Star     className="h-4 w-4 mr-2" />}
+              {promoteLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Star className="h-4 w-4 mr-2" />}
               Promote Vendor
             </Button>
           </DialogFooter>
