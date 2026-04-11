@@ -12,7 +12,6 @@ const Login = () => {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { signIn, user, userRole, isLoading: authLoading } = useAuth();
@@ -69,8 +68,15 @@ const Login = () => {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
               <Label htmlFor="email">Email Address</Label>
-              <Input id="email" type="email" placeholder="you@example.com" value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })} required className="h-12" />
+              <Input
+                id="email"
+                type="email"
+                placeholder="you@example.com"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                required
+                className="h-12"
+              />
             </div>
 
             <div className="space-y-2">
@@ -79,21 +85,31 @@ const Login = () => {
                 <Link to="/forgot-password" className="text-sm text-primary hover:underline">Forgot password?</Link>
               </div>
               <div className="relative">
-                <Input id="password" type={showPassword ? "text" : "password"} placeholder="Enter your password"
-                  value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  required className="h-12 pr-12" />
-                <button type="button" onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter your password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  required
+                  className="h-12 pr-12"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
             </div>
 
             <Button type="submit" variant="hero" size="lg" className="w-full" disabled={isLoading}>
-              {isLoading ? (<><Loader2 className="h-5 w-5 animate-spin" />Signing in...</>) : (<>Sign In<ArrowRight className="h-5 w-5" /></>)}
+              {isLoading
+                ? <><Loader2 className="h-5 w-5 animate-spin" />Signing in...</>
+                : <>Sign In<ArrowRight className="h-5 w-5" /></>}
             </Button>
           </form>
-
 
           <p className="mt-8 text-center text-sm text-muted-foreground">
             Don't have an account?{" "}
@@ -106,14 +122,26 @@ const Login = () => {
       <div className="hidden lg:flex flex-1 bg-gradient-hero relative overflow-hidden">
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute top-1/4 right-1/4 w-80 h-80 bg-accent/10 rounded-full blur-3xl animate-float" />
-          <div className="absolute bottom-1/3 left-1/4 w-64 h-64 bg-primary-foreground/5 rounded-full blur-3xl animate-float" style={{ animationDelay: "2s" }} />
+          <div
+            className="absolute bottom-1/3 left-1/4 w-64 h-64 bg-primary-foreground/5 rounded-full blur-3xl animate-float"
+            style={{ animationDelay: "2s" }}
+          />
         </div>
         <div className="relative z-10 flex flex-col items-center justify-center p-12 text-center">
           <div className="max-w-md">
-            <h2 className="font-display text-4xl font-bold text-primary-foreground mb-6">Your Campus Marketplace Awaits</h2>
-            <p className="text-primary-foreground/70 text-lg mb-8">Browse student businesses, discover new products, and support your campus community.</p>
+            <h2 className="font-display text-4xl font-bold text-primary-foreground mb-6">
+              Your Campus Marketplace Awaits
+            </h2>
+            <p className="text-primary-foreground/70 text-lg mb-8">
+              Browse student businesses, discover new products, and support your campus community.
+            </p>
             <div className="space-y-4 text-left">
-              {["Browse campus businesses", "List your products for free", "Get featured for ₦2,000", "Connect with students"].map((feature) => (
+              {[
+                "Browse campus businesses",
+                "List your products for free",
+                "Get featured for ₦2,000",
+                "Connect with students",
+              ].map((feature) => (
                 <div key={feature} className="flex items-center gap-3 text-primary-foreground/80">
                   <div className="w-2 h-2 rounded-full bg-accent" />
                   <span>{feature}</span>
