@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { GraduationCap, Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
-import { lovable } from "@/integrations/lovable/index";
+
 
 const SignUp = () => {
   const [formData, setFormData] = useState({
