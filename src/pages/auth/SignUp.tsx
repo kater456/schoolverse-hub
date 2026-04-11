@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from " @lovable.dev/cloud-auth-js/client";
 import { GraduationCap, Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
 
 
@@ -57,7 +57,7 @@ const SignUp = () => {
 
       toast({
         title: "Verification code sent!",
-        description: "A 6-digit code has been sent to your email. Please check your inbox to proceed with verification.",
+        description: "Please check your inbox to proceed with verification.",
       });
       navigate("/verify-email", { state: { email: formData.email } });
     } catch (err: any) {
