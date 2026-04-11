@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@lovable.dev/cloud-auth-js/client";
+import { supabase } from "@/integrations/supabase/client";
 import { GraduationCap, Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
 
 
@@ -57,7 +57,7 @@ const SignUp = () => {
 
       toast({
         title: "Verification code sent!",
-        description: "Please check your inbox to proceed with verification.",
+        description: "A 6-digit code has been sent to your email. Please check your inbox to proceed with verification.",
       });
       navigate("/verify-email", { state: { email: formData.email } });
     } catch (err: any) {
@@ -68,6 +68,7 @@ const SignUp = () => {
 
   return (
     <div className="min-h-screen flex">
+      {/* Left Side - Form */}
       <div className="flex-1 flex items-center justify-center p-8 bg-background">
         <div className="w-full max-w-md">
           <Link to="/" className="flex items-center gap-2 mb-8">
@@ -86,30 +87,58 @@ const SignUp = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="firstName">First Name</Label>
-                <Input id="firstName" placeholder="John" value={formData.firstName}
-                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })} required className="h-12" />
+                <Input
+                  id="firstName"
+                  placeholder="John"
+                  value={formData.firstName}
+                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                  required
+                  className="h-12"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="lastName">Last Name</Label>
-                <Input id="lastName" placeholder="Doe" value={formData.lastName}
-                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })} required className="h-12" />
+                <Input
+                  id="lastName"
+                  placeholder="Doe"
+                  value={formData.lastName}
+                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                  required
+                  className="h-12"
+                />
               </div>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="email">Email Address</Label>
-              <Input id="email" type="email" placeholder="you@example.com" value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })} required className="h-12" />
+              <Input
+                id="email"
+                type="email"
+                placeholder="you@example.com"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                required
+                className="h-12"
+              />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <div className="relative">
-                <Input id="password" type={showPassword ? "text" : "password"} placeholder="Create a strong password"
-                  value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  required className="h-12 pr-12" />
-                <button type="button" onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Create a strong password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  required
+                  className="h-12 pr-12"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
@@ -119,21 +148,31 @@ const SignUp = () => {
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirm Password</Label>
               <div className="relative">
-                <Input id="confirmPassword" type={showConfirmPassword ? "text" : "password"} placeholder="Confirm your password"
-                  value={formData.confirmPassword} onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                  required className="h-12 pr-12" />
-                <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                <Input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="Confirm your password"
+                  value={formData.confirmPassword}
+                  onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                  required
+                  className="h-12 pr-12"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
                   {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
             </div>
 
             <Button type="submit" variant="hero" size="lg" className="w-full" disabled={isLoading}>
-              {isLoading ? (<><Loader2 className="h-5 w-5 animate-spin" /> Creating account...</>) : (<>Create Account <ArrowRight className="h-5 w-5" /></>)}
+              {isLoading
+                ? <><Loader2 className="h-5 w-5 animate-spin" /> Creating account...</>
+                : <>Create Account <ArrowRight className="h-5 w-5" /></>}
             </Button>
           </form>
-
 
           <p className="mt-8 text-center text-sm text-muted-foreground">
             Already have an account?{" "}
@@ -148,17 +187,27 @@ const SignUp = () => {
         </div>
       </div>
 
+      {/* Right Side - Branding */}
       <div className="hidden lg:flex flex-1 bg-gradient-hero relative overflow-hidden">
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute top-1/4 left-1/4 w-80 h-80 bg-accent/10 rounded-full blur-3xl animate-float" />
-          <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-primary-foreground/5 rounded-full blur-3xl animate-float" style={{ animationDelay: "2s" }} />
+          <div
+            className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-primary-foreground/5 rounded-full blur-3xl animate-float"
+            style={{ animationDelay: "2s" }}
+          />
         </div>
         <div className="relative z-10 flex flex-col items-center justify-center p-12 text-center">
           <div className="max-w-md">
-            <h2 className="font-display text-4xl font-bold text-primary-foreground mb-6">Join Campus Entrepreneurs on Campus Market</h2>
-            <p className="text-primary-foreground/70 text-lg mb-8">Create your account in minutes. List your business, reach students, and grow your campus hustle.</p>
+            <h2 className="font-display text-4xl font-bold text-primary-foreground mb-6">
+              Join Campus Entrepreneurs on Campus Market
+            </h2>
+            <p className="text-primary-foreground/70 text-lg mb-8">
+              Create your account in minutes. List your business, reach students, and grow your campus hustle.
+            </p>
             <div className="bg-primary-foreground/10 backdrop-blur-sm rounded-2xl p-6 border border-primary-foreground/20">
-              <p className="text-primary-foreground/90 italic mb-4">"Campus Market transformed how we manage our school store. Sales are up 40% and parents love the convenience."</p>
+              <p className="text-primary-foreground/90 italic mb-4">
+                "Campus Market transformed how we manage our school store. Sales are up 40% and parents love the convenience."
+              </p>
               <div className="flex items-center justify-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-accent/20" />
                 <div className="text-left">
