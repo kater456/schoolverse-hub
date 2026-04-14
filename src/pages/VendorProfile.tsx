@@ -21,6 +21,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import ContactVendorButton from "@/components/ContactVendorButton";
+import VendorQRBadge from "@/components/VendorQRBadge";
 
 // ── Lightbox ──────────────────────────────────────────────────────────────────
 const Lightbox = ({ images, startIndex, onClose }: {
@@ -676,6 +677,18 @@ const VendorProfile = () => {
                 </CardContent>
               </Card>
 
+              {/* ── Registered Business QR Badge ── */}
+              {vendor.is_verified && (
+                <Card className="border-blue-400/20 bg-blue-950/20 mb-4">
+                  <CardContent className="p-4 flex flex-col items-center">
+                    <VendorQRBadge
+                      vendorId={vendor.id}
+                      businessName={vendor.business_name}
+                    />
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Share & Report row */}
               <div className="flex items-center justify-between mb-2">
                 <Button
@@ -879,3 +892,4 @@ const VendorProfile = () => {
 };
 
 export default VendorProfile;
+
