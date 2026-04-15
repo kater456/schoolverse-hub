@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
     // Approve vendor and mark payment as paid
     const { error: updateError } = await supabase
       .from("vendors")
-      .update({ is_approved: true, payment_status: "paid" })
+      .update({ is_approved: true, payment_status: "paid", payment_reference: reference })
       .eq("id", vendor_id);
 
     if (updateError) throw updateError;
