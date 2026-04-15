@@ -32,71 +32,50 @@ Deno.serve(async (req) => {
     // Verify payment with Paystack
     const paystackRes = await fetch(
       `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
-      { headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` } }
+      { headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` } },
     );
+
     const paystackData = await paystackRes.json();
 
     if (!paystackRes.ok || !paystackData.status || paystackData.data?.status !== "success") {
-      return new Response(JSON.stringify({ error: "Payment not verified", details: paystackData.message }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Payment not verified", details: paystackData.message }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
-    // Verify amount is ₦1,500 (150000 kobo)
+    // Verify amount is at least ₦1,200 (120,000 kobo)
     const amountInKobo = paystackData.data.amount;
-    if (amountInKobo < 150000) {
+    if (amountInKobo < 120000) {
       return new Response(JSON.stringify({ error: "Insufficient payment amount" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const now = new Date();
-    const endsAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days
-
-    // Create store upgrade record
-    const { error: insertError } = await supabase
-      .from("vendor_store_upgrades")
-      .insert({
-        vendor_id,
-        payment_reference: reference,
-        payment_status: "confirmed",
-        amount: 1500,
-        starts_at: now.toISOString(),
-        ends_at: endsAt.toISOString(),
-      });
-
-    if (insertError) throw insertError;
-
-    // Update vendor
+    // Approve vendor automatically and mark payment as paid
     const { error: updateError } = await supabase
       .from("vendors")
-      .update({
-        is_store_upgraded: true,
-        store_upgrade_expires_at: endsAt.toISOString(),
-      })
+      .update({ is_approved: true, payment_status: "paid" })
       .eq("id", vendor_id);
 
-    if (updateError) throw updateError;
+    if (updateError) {
+      throw updateError;
+    }
 
-    // Send notification
+    // Notify vendor
     await supabase.from("vendor_notifications").insert({
       vendor_id,
-      type: "store_upgrade",
-      title: "🎉 Store Upgraded!",
-      message: `Your premium store is now active until ${endsAt.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}.`,
+      type: "approval",
+      title: "✅ Account Activated!",
+      message: "Your registration payment was confirmed and your account is now live.",
       is_read: false,
     });
 
-    return new Response(JSON.stringify({
-      success: true,
-      message: "Store upgraded successfully",
-      ends_at: endsAt.toISOString(),
-    }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ success: true, message: "Payment verified and vendor approved" }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Unknown error";
     return new Response(JSON.stringify({ error: message }), {
