@@ -142,9 +142,6 @@ const VendorRegistration = () => {
       currency: "NGN",
       ref: reference,
       channels: ["card", "bank_transfer", "ussd", "bank"],
-  onClose: () => { ... },
-  callback: async (response) => { ... }
-});
       metadata: { vendor_id: vendorId },
       onClose: () => {
         setPaymentPending(false);
@@ -161,10 +158,7 @@ const VendorRegistration = () => {
             body: { reference: response.reference, vendor_id: vendorId },
           });
           if (error || !data?.success) throw new Error(error?.message || "Verification failed");
-          toast({
-            title: "🎉 Payment Successful! You're Live!",
-            description: "Your business is now approved and visible on Campus Market.",
-          });
+          toast({ title: "🎉 Payment Successful!", description: "Your account is now active." });
         } catch (err: any) {
           toast({ title: "Payment verification failed", description: err.message || "Contact support with your payment reference.", variant: "destructive" });
         } finally {
