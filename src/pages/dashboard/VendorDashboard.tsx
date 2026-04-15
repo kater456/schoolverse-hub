@@ -288,11 +288,10 @@ const VendorDashboard = () => {
             <div className="bg-muted/50 p-4 rounded-lg text-left">
               <p className="text-sm font-medium mb-2">Payment Details:</p>
               <p className="text-sm text-muted-foreground">
-                🇳🇬 Nigeria: ₦1,200<br />
-                Bank: sterling bank<br />
-                Account Number: 0128456092<br />
-                Account Name: Kater Akase
-              </p>
+           Complete your ₦1,200 payment via Paystack — card or bank transfer accepted.
+         Your account activates automatically once payment clears.
+        </p>
+            </div>
             </div>
           )}
           <p className="text-xs text-muted-foreground">This page will update automatically once you're approved.</p>
