@@ -102,6 +102,13 @@ const VendorDashboard = () => {
 
   useEffect(() => {
     if (!user) return;
+    // Load Paystack script for all payment buttons in this dashboard
+    if (!(window as any).PaystackPop) {
+      const script = document.createElement("script");
+      script.src   = "https://js.paystack.co/v1/inline.js";
+      script.async = true;
+      document.body.appendChild(script);
+    }
     fetchVendorData();
 
     const channel = supabase
