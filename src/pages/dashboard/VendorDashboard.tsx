@@ -285,8 +285,8 @@ const VendorDashboard = () => {
               <p className="text-sm font-medium mb-2">Payment Details:</p>
               <p className="text-sm text-muted-foreground">
                 🇳🇬 Nigeria: ₦1,200<br />
-                Bank: OPay<br />
-                Account Number: 09016103308<br />
+                Bank: sterling bank<br />
+                Account Number: 0128456092<br />
                 Account Name: Kater Akase
               </p>
             </div>
