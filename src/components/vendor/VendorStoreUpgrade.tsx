@@ -324,6 +324,15 @@ const VendorStoreUpgrade = ({ vendor, onUpdate }: VendorStoreUpgradeProps) => {
   };
 
   // ── Payment ───────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!(window as any).PaystackPop) {
+      const s = document.createElement("script");
+      s.src = "https://js.paystack.co/v1/inline.js";
+      s.async = true;
+      document.body.appendChild(s);
+    }
+  }, []);
+
   const initiateUpgradePayment = () => {
     const PaystackPop = (window as any).PaystackPop;
     if (!PaystackPop) {
@@ -337,6 +346,7 @@ const VendorStoreUpgrade = ({ vendor, onUpdate }: VendorStoreUpgradeProps) => {
       amount: 150000,
       currency: "NGN",
       ref,
+      metadata: { vendor_id: vendor.id },
       onClose: () => toast({ title: "Payment cancelled" }),
       callback: async (response: any) => {
         setPaying(true);

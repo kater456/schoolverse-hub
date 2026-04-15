@@ -68,7 +68,7 @@ async function handleRegistrationPayment(supabase: any, data: any) {
   if (data.amount < 120000) { console.warn("paystack-webhook: insufficient registration amount", data.amount); return; }
 
   const { error } = await supabase.from("vendors")
-    .update({ is_approved: true, payment_status: "paid" }).eq("id", vendorId);
+    .update({ is_approved: true, payment_status: "paid", payment_reference: data.reference }).eq("id", vendorId);
   if (error) throw error;
 
   await supabase.from("vendor_notifications").insert({

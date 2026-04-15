@@ -66,7 +66,7 @@ const FeaturedPaymentModal = ({ open, onOpenChange, vendorId, onSuccess }: Props
 
       callback: async (response: any) => {
         try {
-          const { data, error } = await supabase.functions.invoke("verify-featured-payment", {
+          const { data, error } = await supabase.functions.invoke("vendor-featured-payment", {
             body: { reference: response.reference, vendor_id: vendorId, plan: planKey },
           });
           if (error || !data?.success) throw new Error(error?.message || data?.error || "Verification failed");

@@ -207,6 +207,15 @@ const VendorDashboard = () => {
   };
 
   // ── Paystack verification payment ────────────────────────────────────────────
+  useEffect(() => {
+    if (!(window as any).PaystackPop) {
+      const s = document.createElement("script");
+      s.src = "https://js.paystack.co/v1/inline.js";
+      s.async = true;
+      document.body.appendChild(s);
+    }
+  }, []);
+
   const openVerifPaystack = () => {
     if (!verifIdUrl) {
       toast({ title: "Upload your ID first", variant: "destructive" });
@@ -224,6 +233,7 @@ const VendorDashboard = () => {
       amount: 200000, // ₦2,000 in kobo
       currency: "NGN",
       ref,
+      metadata: { vendor_id: vendor.id },
       channels: ["card", "bank_transfer", "ussd", "bank"],
       onClose: () => toast({ title: "Payment cancelled" }),
       callback: async (response: any) => {
@@ -291,8 +301,8 @@ const VendorDashboard = () => {
         amount: 120000, // ₦1,200 in kobo
         currency: "NGN",
         ref,
-        channels: ["card", "bank_transfer", "ussd", "bank"],
         metadata: { vendor_id: vendor.id },
+        channels: ["card", "bank_transfer", "ussd", "bank"],
         onClose: () => toast({ title: "Payment window closed" }),
         callback: async (response: any) => {
           const { data, error } = await supabase.functions.invoke("verify-paystack-payment", {
