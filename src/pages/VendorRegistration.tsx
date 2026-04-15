@@ -161,7 +161,10 @@ const VendorRegistration = () => {
             body: { reference: response.reference, vendor_id: vendorId },
           });
           if (error || !data?.success) throw new Error(error?.message || "Verification failed");
-          toast({ title: "🎉 Payment Successful!", description: "Your application is now pending admin approval." });
+          toast({
+            title: "🎉 Payment Successful! You're Live!",
+            description: "Your business is now approved and visible on Campus Market.",
+          });
         } catch (err: any) {
           toast({ title: "Payment verification failed", description: err.message || "Contact support with your payment reference.", variant: "destructive" });
         } finally {
