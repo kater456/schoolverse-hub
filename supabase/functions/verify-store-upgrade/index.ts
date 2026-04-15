@@ -16,9 +16,10 @@ Deno.serve(async (req) => {
       throw new Error("PAYSTACK_SECRET_KEY is not configured");
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
 
     const { reference, vendor_id } = await req.json();
 
@@ -29,12 +30,25 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Idempotency: if this reference was already processed, return existing result
+    const { data: existing } = await supabase
+      .from("vendor_store_upgrades")
+      .select("id, ends_at")
+      .eq("payment_reference", reference)
+      .maybeSingle();
+
+    if (existing) {
+      return new Response(
+        JSON.stringify({ success: true, message: "Already processed", ends_at: existing.ends_at }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     // Verify payment with Paystack
     const paystackRes = await fetch(
       `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
       { headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` } },
     );
-
     const paystackData = await paystackRes.json();
 
     if (!paystackRes.ok || !paystackData.status || paystackData.data?.status !== "success") {
@@ -44,36 +58,62 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Verify amount is at least ₦1,200 (120,000 kobo)
+    // Verify amount is at least ₦1,500 (150,000 kobo) — was wrongly set to 120,000
     const amountInKobo = paystackData.data.amount;
-    if (amountInKobo < 120000) {
+    if (amountInKobo < 150000) {
       return new Response(JSON.stringify({ error: "Insufficient payment amount" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Approve vendor automatically and mark payment as paid
+    const now = new Date();
+    const endsAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days
+
+    // Create store upgrade record
+    const { error: insertError } = await supabase
+      .from("vendor_store_upgrades")
+      .insert({
+        vendor_id,
+        payment_reference: reference,
+        payment_status: "confirmed",
+        amount: 1500,
+        starts_at: now.toISOString(),
+        ends_at: endsAt.toISOString(),
+      });
+
+    if (insertError) throw insertError;
+
+    // Update vendor record
     const { error: updateError } = await supabase
       .from("vendors")
-      .update({ is_approved: true, payment_status: "paid" })
+      .update({
+        is_store_upgraded: true,
+        store_upgrade_expires_at: endsAt.toISOString(),
+      })
       .eq("id", vendor_id);
 
-    if (updateError) {
-      throw updateError;
-    }
+    if (updateError) throw updateError;
 
-    // Notify vendor
+    // In-app notification
     await supabase.from("vendor_notifications").insert({
       vendor_id,
-      type: "approval",
-      title: "✅ Account Activated!",
-      message: "Your registration payment was confirmed and your account is now live.",
+      type: "store_upgrade",
+      title: "🎉 Store Upgraded!",
+      message: `Your premium store is now active until ${endsAt.toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })}.`,
       is_read: false,
     });
 
     return new Response(
-      JSON.stringify({ success: true, message: "Payment verified and vendor approved" }),
+      JSON.stringify({
+        success: true,
+        message: "Store upgraded successfully",
+        ends_at: endsAt.toISOString(),
+      }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error: unknown) {
