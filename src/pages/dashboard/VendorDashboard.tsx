@@ -217,10 +217,7 @@ const VendorDashboard = () => {
       amount: 200000, // ₦2,000 in kobo
       currency: "NGN",
       ref,
-       channels: ["card", "bank_transfer", "ussd", "bank"],
-  onClose: () => { ... },
-  callback: async (response) => { ... }
-});
+      channels: ["card", "bank_transfer", "ussd", "bank"],
       onClose: () => toast({ title: "Payment cancelled" }),
       callback: async (response: any) => {
         setPayingVerif(true);
@@ -272,6 +269,40 @@ const VendorDashboard = () => {
 
   if (!vendor.is_approved) {
     const vendorCountry = vendor.country || "Nigeria";
+    const isPendingPayment = vendorCountry === "Nigeria" && vendor.payment_status === "unpaid";
+
+    const retryPayment = () => {
+      const PaystackPop = (window as any).PaystackPop;
+      if (!PaystackPop) {
+        toast({ title: "Payment system not ready, please refresh and try again", variant: "destructive" });
+        return;
+      }
+      const ref = `vr_${vendor.id}_${Date.now()}`;
+      const handler = PaystackPop.setup({
+        key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
+        email: user!.email,
+        amount: 120000, // ₦1,200 in kobo
+        currency: "NGN",
+        ref,
+        channels: ["card", "bank_transfer", "ussd", "bank"],
+        metadata: { vendor_id: vendor.id },
+        onClose: () => toast({ title: "Payment window closed" }),
+        callback: async (response: any) => {
+          const { data, error } = await supabase.functions.invoke("verify-paystack-payment", {
+            body: { reference: response.reference, vendor_id: vendor.id },
+          });
+          if (error || !data?.success) {
+            toast({ title: "Verification failed", description: "Contact support with ref: " + response.reference, variant: "destructive" });
+          } else {
+            toast({ title: "🎉 Payment confirmed!", description: "Your account is now active." });
+            // Reload vendor data
+            fetchVendorData();
+          }
+        },
+      });
+      handler.openIframe();
+    };
+
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4 max-w-md px-4">
@@ -282,16 +313,21 @@ const VendorDashboard = () => {
           <p className="text-muted-foreground">
             {vendorCountry === "Ghana"
               ? "Your registration is being reviewed by the campus admin. You'll get access once approved."
-              : "Please complete payment to gain access to your vendor dashboard. Once payment is verified by admin, your account will be activated automatically."}
+              : "Please complete payment to gain access to your vendor dashboard. Your account activates automatically once payment clears."}
           </p>
-          {vendorCountry === "Nigeria" && (
-            <div className="bg-muted/50 p-4 rounded-lg text-left">
-              <p className="text-sm font-medium mb-2">Payment Details:</p>
+          {isPendingPayment && (
+            <div className="bg-muted/50 p-4 rounded-lg text-left space-y-3">
+              <p className="text-sm font-medium">Payment Details:</p>
               <p className="text-sm text-muted-foreground">
-           Complete your ₦1,200 payment via Paystack — card or bank transfer accepted.
-         Your account activates automatically once payment clears.
-        </p>
-            </div>
+                Complete your ₦1,200 payment via Paystack — card or bank transfer accepted.
+              </p>
+              <Button
+                onClick={retryPayment}
+                className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
+              >
+                <CreditCard className="h-4 w-4 mr-2" />
+                Pay ₦1,200 Now
+              </Button>
             </div>
           )}
           <p className="text-xs text-muted-foreground">This page will update automatically once you're approved.</p>
