@@ -29,10 +29,10 @@ const TrialExpired = () => {
               Payment Details
             </div>
             <p className="text-sm text-muted-foreground">
-              Transfer to: <span className="font-mono font-semibold text-foreground">9016103308</span>
+              Transfer to: <span className="font-mono font-semibold text-foreground">0128456092</span>
             </p>
             <p className="text-sm text-muted-foreground">
-              Bank: <span className="font-semibold text-foreground">Opay</span>
+              Bank: <span className="font-semibold text-foreground">Sterling Bank</span>
             </p>
             <p className="text-sm text-muted-foreground">
               Name: <span className="font-semibold text-foreground">Kater</span>
