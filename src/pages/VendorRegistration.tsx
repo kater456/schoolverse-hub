@@ -140,6 +140,10 @@ const VendorRegistration = () => {
       email: user!.email,
       amount: 120000, // ₦1,200 in kobo
       currency: "NGN",
+       channels: ["card", "bank_transfer", "ussd", "bank"],
+  onClose: () => { ... },
+  callback: async (response) => { ... }
+});
       ref: reference,
       metadata: { vendor_id: vendorId },
       onClose: () => {
