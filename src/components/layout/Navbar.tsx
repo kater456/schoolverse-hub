@@ -6,6 +6,7 @@ import { Menu, X, ShoppingBag, Search, Film, LogOut, Plus, MessageCircle } from 
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import ThemeToggle from "@/components/ThemeToggle";
+import NotificationCenter from "@/components/NotificationCenter";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -125,6 +126,7 @@ const Navbar = () => {
 
           <div className="hidden md:flex items-center gap-3">
             <ThemeToggle />
+            {user && <NotificationCenter />}
             {user ? (
               <>
                 {isApprovedVendor ? (
@@ -162,6 +164,7 @@ const Navbar = () => {
 
           <div className="flex items-center gap-2 md:hidden">
             <ThemeToggle />
+            {user && <NotificationCenter />}
             {user && (
               <>
                 <Link to="/messages" className="relative p-2">

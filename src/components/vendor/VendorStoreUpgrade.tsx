@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { usePlatformSettings } from "@/hooks/usePlatformSettings";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -172,6 +173,7 @@ const ShelfBackground = ({ themeColor, view, children }: { themeColor: string; v
 const VendorStoreUpgrade = ({ vendor, onUpdate }: VendorStoreUpgradeProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { settings } = usePlatformSettings();
 
   const [isUpgraded,      setIsUpgraded]      = useState(false);
   const [expiresAt,       setExpiresAt]       = useState<string | null>(null);
@@ -330,6 +332,15 @@ const VendorStoreUpgrade = ({ vendor, onUpdate }: VendorStoreUpgradeProps) => {
     const PaystackPop = (window as any).PaystackPop;
     if (!PaystackPop) {
       toast({ title: "Payment system not ready, refresh and try again", variant: "destructive" });
+      return;
+    }
+
+    if (settings && !settings.store_upgrade_enabled) {
+      toast({
+        title: "Store Upgrades Disabled",
+        description: "The platform admin has temporarily disabled store upgrades.",
+        variant: "destructive",
+      });
       return;
     }
     const ref = `store_upgrade_${vendor.id}_${Date.now()}`;

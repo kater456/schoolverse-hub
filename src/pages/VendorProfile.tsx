@@ -252,6 +252,16 @@ const VendorProfile = () => {
     } else {
       await supabase.from("vendor_likes").insert({ vendor_id: id!, user_id: user!.id } as any);
       setLiked(true); setLikeCount((c) => c + 1);
+
+      // Notify vendor
+      if (user!.id !== vendor.user_id) {
+        await supabase.from("vendor_notifications").insert({
+          vendor_id: id!,
+          type: "like",
+          title: "New Like! ❤️",
+          message: "Someone liked your business profile.",
+        } as any);
+      }
     }
   };
 
@@ -262,7 +272,20 @@ const VendorProfile = () => {
       .insert({ vendor_id: id!, user_id: user!.id, content: commentText.trim() } as any)
       .select("*, profiles:user_id(first_name, last_name)").single();
     if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
-    else { setComments((prev) => [data, ...prev]); setCommentText(""); }
+    else {
+      setComments((prev) => [data, ...prev]);
+      setCommentText("");
+
+      // Notify vendor
+      if (user!.id !== vendor.user_id) {
+        await supabase.from("vendor_notifications").insert({
+          vendor_id: id!,
+          type: "comment",
+          title: "New Comment! 💬",
+          message: `${data.profiles?.first_name || 'Someone'} commented on your profile.`,
+        } as any);
+      }
+    }
   };
 
   const submitRating = async () => {

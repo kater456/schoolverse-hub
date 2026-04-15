@@ -115,6 +115,8 @@ const AdminDashboard = () => {
     allow_registrations:    true,
     maintenance_mode:       false,
     featured_reels_enabled: false,
+    store_upgrade_enabled:  true,
+    verification_payment_enabled: true,
   });
 
   const fetchAll = useCallback(async () => {
@@ -173,6 +175,8 @@ const AdminDashboard = () => {
         allow_registrations:    d.allow_registrations    ?? true,
         maintenance_mode:       d.maintenance_mode       ?? false,
         featured_reels_enabled: d.featured_reels_enabled ?? false,
+        store_upgrade_enabled:  d.store_upgrade_enabled  ?? true,
+        verification_payment_enabled: d.verification_payment_enabled ?? true,
       });
     }
 
@@ -292,6 +296,8 @@ const AdminDashboard = () => {
     { key: "allow_registrations" as const,    icon: UserPlus,   label: "Vendor Registrations",desc: "Allow new vendor sign-ups",                color: "text-green-500" },
     { key: "maintenance_mode" as const,       icon: Wrench,     label: "Maintenance Mode",    desc: "Show maintenance notice to all visitors",  color: "text-orange-500" },
     { key: "featured_reels_enabled" as const, icon: Film,       label: "Featured Reels",      desc: "Show Reels section on Browse page",        color: "text-accent" },
+    { key: "store_upgrade_enabled" as const,  icon: Crown,      label: "Store Upgrades",      desc: "Allow vendors to pay for premium store",   color: "text-accent" },
+    { key: "verification_payment_enabled" as const, icon: ShieldCheck, label: "Verification Payments", desc: "Allow vendors to pay for verified badge", color: "text-green-500" },
   ];
 
   const getStatusBadge = (action: string) => {

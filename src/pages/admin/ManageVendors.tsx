@@ -116,10 +116,22 @@ const ManageVendors = () => {
     try { await fn(); } finally { setActionLoading(null); }
   };
 
-  const approveVendor    = (id: string) => run(id, () => patch(id, { is_approved: true }, "Vendor approved ✅"));
+  const approveVendor    = (id: string) => run(id, async () => {
+    if (await patch(id, { is_approved: true }, "Vendor approved ✅")) {
+      await supabase.from("vendor_notifications").insert({
+        vendor_id: id, type: "approval", title: "✅ Account Approved!", message: "An admin has approved your business application. Your profile is now live."
+      } as any);
+    }
+  });
   const removeVendor     = (id: string) => run(id, () => patch(id, { is_active: false  }, "Vendor removed"));
   const reactivateVendor = (id: string) => run(id, () => patch(id, { is_active: true, is_approved: false, is_suspended: false }, "Vendor restored to pending"));
-  const overridePayment  = (id: string) => run(id, () => patch(id, { payment_status: "overridden" }, "Payment overridden ✅"));
+  const overridePayment  = (id: string) => run(id, async () => {
+    if (await patch(id, { payment_status: "overridden" }, "Payment overridden ✅")) {
+      await supabase.from("vendor_notifications").insert({
+        vendor_id: id, type: "general", title: "💰 Payment Confirmed", message: "An admin has manually confirmed your registration payment."
+      } as any);
+    }
+  });
   const removePromotion  = (id: string) => run(id, () => patch(id, { promoted_until: null }, "Promotion removed"));
 
   const upgradeStore = async (v: any) => {
@@ -148,23 +160,43 @@ const ManageVendors = () => {
     patch(id, { is_store_upgraded: false, store_upgrade_expires_at: null }, "Store upgrade removed")
   );
 
-  const toggleSuspend = (v: any) => run(v.id, () =>
-    patch(v.id,
-      { is_suspended: !v.is_suspended, is_approved: v.is_suspended ? v.is_approved : false },
-      v.is_suspended ? "Vendor unsuspended ✅" : "Vendor suspended"
-    )
-  );
+  const toggleSuspend = (v: any) => run(v.id, async () => {
+    const newStatus = !v.is_suspended;
+    if (await patch(v.id,
+      { is_suspended: newStatus, is_approved: newStatus ? false : v.is_approved },
+      newStatus ? "Vendor suspended" : "Vendor unsuspended ✅"
+    )) {
+      await supabase.from("vendor_notifications").insert({
+        vendor_id: v.id, type: "general",
+        title: newStatus ? "⚠️ Account Suspended" : "✅ Account Restored",
+        message: newStatus ? "Your account has been suspended by an admin. Please contact support." : "Your account has been restored. You can now access your dashboard."
+      } as any);
+    }
+  });
 
-  const toggleVerify = (v: any) => run(v.id, () =>
-    patch(v.id, { is_verified: !v.is_verified }, v.is_verified ? "Verification removed" : "Vendor verified ✅")
-  );
+  const toggleVerify = (v: any) => run(v.id, async () => {
+    const newVerif = !v.is_verified;
+    if (await patch(v.id, { is_verified: newVerif }, newVerif ? "Vendor verified ✅" : "Verification removed")) {
+      await supabase.from("vendor_notifications").insert({
+        vendor_id: v.id, type: "approval",
+        title: newVerif ? "✅ Verified Badge Granted!" : "ℹ️ Verification Removed",
+        message: newVerif ? "An admin has granted you the Verified Badge." : "Your verification status has been removed by an admin."
+      } as any);
+    }
+  });
 
   const handlePromote = async () => {
     if (!promoteVendor || !promoteDays || isNaN(Number(promoteDays)) || Number(promoteDays) < 1) return;
     setPromoteLoading(true);
     const days = Number(promoteDays);
     const promoted_until = new Date(Date.now() + days * 86_400_000).toISOString();
-    await patch(promoteVendor.id, { promoted_until }, `Promoted for ${days} day${days !== 1 ? "s" : ""} 🚀`);
+    if (await patch(promoteVendor.id, { promoted_until }, `Promoted for ${days} day${days !== 1 ? "s" : ""} 🚀`)) {
+      await supabase.from("vendor_notifications").insert({
+        vendor_id: promoteVendor.id, type: "featured",
+        title: "🚀 Business Promoted!",
+        message: `An admin has promoted your business for ${days} days.`
+      } as any);
+    }
     setPromoteVendor(null);
     setPromoteDays("");
     setPromoteLoading(false);

@@ -11,6 +11,8 @@ export interface PlatformSettings {
   maintenance_mode: boolean;
   email_notifications: boolean;
   featured_reels_enabled: boolean;
+  store_upgrade_enabled: boolean;
+  verification_payment_enabled: boolean;
   created_at: string;
   updated_at: string;
 }

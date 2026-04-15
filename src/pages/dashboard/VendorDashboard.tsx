@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { usePlatformSettings } from "@/hooks/usePlatformSettings";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ import VendorStoreUpgrade from "@/components/vendor/VendorStoreUpgrade";
 const VendorDashboard = () => {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
+  const { settings } = usePlatformSettings();
   const [vendor, setVendor] = useState<any>(null);
   const [stats, setStats] = useState({ views: 0, likes: 0, comments: 0, contacts: 0 });
   const [recentComments, setRecentComments] = useState<any[]>([]);
@@ -287,6 +289,15 @@ const VendorDashboard = () => {
         toast({ title: "Payment system not ready, please refresh and try again", variant: "destructive" });
         return;
       }
+
+    if (settings && !settings.verification_payment_enabled) {
+      toast({
+        title: "Verification Disabled",
+        description: "The platform admin has temporarily disabled verification payments.",
+        variant: "destructive",
+      });
+      return;
+    }
       const ref = `vr_${vendor.id}_${Date.now()}`;
       const handler = PaystackPop.setup({
         key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
