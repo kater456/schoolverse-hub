@@ -217,6 +217,10 @@ const VendorDashboard = () => {
       amount: 200000, // ₦2,000 in kobo
       currency: "NGN",
       ref,
+       channels: ["card", "bank_transfer", "ussd", "bank"],
+  onClose: () => { ... },
+  callback: async (response) => { ... }
+});
       onClose: () => toast({ title: "Payment cancelled" }),
       callback: async (response: any) => {
         setPayingVerif(true);
