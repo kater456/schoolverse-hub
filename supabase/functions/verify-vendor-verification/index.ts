@@ -14,32 +14,50 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
     const { reference, vendor_id } = await req.json();
     if (!reference || !vendor_id) {
       return new Response(JSON.stringify({ error: "Missing reference or vendor_id" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Idempotency: if already verified with this reference, skip
+    const { data: existing } = await supabase
+      .from("vendors")
+      .select("id, is_verified, verification_payment_ref")
+      .eq("id", vendor_id)
+      .single();
+
+    if (existing?.is_verified && existing?.verification_payment_ref === reference) {
+      return new Response(JSON.stringify({ success: true, message: "Already verified" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     // Verify with Paystack
-    const res = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`, {
-      headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` },
-    });
+    const res = await fetch(
+      `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
+      { headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` } },
+    );
     const data = await res.json();
 
     if (!res.ok || !data.status || data.data?.status !== "success") {
-      return new Response(JSON.stringify({ error: "Payment not verified", details: data.message }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Payment not verified", details: data.message }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
-    // Must be at least ₦2,000 (200000 kobo)
+    // Must be at least ₦2,000 (200,000 kobo)
     if (data.data.amount < 200000) {
       return new Response(JSON.stringify({ error: "Insufficient payment amount" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -55,14 +73,24 @@ Deno.serve(async (req) => {
 
     if (updateError) throw updateError;
 
-    return new Response(JSON.stringify({ success: true }), {
-      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    // In-app notification
+    await supabase.from("vendor_notifications").insert({
+      vendor_id,
+      type: "verification",
+      title: "✅ Verified Badge Granted!",
+      message: "Your vendor profile is now verified. Your badge is live on your public store page.",
+      is_read: false,
     });
 
+    return new Response(JSON.stringify({ success: true }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
     return new Response(JSON.stringify({ error: message }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
