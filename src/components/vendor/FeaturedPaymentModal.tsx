@@ -120,8 +120,8 @@ const FeaturedPaymentModal = ({ open, onOpenChange, vendorId, onSuccess }: Featu
               <div className="space-y-3">
                 <div className="p-3 rounded-lg bg-background border border-border/50">
                   <p className="text-xs font-medium text-muted-foreground mb-1">🇳🇬 For Nigeria Users</p>
-                  <p className="text-sm font-semibold text-foreground">Account: 9016103308</p>
-                  <p className="text-sm text-foreground">Name: Opay Kater Akase</p>
+                  <p className="text-sm font-semibold text-foreground">Account: 0128456092</p>
+                  <p className="text-sm text-foreground">Name: Sterling Bank Kater Akase</p>
                   <p className="text-sm font-medium text-accent">Amount: ₦{PLANS[selectedPlan].amount_ng.toLocaleString()}</p>
                 </div>
 
