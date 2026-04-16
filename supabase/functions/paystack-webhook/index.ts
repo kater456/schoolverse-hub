@@ -87,7 +87,9 @@ async function handleVerificationPayment(supabase: any, data: any) {
     ?? data.metadata?.custom_fields?.find((f: any) => f.variable_name === "vendor_id")?.value;
 
   if (!vendorId) { console.error("paystack-webhook: no vendor_id for verification", data.reference); return; }
-  if (data.amount < 200000) return;
+
+  // Allow for slight variation or future price changes but check against expected ₦2,000
+  if (data.amount < 180000) return;
 
   const { error } = await supabase.from("vendors").update({
     is_verified: true,
@@ -95,6 +97,13 @@ async function handleVerificationPayment(supabase: any, data: any) {
     verification_applied_at: new Date().toISOString(),
   }).eq("id", vendorId);
   if (error) throw error;
+
+  await supabase.from("vendor_notifications").insert({
+    vendor_id: vendorId, type: "verification",
+    title: "🛡️ Verification Approved!",
+    message: "Your ID was verified and your badge is now live on your profile.",
+    is_read: false,
+  });
 
   console.log("paystack-webhook: vendor verified", vendorId);
 }
@@ -116,7 +125,7 @@ async function handleStoreUpgrade(supabase: any, data: any) {
 
   const { error: insertError } = await supabase.from("vendor_store_upgrades").insert({
     vendor_id: vendorId, payment_reference: data.reference,
-    payment_status: "confirmed", amount: 1500,
+    payment_status: "confirmed", amount: data.amount / 100,
     starts_at: now.toISOString(), ends_at: endsAt.toISOString(),
   });
   if (insertError) throw insertError;

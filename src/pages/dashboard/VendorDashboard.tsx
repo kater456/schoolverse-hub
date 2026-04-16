@@ -212,6 +212,14 @@ const VendorDashboard = () => {
   }, []);
 
   const openVerifPaystack = () => {
+    if (settings && !settings.verification_payment_enabled) {
+      toast({
+        title: "Verification Disabled",
+        description: "The platform admin has temporarily disabled verification payments.",
+        variant: "destructive",
+      });
+      return;
+    }
     if (!verifIdUrl) {
       toast({ title: "Upload your ID first", variant: "destructive" });
       return;
@@ -254,9 +262,20 @@ const VendorDashboard = () => {
 
   // ── Mark delivered ───────────────────────────────────────────────────────────
   const markDelivered = async (txnId: string) => {
+    const txn = transactions.find(t => t.id === txnId);
     const { error } = await supabase.from("transactions").update({ vendor_marked_delivered: true } as any).eq("id", txnId);
     if (!error) {
       setTransactions((prev) => prev.map((t) => t.id === txnId ? { ...t, vendor_marked_delivered: true, status: "delivered" } : t));
+
+      // Notify the buyer
+      if (txn && txn.user_id) {
+        await supabase.from("user_notifications").insert({
+          user_id: txn.user_id,
+          type: "order_delivered",
+          title: "📦 Order Delivered!",
+          message: `${vendor.business_name} has marked your order as delivered. Please confirm receipt.`,
+        } as any);
+      }
     }
   };
 
@@ -290,14 +309,6 @@ const VendorDashboard = () => {
         return;
       }
 
-    if (settings && !settings.verification_payment_enabled) {
-      toast({
-        title: "Verification Disabled",
-        description: "The platform admin has temporarily disabled verification payments.",
-        variant: "destructive",
-      });
-      return;
-    }
       const ref = `vr_${vendor.id}_${Date.now()}`;
       const handler = PaystackPop.setup({
         key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,

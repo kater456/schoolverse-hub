@@ -1,12 +1,15 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { usePlatformSettings } from "@/hooks/usePlatformSettings";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Eye, Heart, Phone, ShoppingBag, Users, LogOut, Film,
@@ -63,6 +66,7 @@ const NAV = [
 const SubAdminDashboard = () => {
   const { user, userRole, signOut } = useAuth();
   const { toast } = useToast();
+  const { settings: platformSettings, updateSettings } = usePlatformSettings();
   const navigate = useNavigate();
 
   const [activeTab,    setActiveTab]    = useState("overview");
@@ -200,6 +204,14 @@ const SubAdminDashboard = () => {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const refresh = () => { setRefreshing(true); fetchData(); };
+
+  // ── Platform settings toggle ──────────────────────────────────────────────
+  const [togglingKey, setTogglingKey] = useState<string | null>(null);
+  const togglePlatformSetting = async (key: string, newValue: boolean) => {
+    setTogglingKey(key);
+    await updateSettings({ [key]: newValue });
+    setTogglingKey(null);
+  };
 
   // ── Vendor actions ────────────────────────────────────────────────────────
   const run = async (key: string, fn: () => Promise<void>) => {
@@ -439,6 +451,47 @@ const SubAdminDashboard = () => {
                   <p className="text-sm text-muted-foreground">{new Date().toLocaleDateString("en-NG", { weekday: "long", day: "numeric", month: "long" })}</p>
                 </div>
               </div>
+
+              {/* Platform Controls */}
+              {platformSettings && (
+                <Card className="border-border/50">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Settings className="h-4 w-4 text-muted-foreground" /> Platform Controls
+                      <Badge variant="outline" className="text-[10px] ml-auto">Global</Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid sm:grid-cols-2 gap-0 divide-y sm:divide-y-0 sm:divide-x divide-border/50">
+                    {[
+                      { key: "store_upgrade_enabled",  icon: Crown,      label: "Store Upgrades",      desc: "Allow vendors to pay for premium store",   color: "text-accent" },
+                      { key: "verification_payment_enabled", icon: ShieldCheck, label: "Verification Payments", desc: "Allow vendors to pay for verified badge", color: "text-green-500" },
+                      { key: "paystack_required",      icon: CreditCard, label: "Paystack Payment",   desc: "Nigerian vendors must pay to register",    color: "text-primary" },
+                      { key: "allow_registrations",    icon: UserPlus,   label: "Vendor Registrations",desc: "Allow new vendor sign-ups",                color: "text-green-500" },
+                    ].map(({ key, icon: Icon, label, desc, color }: any) => (
+                      <div key={key} className="flex items-center justify-between py-3 px-0 sm:px-4 first:pt-0 last:pb-0 sm:first:pt-3 sm:last:pb-3 gap-3">
+                        <div className="flex items-start gap-2.5">
+                          <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${(platformSettings as any)[key] ? color : "text-muted-foreground/40"}`} />
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <Label className="text-xs font-medium cursor-pointer">{label}</Label>
+                              <Badge className={`text-[9px] px-1 py-0 ${(platformSettings as any)[key] ? "bg-green-500/15 text-green-600" : "bg-muted text-muted-foreground"}`}>
+                                {(platformSettings as any)[key] ? "ON" : "OFF"}
+                              </Badge>
+                            </div>
+                            <p className="text-[10px] text-muted-foreground mt-0.5 max-w-[180px] leading-relaxed">{desc}</p>
+                          </div>
+                        </div>
+                        <Switch
+                          checked={(platformSettings as any)[key]}
+                          onCheckedChange={(v) => togglePlatformSetting(key, v)}
+                          disabled={togglingKey === key}
+                          className="shrink-0"
+                        />
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
 
               {/* KPIs */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
