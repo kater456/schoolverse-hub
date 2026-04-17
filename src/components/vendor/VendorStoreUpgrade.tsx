@@ -351,19 +351,31 @@ const VendorStoreUpgrade = ({ vendor, onUpdate }: VendorStoreUpgradeProps) => {
       callback: async (response: any) => {
         setPaying(true);
         try {
-          const { data, error } = await supabase.functions.invoke("verify-store-upgrade", {
-            body: { reference: response.reference, vendor_id: vendor.id },
+          const now    = new Date();
+          const endsAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+          // Insert upgrade record
+          await (supabase as any).from("vendor_store_upgrades").insert({
+            vendor_id: vendor.id,
+            payment_reference: response.reference,
+            payment_status: "confirmed",
+            amount: 1500,
+            starts_at: now.toISOString(),
+            ends_at: endsAt.toISOString(),
           });
-          if (error || !data?.success) {
-            toast({ title: "Verification failed", description: "Contact support with ref: " + response.reference, variant: "destructive" });
-          } else {
-            toast({ title: "🎉 Store Upgraded!", description: "You now have premium store features for 30 days." });
-            setIsUpgraded(true);
-            setExpiresAt(data.ends_at);
-            onUpdate({ ...vendor, is_store_upgraded: true, store_upgrade_expires_at: data.ends_at });
-          }
-        } catch {
-          toast({ title: "Error verifying payment", variant: "destructive" });
+
+          // Update vendor
+          await (supabase as any).from("vendors").update({
+            is_store_upgraded: true,
+            store_upgrade_expires_at: endsAt.toISOString(),
+          }).eq("id", vendor.id);
+
+          toast({ title: "🎉 Store Upgraded!", description: "You now have premium store features for 30 days." });
+          setIsUpgraded(true);
+          setExpiresAt(endsAt.toISOString());
+          onUpdate({ ...vendor, is_store_upgraded: true, store_upgrade_expires_at: endsAt.toISOString() });
+        } catch (err: any) {
+          toast({ title: "Error", description: "Payment received. Contact support with ref: " + response.reference, variant: "destructive" });
         }
         setPaying(false);
       },
