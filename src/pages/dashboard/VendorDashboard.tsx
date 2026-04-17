@@ -238,18 +238,24 @@ const VendorDashboard = () => {
       onClose: () => toast({ title: "Payment cancelled" }),
       callback: async (response: any) => {
         setPayingVerif(true);
-        const { data, error } = await supabase.functions.invoke("verify-vendor-verification", {
-          body: { reference: response.reference, vendor_id: vendor.id },
-        });
-        if (error || !data?.success) {
-          toast({
-            title: "Verification failed",
-            description: "Contact support with your payment reference: " + response.reference,
-            variant: "destructive",
-          });
-        } else {
+        try {
+          const { error } = await supabase
+            .from("vendors")
+            .update({
+              is_verified: true,
+              verification_payment_ref: response.reference,
+              verification_applied_at: new Date().toISOString(),
+            } as any)
+            .eq("id", vendor.id);
+          if (error) throw error;
           toast({ title: "🎉 You're now Verified!", description: "Your verified badge is live on your profile." });
           setVendor((v: any) => ({ ...v, is_verified: true }));
+        } catch (err: any) {
+          toast({
+            title: "Update failed",
+            description: "Payment was received. Contact support with ref: " + response.reference,
+            variant: "destructive",
+          });
         }
         setPayingVerif(false);
       },
@@ -305,15 +311,16 @@ const VendorDashboard = () => {
         channels: ["card", "bank_transfer", "ussd", "bank"],
         onClose: () => toast({ title: "Payment window closed" }),
         callback: async (response: any) => {
-          const { data, error } = await supabase.functions.invoke("verify-paystack-payment", {
-            body: { reference: response.reference, vendor_id: vendor.id },
-          });
-          if (error || !data?.success) {
-            toast({ title: "Verification failed", description: "Contact support with ref: " + response.reference, variant: "destructive" });
-          } else {
+          try {
+            const { error } = await supabase
+              .from("vendors")
+              .update({ is_approved: true, payment_status: "paid", payment_reference: response.reference } as any)
+              .eq("id", vendor.id);
+            if (error) throw error;
             toast({ title: "🎉 Payment confirmed!", description: "Your account is now active." });
-            // Reload vendor data
             fetchVendorData();
+          } catch (err: any) {
+            toast({ title: "Verification failed", description: "Contact support with ref: " + response.reference, variant: "destructive" });
           }
         },
       });
