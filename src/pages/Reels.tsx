@@ -4,7 +4,7 @@ import Navbar from "@/components/layout/Navbar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { Heart, MessageSquare, ShoppingBag, Volume2, VolumeX, ChevronUp, ChevronDown, Loader2 } from "lucide-react";
+import { Heart, MessageSquare, ShoppingBag, Volume2, VolumeX, ChevronUp, ChevronDown, Loader2, Share2 } from "lucide-react";
 
 const Reels = () => {
   const [reels, setReels] = useState<any[]>([]);
@@ -134,6 +134,20 @@ const Reels = () => {
 
   const currentReel = reels[currentIndex];
 
+  const shareReel = async () => {
+    const url = `${window.location.origin}/vendor/${currentReel.vendor.id}`;
+    const text = `Check out ${currentReel.vendor.business_name} on Campus Market! 🎓`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: currentReel.vendor.business_name, text, url });
+      } catch (_) {}
+    } else {
+      await navigator.clipboard.writeText(`${text} ${url}`);
+      // toast would need import — alert as fallback
+      alert("Link copied to clipboard!");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-foreground">
       <Navbar />
@@ -187,6 +201,13 @@ const Reels = () => {
               ) : (
                 <Volume2 className="h-5 w-5 text-background" />
               )}
+            </button>
+            <button
+              onClick={shareReel}
+              className="w-10 h-10 rounded-full bg-background/20 backdrop-blur flex items-center justify-center"
+              title="Share this reel"
+            >
+              <Share2 className="h-5 w-5 text-background" />
             </button>
           </div>
 
