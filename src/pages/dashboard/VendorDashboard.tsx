@@ -15,6 +15,7 @@ import {
   BarChart3, Star, LogOut, Film, Loader2, CreditCard, CheckCircle, Package,
   User, Camera, Save, Share2, ShieldCheck, Copy, Crown,
   Instagram, Twitter, Music2, FileCheck, Upload, ToggleLeft, Flame,
+  Zap, TrendingUp, Settings, MessageCircle, Bell,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import FeaturedPaymentModal from "@/components/vendor/FeaturedPaymentModal";
@@ -31,6 +32,8 @@ const VendorDashboard = () => {
   const { toast } = useToast();
   const [vendor, setVendor] = useState<any>(null);
   const [stats, setStats] = useState({ views: 0, likes: 0, comments: 0, contacts: 0 });
+  const [liveViews, setLiveViews] = useState(0);
+  const [viewsTrend, setViewsTrend] = useState(0); // views in last 24h
   const [recentComments, setRecentComments] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -122,6 +125,40 @@ const VendorDashboard = () => {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
+  }, [user]);
+
+  // ── Realtime views subscription ───────────────────────────────────────────
+  useEffect(() => {
+    if (!user) return;
+    let vendorId: string | null = null;
+
+    // Get vendorId first
+    supabase.from("vendors").select("id").eq("user_id", user.id).maybeSingle()
+      .then(({ data }) => {
+        if (!data?.id) return;
+        vendorId = data.id;
+
+        // Load 24h trend
+        const since = new Date(Date.now() - 86400000).toISOString();
+        supabase.from("vendor_views").select("id", { count: "exact", head: true })
+          .eq("vendor_id", vendorId).gte("created_at", since)
+          .then(({ count }) => setViewsTrend(count || 0));
+
+        // Realtime new views
+        const viewsChannel = supabase
+          .channel("vendor-views-live")
+          .on("postgres_changes", {
+            event: "INSERT", schema: "public", table: "vendor_views",
+            filter: `vendor_id=eq.${vendorId}`,
+          }, () => {
+            setStats((prev) => ({ ...prev, views: prev.views + 1 }));
+            setLiveViews((prev) => prev + 1);
+            setViewsTrend((prev) => prev + 1);
+          })
+          .subscribe();
+
+        return () => { supabase.removeChannel(viewsChannel); };
+      });
   }, [user]);
 
   // ── Avatar upload (compressed) ──────────────────────────────────────────────
@@ -248,7 +285,7 @@ const VendorDashboard = () => {
         } catch (err: any) {
           toast({
             title: "Verification failed",
-            description: "Payment was received. Contact support with ref: " + response.reference,
+            description: "Payment received but activation failed. Ref: " + response.reference,
             variant: "destructive",
           });
         }
@@ -361,84 +398,121 @@ const VendorDashboard = () => {
   );
 
   const statCards = [
-    { title: "Total Views",    value: stats.views,    icon: Eye,          color: "text-primary" },
-    { title: "Total Likes",    value: stats.likes,    icon: Heart,        color: "text-destructive" },
-    { title: "Total Comments", value: stats.comments, icon: MessageSquare, color: "text-accent" },
-    { title: "Contacts Made",  value: stats.contacts, icon: Phone,        color: "text-success" },
+    { title: "Profile Views",  value: stats.views,    icon: Eye,          gradient: "from-violet-500/20 to-blue-500/20",   accent: "text-violet-400",  border: "border-violet-500/20", live: true },
+    { title: "Total Likes",    value: stats.likes,    icon: Heart,        gradient: "from-rose-500/20 to-pink-500/20",     accent: "text-rose-400",    border: "border-rose-500/20" },
+    { title: "Comments",       value: stats.comments, icon: MessageSquare, gradient: "from-amber-500/20 to-orange-500/20", accent: "text-amber-400",   border: "border-amber-500/20" },
+    { title: "Contacts Made",  value: stats.contacts, icon: Phone,        gradient: "from-emerald-500/20 to-teal-500/20",  accent: "text-emerald-400", border: "border-emerald-500/20" },
   ];
 
   return (
     <div className="min-h-screen bg-background">
-      {/* ── Header ── */}
-      <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border px-6 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center">
-              <ShoppingBag className="h-4 w-4 text-accent-foreground" />
-            </div>
-            <span className="font-bold text-foreground">Campus Market</span>
-          </Link>
-          <Badge variant="secondary" className="text-xs">Vendor</Badge>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" asChild>
-            <Link to={`/vendor/${vendor.id}`}>View Public Profile</Link>
+      {/* ── Top Nav Bar ── */}
+      <header className="sticky top-0 z-40 bg-background/90 backdrop-blur-xl border-b border-border px-4 sm:px-6 h-14 flex items-center justify-between">
+        <Link to="/" className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg bg-accent flex items-center justify-center">
+            <ShoppingBag className="h-3.5 w-3.5 text-accent-foreground" />
+          </div>
+          <span className="font-bold text-foreground text-sm hidden sm:block">Campus Market</span>
+        </Link>
+        <div className="flex items-center gap-1.5">
+          <Button variant="ghost" size="sm" asChild className="text-xs h-8">
+            <Link to="/messages"><MessageCircle className="h-4 w-4 mr-1" /><span className="hidden sm:inline">Messages</span></Link>
+          </Button>
+          <Button variant="ghost" size="sm" asChild className="text-xs h-8">
+            <Link to={`/vendor/${vendor.id}`}><Eye className="h-4 w-4 mr-1" /><span className="hidden sm:inline">My Store</span></Link>
           </Button>
           {!activeFeatured && (
-            <Button size="sm" className="bg-orange-500 text-white hover:bg-orange-600" onClick={() => setShowFeaturedModal(true)}>
-              <CreditCard className="h-4 w-4 mr-1" /> Go Featured
+            <Button size="sm" className="bg-gradient-to-r from-orange-500 to-amber-500 text-white hover:opacity-90 h-8 text-xs" onClick={() => setShowFeaturedModal(true)}>
+              <Zap className="h-3.5 w-3.5 mr-1" /><span className="hidden sm:inline">Boost</span>
             </Button>
           )}
-          <Button variant="ghost" size="icon" onClick={signOut}><LogOut className="h-4 w-4" /></Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={signOut}><LogOut className="h-4 w-4" /></Button>
           <ThemeToggle />
         </div>
       </header>
 
-      <main className="p-4 sm:p-6 max-w-6xl mx-auto space-y-6">
-        {/* ── Business header ── */}
-        <div className="flex items-center gap-4">
-          <div className="relative group">
-            <Avatar className="h-16 w-16 border-2 border-accent">
-              {avatarUrl ? <AvatarImage src={avatarUrl} alt={vendor.business_name} /> : null}
-              <AvatarFallback className="bg-accent/10 text-accent text-lg">
-                {vendor.business_name?.charAt(0) || "V"}
-              </AvatarFallback>
-            </Avatar>
-            <label className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-              {uploadingAvatar ? <Loader2 className="h-5 w-5 text-white animate-spin" /> : <Camera className="h-5 w-5 text-white" />}
-              <input type="file" accept="image/*" className="hidden" onChange={uploadAvatar} disabled={uploadingAvatar} />
-            </label>
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">{vendor.business_name}</h1>
-              {vendor.is_verified && (
-                <Badge className="bg-primary/10 text-primary text-xs shrink-0">
-                  <ShieldCheck className="h-3 w-3 mr-1" /> Verified
-                </Badge>
-              )}
+      <main className="p-4 sm:p-6 max-w-6xl mx-auto space-y-5">
+
+        {/* ── Hero business card ── */}
+        <div className="relative rounded-2xl overflow-hidden border border-border/50">
+          {/* Gradient background */}
+          <div className="absolute inset-0 bg-gradient-to-br from-accent/20 via-primary/10 to-background" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-accent/10 via-transparent to-transparent" />
+
+          <div className="relative p-5 sm:p-6">
+            <div className="flex items-start gap-4">
+              {/* Avatar */}
+              <div className="relative group shrink-0">
+                <Avatar className="h-16 w-16 sm:h-20 sm:w-20 border-2 border-accent/50 shadow-lg">
+                  {avatarUrl ? <AvatarImage src={avatarUrl} alt={vendor.business_name} /> : null}
+                  <AvatarFallback className="bg-accent/20 text-accent text-xl font-bold">
+                    {vendor.business_name?.charAt(0) || "V"}
+                  </AvatarFallback>
+                </Avatar>
+                <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                  {uploadingAvatar ? <Loader2 className="h-5 w-5 text-white animate-spin" /> : <Camera className="h-5 w-5 text-white" />}
+                  <input type="file" accept="image/*" className="hidden" onChange={uploadAvatar} disabled={uploadingAvatar} />
+                </label>
+                {/* Online indicator */}
+                <span className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-background" />
+              </div>
+
+              {/* Info */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-xl sm:text-2xl font-bold text-foreground">{vendor.business_name}</h1>
+                  {vendor.is_verified && (
+                    <Badge className="bg-primary/15 text-primary border border-primary/20 text-[10px] px-1.5">
+                      <ShieldCheck className="h-2.5 w-2.5 mr-1" /> Verified
+                    </Badge>
+                  )}
+                  {activeFeatured && (
+                    <Badge className="bg-amber-500/15 text-amber-500 border border-amber-500/20 text-[10px] px-1.5">
+                      <Star className="h-2.5 w-2.5 mr-1" /> Featured
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">
+                  {vendor.category} · {vendor.schools?.name}
+                  {vendor.campus_locations?.name && ` · ${vendor.campus_locations.name}`}
+                </p>
+
+                <div className="flex items-center gap-2 mt-2 flex-wrap">
+                  {vendor.is_approved
+                    ? <Badge className="bg-emerald-500/15 text-emerald-500 border border-emerald-500/20 text-[10px]">● Active</Badge>
+                    : <Badge variant="secondary" className="text-[10px]">⏳ Pending Approval</Badge>
+                  }
+                  {/* Live views ticker */}
+                  {liveViews > 0 && (
+                    <Badge className="bg-violet-500/15 text-violet-400 border border-violet-500/20 text-[10px] animate-pulse">
+                      <TrendingUp className="h-2.5 w-2.5 mr-1" /> +{liveViews} new views
+                    </Badge>
+                  )}
+                  {viewsTrend > 0 && (
+                    <span className="text-[10px] text-muted-foreground">{viewsTrend} views today</span>
+                  )}
+                </div>
+              </div>
             </div>
-            <p className="text-muted-foreground text-xs sm:text-sm">
-              {vendor.category} · {vendor.schools?.name}
-              {vendor.campus_locations?.name && ` · ${vendor.campus_locations.name}`}
-            </p>
-          </div>
-          <div className="flex gap-2 flex-shrink-0">
-            {activeFeatured && <Badge className="bg-accent text-accent-foreground hidden sm:flex"><Star className="h-3 w-3 mr-1" /> Featured</Badge>}
-            {vendor.is_approved ? <Badge className="bg-success text-success-foreground">Approved</Badge> : <Badge variant="secondary">Pending</Badge>}
           </div>
         </div>
 
         {/* ── Stat cards ── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {statCards.map((s) => (
-            <Card key={s.title} className="border-border/50">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-xs font-medium text-muted-foreground">{s.title}</CardTitle>
-                <s.icon className={`h-4 w-4 ${s.color}`} />
-              </CardHeader>
-              <CardContent><div className="text-2xl font-bold">{s.value.toLocaleString()}</div></CardContent>
-            </Card>
+            <div
+              key={s.title}
+              className={`relative rounded-xl border ${s.border} bg-gradient-to-br ${s.gradient} p-4 overflow-hidden`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-medium text-muted-foreground">{s.title}</span>
+                <s.icon className={`h-4 w-4 ${s.accent}`} />
+              </div>
+              <div className={`text-2xl font-bold ${s.accent}`}>{s.value.toLocaleString()}</div>
+              {(s as any).live && liveViews > 0 && (
+                <div className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+              )}
+            </div>
           ))}
         </div>
 
@@ -456,6 +530,7 @@ const VendorDashboard = () => {
             <TabsTrigger value="control"><ToggleLeft className="h-4 w-4 mr-1" />Controls</TabsTrigger>
             <TabsTrigger value="deals"><Flame className="h-4 w-4 mr-1" />Deals</TabsTrigger>
             <TabsTrigger value="store"><Crown className="h-4 w-4 mr-1" />Store</TabsTrigger>
+            <TabsTrigger value="settings"><Settings className="h-4 w-4 mr-1" />Settings</TabsTrigger>
           </TabsList>
 
           {/* Products */}
