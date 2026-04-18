@@ -92,12 +92,29 @@ const VendorDashboard = () => {
       supabase.from("vendor_comments").select("id", { count: "exact", head: true }).eq("vendor_id", v.id),
       supabase.from("vendor_contacts").select("id", { count: "exact", head: true }).eq("vendor_id", v.id),
       supabase.from("transactions").select("*").eq("vendor_id", v.id).order("created_at", { ascending: false }).limit(10),
-      supabase.from("vendor_comments").select("*, profiles:user_id(first_name, last_name)").eq("vendor_id", v.id).order("created_at", { ascending: false }).limit(5),
+      supabase.from("vendor_comments").select("*").eq("vendor_id", v.id).order("created_at", { ascending: false }).limit(5),
     ]);
 
     setStats({ views: views.count || 0, likes: likes.count || 0, comments: comments.count || 0, contacts: contacts.count || 0 });
     setTransactions(txns.data || []);
-    setRecentComments(cmts.data || []);
+
+    // Enrich comments with profile names via separate query
+    const rawComments = cmts.data || [];
+    if (rawComments.length > 0) {
+      const userIds = [...new Set(rawComments.map((c: any) => c.user_id))];
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("user_id, first_name, last_name")
+        .in("user_id", userIds as string[]);
+      const profileMap: Record<string, any> = {};
+      (profileData || []).forEach((p: any) => { profileMap[p.user_id] = p; });
+      setRecentComments(rawComments.map((c: any) => ({
+        ...c,
+        profiles: profileMap[c.user_id] || null,
+      })));
+    } else {
+      setRecentComments([]);
+    }
     setIsLoading(false);
   };
 
@@ -241,14 +258,14 @@ const VendorDashboard = () => {
     setUploadingId(false);
   };
 
-  // ── Paystack verification payment ────────────────────────────────────────────
+  // ── Paystack script (shared, injected once) ──────────────────────────────────
   useEffect(() => {
-    if (!(window as any).PaystackPop) {
-      const s = document.createElement("script");
-      s.src = "https://js.paystack.co/v1/inline.js";
-      s.async = true;
-      document.body.appendChild(s);
-    }
+    if ((window as any).PaystackPop) return;
+    if (document.querySelector('script[src="https://js.paystack.co/v1/inline.js"]')) return;
+    const s = document.createElement("script");
+    s.src = "https://js.paystack.co/v1/inline.js";
+    s.async = true;
+    document.body.appendChild(s);
   }, []);
 
   const openVerifPaystack = () => {
@@ -256,11 +273,18 @@ const VendorDashboard = () => {
       toast({ title: "Upload your ID first", variant: "destructive" });
       return;
     }
-    const PaystackPop = (window as any).PaystackPop;
-    if (!PaystackPop) {
-      toast({ title: "Payment not ready, please refresh and try again", variant: "destructive" });
+    if (!(window as any).PaystackPop) {
+      // Inject script if missing and ask user to retry
+      if (!document.querySelector('script[src="https://js.paystack.co/v1/inline.js"]')) {
+        const s = document.createElement("script");
+        s.src = "https://js.paystack.co/v1/inline.js";
+        s.async = true;
+        document.body.appendChild(s);
+      }
+      toast({ title: "Loading payment…", description: "Please tap the button again in a moment." });
       return;
     }
+    const PaystackPop = (window as any).PaystackPop;
     const ref = `verif_${vendor.id}_${Date.now()}`;
     const handler = PaystackPop.setup({
       key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
@@ -325,11 +349,17 @@ const VendorDashboard = () => {
     const isPendingPayment = vendorCountry === "Nigeria" && vendor.payment_status === "unpaid";
 
     const retryPayment = () => {
-      const PaystackPop = (window as any).PaystackPop;
-      if (!PaystackPop) {
-        toast({ title: "Payment system not ready, please refresh and try again", variant: "destructive" });
+      if (!(window as any).PaystackPop) {
+        if (!document.querySelector('script[src="https://js.paystack.co/v1/inline.js"]')) {
+          const s = document.createElement("script");
+          s.src = "https://js.paystack.co/v1/inline.js";
+          s.async = true;
+          document.body.appendChild(s);
+        }
+        toast({ title: "Loading payment…", description: "Please tap again in a moment." });
         return;
       }
+      const PaystackPop = (window as any).PaystackPop;
       const ref = `vr_${vendor.id}_${Date.now()}`;
       const handler = PaystackPop.setup({
         key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
@@ -1016,6 +1046,160 @@ const VendorDashboard = () => {
               vendor={vendor}
               onUpdate={(v) => setVendor((prev: any) => ({ ...prev, ...v }))}
             />
+          </TabsContent>
+
+          {/* ── Settings Tab ── */}
+          <TabsContent value="settings">
+            <div className="space-y-4 max-w-xl">
+
+              {/* Store Controls */}
+              <Card className="border-border/50">
+                <CardHeader><CardTitle className="text-base flex items-center gap-2"><ToggleLeft className="h-4 w-4 text-accent" /> Store Controls</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+
+                  {/* Store open/closed */}
+                  <div className="flex items-center justify-between py-2 border-b border-border/40">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Store Open</p>
+                      <p className="text-xs text-muted-foreground">Customers can browse and contact you</p>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        const newVal = !vendor.is_open;
+                        await supabase.from("vendors").update({ is_open: newVal } as any).eq("id", vendor.id);
+                        setVendor((v: any) => ({ ...v, is_open: newVal }));
+                        toast({ title: newVal ? "Store is now Open 🟢" : "Store is now Closed 🔴" });
+                      }}
+                      className={`relative w-11 h-6 rounded-full transition-colors focus:outline-none ${vendor.is_open ? "bg-emerald-500" : "bg-muted-foreground/30"}`}
+                    >
+                      <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${vendor.is_open ? "translate-x-5" : "translate-x-0"}`} />
+                    </button>
+                  </div>
+
+                  {/* Accept orders */}
+                  <div className="flex items-center justify-between py-2 border-b border-border/40">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Accept Orders</p>
+                      <p className="text-xs text-muted-foreground">Allow customers to place orders</p>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        const newVal = !vendor.accepts_orders;
+                        await supabase.from("vendors").update({ accepts_orders: newVal } as any).eq("id", vendor.id);
+                        setVendor((v: any) => ({ ...v, accepts_orders: newVal }));
+                        toast({ title: newVal ? "Orders enabled ✅" : "Orders disabled" });
+                      }}
+                      className={`relative w-11 h-6 rounded-full transition-colors focus:outline-none ${vendor.accepts_orders ? "bg-emerald-500" : "bg-muted-foreground/30"}`}
+                    >
+                      <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${vendor.accepts_orders ? "translate-x-5" : "translate-x-0"}`} />
+                    </button>
+                  </div>
+
+                  {/* Messaging */}
+                  <div className="flex items-center justify-between py-2 border-b border-border/40">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Messaging</p>
+                      <p className="text-xs text-muted-foreground">Allow customers to send you messages</p>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        const newVal = !vendor.messaging_enabled;
+                        await supabase.from("vendors").update({ messaging_enabled: newVal } as any).eq("id", vendor.id);
+                        setVendor((v: any) => ({ ...v, messaging_enabled: newVal }));
+                        toast({ title: newVal ? "Messaging enabled ✅" : "Messaging disabled" });
+                      }}
+                      className={`relative w-11 h-6 rounded-full transition-colors focus:outline-none ${vendor.messaging_enabled ? "bg-emerald-500" : "bg-muted-foreground/30"}`}
+                    >
+                      <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${vendor.messaging_enabled ? "translate-x-5" : "translate-x-0"}`} />
+                    </button>
+                  </div>
+
+                  {/* Delivery */}
+                  <div className="flex items-center justify-between py-2 border-b border-border/40">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Delivery Available</p>
+                      <p className="text-xs text-muted-foreground">Show delivery badge on your profile</p>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        const newVal = !vendor.delivery_available;
+                        await supabase.from("vendors").update({ delivery_available: newVal } as any).eq("id", vendor.id);
+                        setVendor((v: any) => ({ ...v, delivery_available: newVal }));
+                        toast({ title: newVal ? "Delivery badge shown ✅" : "Delivery badge hidden" });
+                      }}
+                      className={`relative w-11 h-6 rounded-full transition-colors focus:outline-none ${vendor.delivery_available ? "bg-emerald-500" : "bg-muted-foreground/30"}`}
+                    >
+                      <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${vendor.delivery_available ? "translate-x-5" : "translate-x-0"}`} />
+                    </button>
+                  </div>
+
+                  {/* Ratings */}
+                  <div className="flex items-center justify-between py-2">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Customer Ratings</p>
+                      <p className="text-xs text-muted-foreground">Allow customers to rate and review your store</p>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        const newVal = !(vendor as any).ratings_enabled;
+                        await supabase.from("vendors").update({ ratings_enabled: newVal } as any).eq("id", vendor.id);
+                        setVendor((v: any) => ({ ...v, ratings_enabled: newVal }));
+                        toast({ title: newVal ? "Ratings enabled ✅" : "Ratings disabled" });
+                      }}
+                      className={`relative w-11 h-6 rounded-full transition-colors focus:outline-none ${(vendor as any).ratings_enabled ? "bg-emerald-500" : "bg-muted-foreground/30"}`}
+                    >
+                      <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${(vendor as any).ratings_enabled ? "translate-x-5" : "translate-x-0"}`} />
+                    </button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Account Info */}
+              <Card className="border-border/50">
+                <CardHeader><CardTitle className="text-base flex items-center gap-2"><User className="h-4 w-4 text-accent" /> Account Info</CardTitle></CardHeader>
+                <CardContent className="space-y-3 text-sm">
+                  <div className="flex justify-between py-1.5 border-b border-border/30">
+                    <span className="text-muted-foreground">Business Name</span>
+                    <span className="font-medium text-foreground">{vendor.business_name}</span>
+                  </div>
+                  <div className="flex justify-between py-1.5 border-b border-border/30">
+                    <span className="text-muted-foreground">Category</span>
+                    <span className="font-medium text-foreground">{vendor.category}</span>
+                  </div>
+                  <div className="flex justify-between py-1.5 border-b border-border/30">
+                    <span className="text-muted-foreground">Campus</span>
+                    <span className="font-medium text-foreground">{vendor.schools?.name || "—"}</span>
+                  </div>
+                  <div className="flex justify-between py-1.5 border-b border-border/30">
+                    <span className="text-muted-foreground">Country</span>
+                    <span className="font-medium text-foreground">{vendor.country || "—"}</span>
+                  </div>
+                  <div className="flex justify-between py-1.5 border-b border-border/30">
+                    <span className="text-muted-foreground">Payment</span>
+                    <Badge className={vendor.payment_status === "paid" ? "bg-emerald-500/15 text-emerald-500 border border-emerald-500/20 text-[10px]" : "bg-amber-500/15 text-amber-500 border border-amber-500/20 text-[10px]"}>
+                      {vendor.payment_status === "paid" ? "✓ Paid" : vendor.payment_status || "Unpaid"}
+                    </Badge>
+                  </div>
+                  <div className="flex justify-between py-1.5">
+                    <span className="text-muted-foreground">Verification</span>
+                    <Badge className={vendor.is_verified ? "bg-primary/15 text-primary border border-primary/20 text-[10px]" : "bg-muted text-muted-foreground text-[10px]"}>
+                      {vendor.is_verified ? "✅ Verified" : "Not Verified"}
+                    </Badge>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Danger Zone */}
+              <Card className="border-destructive/20">
+                <CardHeader><CardTitle className="text-base text-destructive flex items-center gap-2"><LogOut className="h-4 w-4" /> Danger Zone</CardTitle></CardHeader>
+                <CardContent className="space-y-2">
+                  <p className="text-xs text-muted-foreground">Logging out ends your session. Your store and data remain safe.</p>
+                  <Button variant="destructive" size="sm" onClick={signOut} className="gap-2">
+                    <LogOut className="h-4 w-4" /> Sign Out
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
         </Tabs>
