@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   Check, X, Loader2, FileText, ShieldCheck, Globe, Ban,
-  CreditCard, Banknote, CircleSlash, MoreVertical, ShieldOff, Megaphone,
+  CreditCard, Banknote, CircleSlash, MoreVertical, ShieldOff, Megaphone, Pencil, Save,
   UserX, UserCheck, Star, ExternalLink, Crown,
 } from "lucide-react";
 
@@ -343,6 +343,41 @@ const ManageVendors = () => {
     </Table>
   );
 
+  // ── Save vendor edits ───────────────────────────────────────────────────────
+  const openEditMode = (v: any) => {
+    setEditFields({
+      business_name:  v.business_name   || "",
+      category:       v.category        || "",
+      description:    v.description     || "",
+      contact_number: v.contact_number  || "",
+      country:        v.country         || "Nigeria",
+    });
+    setEditMode(true);
+  };
+
+  const saveVendorEdit = async () => {
+    if (!detailVendor) return;
+    setSavingEdit(true);
+    const { error } = await supabase.from("vendors").update({
+      business_name:  editFields.business_name.trim()  || detailVendor.business_name,
+      category:       editFields.category.trim()       || detailVendor.category,
+      description:    editFields.description.trim()    || null,
+      contact_number: editFields.contact_number.trim() || null,
+      country:        editFields.country.trim()        || "Nigeria",
+    } as any).eq("id", detailVendor.id);
+    if (!error) {
+      setVendors((prev) => prev.map((v) =>
+        v.id === detailVendor.id ? { ...v, ...editFields } : v
+      ));
+      setDetailVendor((v: any) => v ? { ...v, ...editFields } : v);
+      toast({ title: "✅ Vendor info updated!" });
+      setEditMode(false);
+    } else {
+      toast({ title: "Update failed", description: error.message, variant: "destructive" });
+    }
+    setSavingEdit(false);
+  };
+
   // ── Detail modal ────────────────────────────────────────────────────────────
   const pd = detailVendor?.vendor_private_details?.[0];
 
@@ -394,7 +429,7 @@ const ManageVendors = () => {
       )}
 
       {/* ── Full Detail Dialog ── */}
-      <Dialog open={!!detailVendor} onOpenChange={() => setDetailVendor(null)}>
+      <Dialog open={!!detailVendor} onOpenChange={() => { setDetailVendor(null); setEditMode(false); }}>
         <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 flex-wrap">
@@ -441,6 +476,10 @@ const ManageVendors = () => {
                     <Megaphone className="h-3.5 w-3.5 mr-1" /> Promote
                   </Button>
                 )}
+                <Button size="sm" variant="outline" className="text-blue-500 border-blue-400/50"
+                  onClick={() => openEditMode(detailVendor)}>
+                  <Pencil className="h-3.5 w-3.5 mr-1" /> Edit Info
+                </Button>
                 {detailVendor.is_store_upgraded && detailVendor.store_upgrade_expires_at && new Date(detailVendor.store_upgrade_expires_at) > new Date() ? (
                   <Button size="sm" variant="outline" className="text-muted-foreground"
                     onClick={() => removeStoreUpgrade(detailVendor.id)}>
@@ -508,29 +547,93 @@ const ManageVendors = () => {
 
               {/* ── Public info ── */}
               <div>
-                <h4 className="font-semibold mb-2 text-foreground pb-1 border-b border-border/50">📢 Public Information</h4>
-                <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 bg-muted/20 rounded-lg p-3 text-muted-foreground">
-                  {[
-                    ["Business Name",    detailVendor.business_name],
-                    ["Country",          detailVendor.country || "Nigeria"],
-                    ["Category",         detailVendor.category],
-                    ["Customer Contact", detailVendor.contact_number],
-                    ["Signup Email",     detailVendor._signup_email || "—"],
-                    ["School",           detailVendor.schools?.name || "—"],
-                    ["Campus Location",  detailVendor.campus_locations?.name || "—"],
-                    ["Verified",         detailVendor.is_verified ? "✅ Yes" : "❌ No"],
-                    ["Reels Enabled",    detailVendor.reels_enabled ? "✅ Yes" : "❌ No"],
-                    ["Store Upgraded",   detailVendor.is_store_upgraded && detailVendor.store_upgrade_expires_at && new Date(detailVendor.store_upgrade_expires_at) > new Date()
-                      ? `✅ Until ${new Date(detailVendor.store_upgrade_expires_at).toLocaleDateString()}`
-                      : "❌ No"],
-                    ["Registered",       new Date(detailVendor.created_at).toLocaleDateString()],
-                  ].map(([label, value]) => (
-                    <p key={label}><strong className="text-foreground">{label}:</strong> {value}</p>
-                  ))}
-                  {detailVendor.description && (
-                    <p className="col-span-2"><strong className="text-foreground">Description:</strong> {detailVendor.description}</p>
+                <div className="flex items-center justify-between pb-1 border-b border-border/50 mb-3">
+                  <h4 className="font-semibold text-foreground">📢 Public Information</h4>
+                  {!editMode && (
+                    <Button size="sm" variant="ghost" className="h-7 text-xs text-blue-500"
+                      onClick={() => openEditMode(detailVendor)}>
+                      <Pencil className="h-3 w-3 mr-1" /> Edit
+                    </Button>
                   )}
                 </div>
+
+                {editMode ? (
+                  <div className="space-y-3 bg-blue-500/5 border border-blue-400/20 rounded-lg p-4">
+                    <p className="text-xs text-blue-400 font-medium">✏️ Editing vendor information</p>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-foreground">Business Name</label>
+                      <Input value={editFields.business_name}
+                        onChange={(e) => setEditFields((f) => ({ ...f, business_name: e.target.value }))}
+                        className="h-8 text-sm" />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-foreground">Category</label>
+                      <Input value={editFields.category}
+                        onChange={(e) => setEditFields((f) => ({ ...f, category: e.target.value }))}
+                        className="h-8 text-sm" />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-foreground">Description</label>
+                      <textarea
+                        value={editFields.description}
+                        onChange={(e) => setEditFields((f) => ({ ...f, description: e.target.value }))}
+                        rows={3}
+                        className="w-full text-sm rounded-md border border-border bg-background px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-accent"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-foreground">Customer Contact</label>
+                      <Input value={editFields.contact_number}
+                        onChange={(e) => setEditFields((f) => ({ ...f, contact_number: e.target.value }))}
+                        className="h-8 text-sm" />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-foreground">Country</label>
+                      <Input value={editFields.country}
+                        onChange={(e) => setEditFields((f) => ({ ...f, country: e.target.value }))}
+                        className="h-8 text-sm" />
+                    </div>
+
+                    <div className="flex gap-2 pt-1">
+                      <Button size="sm" onClick={saveVendorEdit} disabled={savingEdit}
+                        className="bg-blue-500 text-white hover:bg-blue-600 border-0 h-8">
+                        {savingEdit ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Save className="h-3.5 w-3.5 mr-1" />}
+                        Save Changes
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setEditMode(false)} className="h-8">
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 bg-muted/20 rounded-lg p-3 text-muted-foreground">
+                    {[
+                      ["Business Name",    detailVendor.business_name],
+                      ["Country",          detailVendor.country || "Nigeria"],
+                      ["Category",         detailVendor.category],
+                      ["Customer Contact", detailVendor.contact_number],
+                      ["Signup Email",     detailVendor._signup_email || "—"],
+                      ["School",           detailVendor.schools?.name || "—"],
+                      ["Campus Location",  detailVendor.campus_locations?.name || "—"],
+                      ["Verified",         detailVendor.is_verified ? "✅ Yes" : "❌ No"],
+                      ["Reels Enabled",    detailVendor.reels_enabled ? "✅ Yes" : "❌ No"],
+                      ["Store Upgraded",   detailVendor.is_store_upgraded && detailVendor.store_upgrade_expires_at && new Date(detailVendor.store_upgrade_expires_at) > new Date()
+                        ? `✅ Until ${new Date(detailVendor.store_upgrade_expires_at).toLocaleDateString()}`
+                        : "❌ No"],
+                      ["Registered",       new Date(detailVendor.created_at).toLocaleDateString()],
+                    ].map(([label, value]) => (
+                      <p key={label}><strong className="text-foreground">{label}:</strong> {value}</p>
+                    ))}
+                    {detailVendor.description && (
+                      <p className="col-span-2"><strong className="text-foreground">Description:</strong> {detailVendor.description}</p>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* ── Private info ── */}
