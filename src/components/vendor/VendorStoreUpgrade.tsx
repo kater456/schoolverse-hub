@@ -176,7 +176,6 @@ const VendorStoreUpgrade = ({ vendor, onUpdate }: VendorStoreUpgradeProps) => {
   const [isUpgraded,      setIsUpgraded]      = useState(false);
   const [expiresAt,       setExpiresAt]       = useState<string | null>(null);
   const [paying,          setPaying]          = useState(false);
-  const [paystackReady,   setPaystackReady]   = useState(!!(window as any).PaystackPop);
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const [savingDesign,    setSavingDesign]    = useState(false);
   const [designSaveCount, setDesignSaveCount] = useState(0);
@@ -326,40 +325,24 @@ const VendorStoreUpgrade = ({ vendor, onUpdate }: VendorStoreUpgradeProps) => {
 
   // ── Payment script loader ─────────────────────────────────────────────────
   useEffect(() => {
-    if ((window as any).PaystackPop) {
-      setPaystackReady(true);
-      return;
-    }
-    const existing = document.querySelector('script[src="https://js.paystack.co/v1/inline.js"]');
-    if (existing) {
-      // Script tag exists but may not have fired onload yet — poll briefly
-      const interval = setInterval(() => {
-        if ((window as any).PaystackPop) {
-          setPaystackReady(true);
-          clearInterval(interval);
-        }
-      }, 100);
-      return () => clearInterval(interval);
-    }
+    if ((window as any).PaystackPop) return; // already loaded
+    if (document.querySelector('script[src="https://js.paystack.co/v1/inline.js"]')) return; // already injected
     const s = document.createElement("script");
     s.src = "https://js.paystack.co/v1/inline.js";
     s.async = true;
-    s.onload = () => setPaystackReady(true);
-    s.onerror = () => toast({ title: "Payment system failed to load. Refresh the page.", variant: "destructive" });
     document.body.appendChild(s);
   }, []);
 
   const initiateUpgradePayment = () => {
-    const PaystackPop = (window as any).PaystackPop;
-    if (!PaystackPop || !paystackReady) {
-      toast({ title: "Loading payment system…", description: "Please wait a moment and try again." });
-      // Try loading script again if missing
+    // If script not loaded yet, inject it and retry in 1.5s
+    if (!(window as any).PaystackPop) {
       if (!document.querySelector('script[src="https://js.paystack.co/v1/inline.js"]')) {
         const s = document.createElement("script");
         s.src = "https://js.paystack.co/v1/inline.js";
-        s.onload = () => setPaystackReady(true);
+        s.async = true;
         document.body.appendChild(s);
       }
+      toast({ title: "Loading payment…", description: "Please click again in a moment." });
       return;
     }
     if (!user?.email) {
@@ -454,13 +437,11 @@ const VendorStoreUpgrade = ({ vendor, onUpdate }: VendorStoreUpgradeProps) => {
               </ul>
               <Button
                 onClick={initiateUpgradePayment}
-                disabled={paying || !paystackReady}
+                disabled={paying}
                 className="w-full bg-gradient-to-r from-accent to-primary text-accent-foreground shadow-lg hover:shadow-xl"
               >
                 {paying ? (
                   <><Loader2 className="h-4 w-4 animate-spin mr-2" />Verifying payment…</>
-                ) : !paystackReady ? (
-                  <><Loader2 className="h-4 w-4 animate-spin mr-2" />Loading payment…</>
                 ) : (
                   <><Crown className="h-4 w-4 mr-2" />Upgrade for ₦1,500/month</>
                 )}
