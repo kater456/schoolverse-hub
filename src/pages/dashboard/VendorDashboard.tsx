@@ -15,10 +15,9 @@ import {
   BarChart3, Star, LogOut, Film, Loader2, CreditCard, CheckCircle, Package,
   User, Camera, Save, Share2, ShieldCheck, Copy, Crown,
   Instagram, Twitter, Music2, FileCheck, Upload, ToggleLeft, Flame,
-  Zap, TrendingUp, Settings, MessageCircle, Bell,
+  TrendingUp, Settings, MessageCircle, Bell,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
-import FeaturedPaymentModal from "@/components/vendor/FeaturedPaymentModal";
 import VendorProductManager from "@/components/vendor/VendorProductManager";
 import VendorVideoManager from "@/components/vendor/VendorVideoManager";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -37,7 +36,6 @@ const VendorDashboard = () => {
   const [recentComments, setRecentComments] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [showFeaturedModal, setShowFeaturedModal] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [editContact, setEditContact] = useState("");
@@ -59,7 +57,7 @@ const VendorDashboard = () => {
     if (!user) return;
     const { data: v } = await supabase
       .from("vendors")
-      .select("*, schools(name), campus_locations(name), featured_listings(*)")
+      .select("*, schools(name), campus_locations(name)")
       .eq("user_id", user.id)
       .single();
 
@@ -393,10 +391,6 @@ const VendorDashboard = () => {
     );
   }
 
-  const activeFeatured = vendor.featured_listings?.find(
-    (f: any) => f.payment_status === "confirmed" && new Date(f.ends_at) > new Date()
-  );
-
   const statCards = [
     { title: "Profile Views",  value: stats.views,    icon: Eye,          gradient: "from-violet-500/20 to-blue-500/20",   accent: "text-violet-400",  border: "border-violet-500/20", live: true },
     { title: "Total Likes",    value: stats.likes,    icon: Heart,        gradient: "from-rose-500/20 to-pink-500/20",     accent: "text-rose-400",    border: "border-rose-500/20" },
@@ -421,11 +415,7 @@ const VendorDashboard = () => {
           <Button variant="ghost" size="sm" asChild className="text-xs h-8">
             <Link to={`/vendor/${vendor.id}`}><Eye className="h-4 w-4 mr-1" /><span className="hidden sm:inline">My Store</span></Link>
           </Button>
-          {!activeFeatured && (
-            <Button size="sm" className="bg-gradient-to-r from-orange-500 to-amber-500 text-white hover:opacity-90 h-8 text-xs" onClick={() => setShowFeaturedModal(true)}>
-              <Zap className="h-3.5 w-3.5 mr-1" /><span className="hidden sm:inline">Boost</span>
-            </Button>
-          )}
+
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={signOut}><LogOut className="h-4 w-4" /></Button>
           <ThemeToggle />
         </div>
@@ -466,11 +456,7 @@ const VendorDashboard = () => {
                       <ShieldCheck className="h-2.5 w-2.5 mr-1" /> Verified
                     </Badge>
                   )}
-                  {activeFeatured && (
-                    <Badge className="bg-amber-500/15 text-amber-500 border border-amber-500/20 text-[10px] px-1.5">
-                      <Star className="h-2.5 w-2.5 mr-1" /> Featured
-                    </Badge>
-                  )}
+
                 </div>
                 <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">
                   {vendor.category} · {vendor.schools?.name}
@@ -516,6 +502,70 @@ const VendorDashboard = () => {
           ))}
         </div>
 
+        {/* ── Upgrade CTAs ── */}
+        {(!vendor.is_verified || !vendor.is_store_upgraded || (vendor.is_store_upgraded && vendor.store_upgrade_expires_at && new Date(vendor.store_upgrade_expires_at) < new Date())) && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
+            {/* Get Verified CTA */}
+            {!vendor.is_verified && (
+              <div
+                className="relative rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-background p-5 overflow-hidden cursor-pointer group"
+                onClick={() => {
+                  const el = document.querySelector('[data-tab="verify"]') as HTMLElement;
+                  if (el) el.click();
+                }}
+              >
+                <div className="absolute top-0 right-0 w-24 h-24 rounded-full bg-primary/10 -translate-y-8 translate-x-8" />
+                <div className="relative">
+                  <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center mb-3">
+                    <ShieldCheck className="h-5 w-5 text-primary" />
+                  </div>
+                  <h3 className="font-bold text-foreground text-sm mb-1">Get Verified Badge</h3>
+                  <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
+                    Build trust with customers. Your ✅ badge shows on your profile and all listings.
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-primary">₦2,000 one-time</span>
+                    <span className="text-[10px] text-muted-foreground">→ instant activation</span>
+                  </div>
+                  <div className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-primary group-hover:gap-2.5 transition-all">
+                    Get verified now <span className="text-base">→</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Store Upgrade CTA */}
+            {(!vendor.is_store_upgraded || (vendor.store_upgrade_expires_at && new Date(vendor.store_upgrade_expires_at) < new Date())) && (
+              <div
+                className="relative rounded-2xl border border-accent/30 bg-gradient-to-br from-accent/10 via-accent/5 to-background p-5 overflow-hidden cursor-pointer group"
+                onClick={() => {
+                  const el = document.querySelector('[data-tab="store"]') as HTMLElement;
+                  if (el) el.click();
+                }}
+              >
+                <div className="absolute top-0 right-0 w-24 h-24 rounded-full bg-accent/10 -translate-y-8 translate-x-8" />
+                <div className="relative">
+                  <div className="w-10 h-10 rounded-xl bg-accent/15 flex items-center justify-center mb-3">
+                    <Crown className="h-5 w-5 text-accent" />
+                  </div>
+                  <h3 className="font-bold text-foreground text-sm mb-1">Upgrade Your Store</h3>
+                  <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
+                    Custom banner, theme colors, product arrangement, and premium store layout.
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-accent">₦1,500/month</span>
+                    <span className="text-[10px] text-muted-foreground">→ 30 days</span>
+                  </div>
+                  <div className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-accent group-hover:gap-2.5 transition-all">
+                    Upgrade store now <span className="text-base">→</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* ── Tabs ── */}
         <Tabs defaultValue="products" className="space-y-4">
           <TabsList className="flex-wrap h-auto gap-1">
@@ -524,12 +574,12 @@ const VendorDashboard = () => {
             <TabsTrigger value="orders"> <ShoppingBag className="h-4 w-4 mr-1" />Orders</TabsTrigger>
             <TabsTrigger value="profile"><User       className="h-4 w-4 mr-1" />Profile</TabsTrigger>
             <TabsTrigger value="engagement"><BarChart3 className="h-4 w-4 mr-1" />Insights</TabsTrigger>
-            <TabsTrigger value="verify"> <ShieldCheck className="h-4 w-4 mr-1" />
+            <TabsTrigger value="verify" data-tab="verify"> <ShieldCheck className="h-4 w-4 mr-1" />
               {vendor.is_verified ? "Verified ✅" : "Get Verified"}
             </TabsTrigger>
             <TabsTrigger value="control"><ToggleLeft className="h-4 w-4 mr-1" />Controls</TabsTrigger>
             <TabsTrigger value="deals"><Flame className="h-4 w-4 mr-1" />Deals</TabsTrigger>
-            <TabsTrigger value="store"><Crown className="h-4 w-4 mr-1" />Store</TabsTrigger>
+            <TabsTrigger value="store" data-tab="store"><Crown className="h-4 w-4 mr-1" />Store</TabsTrigger>
             <TabsTrigger value="settings"><Settings className="h-4 w-4 mr-1" />Settings</TabsTrigger>
           </TabsList>
 
@@ -971,12 +1021,7 @@ const VendorDashboard = () => {
         </Tabs>
       </main>
 
-      <FeaturedPaymentModal
-        open={showFeaturedModal}
-        onOpenChange={setShowFeaturedModal}
-        vendorId={vendor.id}
-        onSuccess={() => window.location.reload()}
-      />
+
     </div>
   );
 };
