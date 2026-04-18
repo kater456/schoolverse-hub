@@ -366,10 +366,10 @@ const ManageVendors = () => {
       country:        editFields.country.trim()        || "Nigeria",
     } as any).eq("id", detailVendor.id);
     if (!error) {
-      setVendors((prev) => prev.map((v) =>
-        v.id === detailVendor.id ? { ...v, ...editFields } : v
-      ));
+      // Update the detailVendor in place so modal reflects changes immediately
       setDetailVendor((v: any) => v ? { ...v, ...editFields } : v);
+      // Refetch full vendor list so table also updates
+      refetch();
       toast({ title: "✅ Vendor info updated!" });
       setEditMode(false);
     } else {
