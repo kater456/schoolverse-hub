@@ -192,7 +192,7 @@ const Browse = () => {
                 </div>
               )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-2">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4 mt-2">
                 {sortedVendors.map((vendor: any, index: number) => {
                   const now         = new Date();
                   const isPromoted  = vendor.promoted_until && new Date(vendor.promoted_until) > now;
@@ -221,7 +221,7 @@ const Browse = () => {
                           <span className="text-sm font-semibold text-foreground">All Vendors</span>
                         </div>
                       )}
-                      <VendorCard key={vendor.id} vendor={vendor} />
+                      <VendorCard key={vendor.id} vendor={vendor} index={index} />
                     </>
                   );
                 })}
