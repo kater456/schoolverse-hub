@@ -239,20 +239,15 @@ const VendorDashboard = () => {
       callback: async (response: any) => {
         setPayingVerif(true);
         try {
-          const { error } = await supabase
-            .from("vendors")
-            .update({
-              is_verified: true,
-              verification_payment_ref: response.reference,
-              verification_applied_at: new Date().toISOString(),
-            } as any)
-            .eq("id", vendor.id);
-          if (error) throw error;
+          const { data, error } = await supabase.functions.invoke("verify-vendor-verification", {
+            body: { reference: response.reference, vendor_id: vendor.id },
+          });
+          if (error || !data?.success) throw new Error(error?.message || data?.error || "Verification failed");
           toast({ title: "🎉 You're now Verified!", description: "Your verified badge is live on your profile." });
           setVendor((v: any) => ({ ...v, is_verified: true }));
         } catch (err: any) {
           toast({
-            title: "Update failed",
+            title: "Verification failed",
             description: "Payment was received. Contact support with ref: " + response.reference,
             variant: "destructive",
           });
