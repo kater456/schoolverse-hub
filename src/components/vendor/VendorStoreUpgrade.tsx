@@ -351,31 +351,17 @@ const VendorStoreUpgrade = ({ vendor, onUpdate }: VendorStoreUpgradeProps) => {
       callback: async (response: any) => {
         setPaying(true);
         try {
-          const now    = new Date();
-          const endsAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-
-          // Insert upgrade record
-          await (supabase as any).from("vendor_store_upgrades").insert({
-            vendor_id: vendor.id,
-            payment_reference: response.reference,
-            payment_status: "confirmed",
-            amount: 1500,
-            starts_at: now.toISOString(),
-            ends_at: endsAt.toISOString(),
+          const { data, error } = await supabase.functions.invoke("verify-store-upgrade", {
+            body: { reference: response.reference, vendor_id: vendor.id },
           });
-
-          // Update vendor
-          await (supabase as any).from("vendors").update({
-            is_store_upgraded: true,
-            store_upgrade_expires_at: endsAt.toISOString(),
-          }).eq("id", vendor.id);
-
-          toast({ title: "🎉 Store Upgraded!", description: "You now have premium store features for 30 days." });
+          if (error || !data?.success) throw new Error(error?.message || data?.error || "Verification failed");
+          const endsAt = data.ends_at;
+          toast({ title: "🎉 Store Upgraded!", description: "Premium features active for 30 days." });
           setIsUpgraded(true);
-          setExpiresAt(endsAt.toISOString());
-          onUpdate({ ...vendor, is_store_upgraded: true, store_upgrade_expires_at: endsAt.toISOString() });
+          setExpiresAt(endsAt);
+          onUpdate({ ...vendor, is_store_upgraded: true, store_upgrade_expires_at: endsAt });
         } catch (err: any) {
-          toast({ title: "Error", description: "Payment received. Contact support with ref: " + response.reference, variant: "destructive" });
+          toast({ title: "Error", description: "Payment received but activation failed. Ref: " + response.reference, variant: "destructive" });
         }
         setPaying(false);
       },
