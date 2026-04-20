@@ -353,7 +353,7 @@ const VendorStoreUpgrade = ({ vendor, onUpdate }: VendorStoreUpgradeProps) => {
     const handler = PaystackPop.setup({
       key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
       email: user!.email,
-      amount: 150000,
+      amount: 200000,
       currency: "NGN",
       ref,
       metadata: { vendor_id: vendor.id },
@@ -424,7 +424,7 @@ const VendorStoreUpgrade = ({ vendor, onUpdate }: VendorStoreUpgradeProps) => {
           ) : (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Unlock your full store designer for <strong>₦1,500/month</strong>:
+                Unlock your full store designer for <strong>₦2,000/month</strong>:
               </p>
               <ul className="space-y-1.5 text-sm text-muted-foreground">
                 <li className="flex items-center gap-2"><ImageIcon className="h-4 w-4 text-accent" /> Custom store banner</li>
@@ -443,7 +443,7 @@ const VendorStoreUpgrade = ({ vendor, onUpdate }: VendorStoreUpgradeProps) => {
                 {paying ? (
                   <><Loader2 className="h-4 w-4 animate-spin mr-2" />Verifying payment…</>
                 ) : (
-                  <><Crown className="h-4 w-4 mr-2" />Upgrade for ₦1,500/month</>
+                  <><Crown className="h-4 w-4 mr-2" />Upgrade for ₦2,000/month</>
                 )}
               </Button>
             </div>
