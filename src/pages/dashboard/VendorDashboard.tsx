@@ -289,7 +289,7 @@ const VendorDashboard = () => {
     const handler = PaystackPop.setup({
       key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
       email: user!.email,
-      amount: 200000, // ₦2,000 in kobo
+      amount: 150000, // ₦1,500 in kobo
       currency: "NGN",
       ref,
       metadata: { vendor_id: vendor.id },
@@ -541,8 +541,13 @@ const VendorDashboard = () => {
               <div
                 className="relative rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-background p-5 overflow-hidden cursor-pointer group"
                 onClick={() => {
-                  const el = document.querySelector('[data-tab="verify"]') as HTMLElement;
+                  // Scroll to verify tab and click it
+                  const el = document.querySelector('[value="verify"]') as HTMLElement;
                   if (el) el.click();
+                  // Small delay then scroll
+                  setTimeout(() => {
+                    document.querySelector('[data-tab="verify"]')?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }, 100);
                 }}
               >
                 <div className="absolute top-0 right-0 w-24 h-24 rounded-full bg-primary/10 -translate-y-8 translate-x-8" />
@@ -555,11 +560,11 @@ const VendorDashboard = () => {
                     Build trust with customers. Your ✅ badge shows on your profile and all listings.
                   </p>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold text-primary">₦2,000 one-time</span>
+                    <span className="text-xs font-semibold text-primary">₦1,500 one-time</span>
                     <span className="text-[10px] text-muted-foreground">→ instant activation</span>
                   </div>
                   <div className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-primary group-hover:gap-2.5 transition-all">
-                    Get verified now <span className="text-base">→</span>
+                    Tap to get verified <span className="text-base">→</span>
                   </div>
                 </div>
               </div>
@@ -570,8 +575,11 @@ const VendorDashboard = () => {
               <div
                 className="relative rounded-2xl border border-accent/30 bg-gradient-to-br from-accent/10 via-accent/5 to-background p-5 overflow-hidden cursor-pointer group"
                 onClick={() => {
-                  const el = document.querySelector('[data-tab="store"]') as HTMLElement;
+                  const el = document.querySelector('[value="store"]') as HTMLElement;
                   if (el) el.click();
+                  setTimeout(() => {
+                    document.querySelector('[data-tab="store"]')?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }, 100);
                 }}
               >
                 <div className="absolute top-0 right-0 w-24 h-24 rounded-full bg-accent/10 -translate-y-8 translate-x-8" />
@@ -584,7 +592,7 @@ const VendorDashboard = () => {
                     Custom banner, theme colors, product arrangement, and premium store layout.
                   </p>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold text-accent">₦1,500/month</span>
+                    <span className="text-xs font-semibold text-accent">₦2,000/month</span>
                     <span className="text-[10px] text-muted-foreground">→ 30 days</span>
                   </div>
                   <div className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-accent group-hover:gap-2.5 transition-all">
@@ -960,17 +968,8 @@ const VendorDashboard = () => {
                       </div>
                       <div className="flex items-center gap-2 text-sm">
                         <CheckCircle className="h-4 w-4 shrink-0 text-muted-foreground/40" />
-                        <span className="text-muted-foreground">Pay a one-time fee of ₦2,000 via Paystack</span>
+                        <span className="text-muted-foreground">Pay a one-time fee of ₦1,500 via Paystack</span>
                       </div>
-                    </div>
-
-                    {/* Payment details */}
-                    <div className="p-4 rounded-lg bg-muted/40 border border-border/50 space-y-1">
-                      <p className="text-sm font-semibold text-foreground">Payment Details</p>
-                      <p className="text-sm text-muted-foreground">Bank: <strong className="text-foreground">Sterling Bank</strong></p>
-                      <p className="text-sm text-muted-foreground">Account Number: <strong className="text-foreground">0128456092</strong></p>
-                      <p className="text-sm text-muted-foreground">Account Name: <strong className="text-foreground">Kater Akase</strong></p>
-                      <p className="text-sm text-muted-foreground">Amount: <strong className="text-foreground">₦2,000</strong></p>
                     </div>
 
                     {/* ID upload */}
