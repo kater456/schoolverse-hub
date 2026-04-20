@@ -64,6 +64,13 @@ const ManageVendors = () => {
   const [selectedSchoolId, setSelectedSchoolId] = useState("");
   const [changingSchool,   setChangingSchool]   = useState(false);
 
+  // ── Edit vendor state ─────────────────────────────────────────────────────
+  const [editMode,    setEditMode]    = useState(false);
+  const [savingEdit,  setSavingEdit]  = useState(false);
+  const [editFields,  setEditFields]  = useState<Record<string, string>>({
+    business_name: "", category: "", description: "", contact_number: "", country: "",
+  });
+
   // Load all schools for the dropdown
   useEffect(() => {
     supabase.from("schools").select("id, name").order("name").then(({ data }) => {
