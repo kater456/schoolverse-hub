@@ -1010,7 +1010,7 @@ const VendorDashboard = () => {
                       {payingVerif ? (
                         <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Verifying payment…</>
                       ) : (
-                        <><CreditCard className="h-4 w-4 mr-2" />Pay ₦2,000 &amp; Get Verified</>
+                        <><CreditCard className="h-4 w-4 mr-2" />Pay ₦1,500 &amp; Get Verified</>
                       )}
                     </Button>
                     {!verifIdUrl && (
