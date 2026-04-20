@@ -53,8 +53,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Must be at least ₦2,000 (200,000 kobo)
-    if (data.data.amount < 200000) {
+    // Must be at least ₦1,500 (150,000 kobo)
+    if (data.data.amount < 150000) {
       return new Response(JSON.stringify({ error: "Insufficient payment amount" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
