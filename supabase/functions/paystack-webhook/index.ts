@@ -87,7 +87,7 @@ async function handleVerificationPayment(supabase: any, data: any) {
     ?? data.metadata?.custom_fields?.find((f: any) => f.variable_name === "vendor_id")?.value;
 
   if (!vendorId) { console.error("paystack-webhook: no vendor_id for verification", data.reference); return; }
-  if (data.amount < 200000) return;
+  if (data.amount < 150000) return;
 
   const { error } = await supabase.from("vendors").update({
     is_verified: true,
@@ -105,7 +105,7 @@ async function handleStoreUpgrade(supabase: any, data: any) {
     ?? data.metadata?.custom_fields?.find((f: any) => f.variable_name === "vendor_id")?.value;
 
   if (!vendorId) { console.error("paystack-webhook: no vendor_id for store upgrade", data.reference); return; }
-  if (data.amount < 150000) return;
+  if (data.amount < 200000) return;
 
   const { data: existing } = await supabase.from("vendor_store_upgrades")
     .select("id").eq("payment_reference", data.reference).maybeSingle();
