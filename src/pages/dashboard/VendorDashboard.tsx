@@ -287,7 +287,7 @@ const VendorDashboard = () => {
     const PaystackPop = (window as any).PaystackPop;
     const ref = `verif_${vendor.id}_${Date.now()}`;
     const handler = PaystackPop.setup({
-      key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY as string,
+      key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
       email: user!.email,
       amount: 150000, // ₦1,500 in kobo
       currency: "NGN",
@@ -362,7 +362,7 @@ const VendorDashboard = () => {
       const PaystackPop = (window as any).PaystackPop;
       const ref = `vr_${vendor.id}_${Date.now()}`;
       const handler = PaystackPop.setup({
-        key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY as string,
+        key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
         email: user!.email,
         amount: 120000, // ₦1,200 in kobo
         currency: "NGN",
@@ -372,11 +372,10 @@ const VendorDashboard = () => {
         onClose: () => toast({ title: "Payment window closed" }),
         callback: async (response: any) => {
           try {
-            const { error } = await supabase
-              .from("vendors")
-              .update({ is_approved: true, payment_status: "paid", payment_reference: response.reference } as any)
-              .eq("id", vendor.id);
-            if (error) throw error;
+            const { data, error } = await supabase.functions.invoke("verify-paystack-payment", {
+              body: { reference: response.reference, vendor_id: vendor.id },
+            });
+            if (error || !data?.success) throw new Error(error?.message || data?.error || "Verification failed");
             toast({ title: "🎉 Payment confirmed!", description: "Your account is now active." });
             fetchVendorData();
           } catch (err: any) {
@@ -541,13 +540,9 @@ const VendorDashboard = () => {
               <div
                 className="relative rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-background p-5 overflow-hidden cursor-pointer group"
                 onClick={() => {
-                  // Scroll to verify tab and click it
                   const el = document.querySelector('[value="verify"]') as HTMLElement;
                   if (el) el.click();
-                  // Small delay then scroll
-                  setTimeout(() => {
-                    document.querySelector('[data-tab="verify"]')?.scrollIntoView({ behavior: "smooth", block: "start" });
-                  }, 100);
+                  setTimeout(() => document.querySelector('[data-tab="verify"]')?.scrollIntoView({ behavior: "smooth", block: "start" }), 150);
                 }}
               >
                 <div className="absolute top-0 right-0 w-24 h-24 rounded-full bg-primary/10 -translate-y-8 translate-x-8" />
@@ -564,7 +559,7 @@ const VendorDashboard = () => {
                     <span className="text-[10px] text-muted-foreground">→ instant activation</span>
                   </div>
                   <div className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-primary group-hover:gap-2.5 transition-all">
-                    Tap to get verified <span className="text-base">→</span>
+                    Get verified now <span className="text-base">→</span>
                   </div>
                 </div>
               </div>
@@ -577,9 +572,7 @@ const VendorDashboard = () => {
                 onClick={() => {
                   const el = document.querySelector('[value="store"]') as HTMLElement;
                   if (el) el.click();
-                  setTimeout(() => {
-                    document.querySelector('[data-tab="store"]')?.scrollIntoView({ behavior: "smooth", block: "start" });
-                  }, 100);
+                  setTimeout(() => document.querySelector('[data-tab="store"]')?.scrollIntoView({ behavior: "smooth", block: "start" }), 150);
                 }}
               >
                 <div className="absolute top-0 right-0 w-24 h-24 rounded-full bg-accent/10 -translate-y-8 translate-x-8" />
@@ -1009,7 +1002,7 @@ const VendorDashboard = () => {
                       {payingVerif ? (
                         <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Verifying payment…</>
                       ) : (
-                        <><CreditCard className="h-4 w-4 mr-2" />Pay ₦1,500 &amp; Get Verified</>
+                        <><CreditCard className="h-4 w-4 mr-2" />Pay ₦2,000 &amp; Get Verified</>
                       )}
                     </Button>
                     {!verifIdUrl && (
