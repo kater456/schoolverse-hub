@@ -51,7 +51,7 @@ const FeaturedPaymentModal = ({ open, onOpenChange, vendorId, onSuccess }: Props
     const reference = `feat_${vendorId}_${Date.now()}`;
 
     PaystackPop.setup({
-      key:      import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
+      key:      "pk_live_86d78a3f9090b60d4d45f2ee1caf54dda3198ad5",
       email:    user.email,
       amount:   plan.amountKobo,
       currency: "NGN",
