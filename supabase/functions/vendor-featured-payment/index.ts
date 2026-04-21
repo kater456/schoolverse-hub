@@ -24,6 +24,20 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Idempotency: skip if already processed
+    const { data: existing } = await supabase
+      .from("featured_listings")
+      .select("id")
+      .eq("payment_reference", reference)
+      .maybeSingle();
+
+    if (existing) {
+      return new Response(
+        JSON.stringify({ success: true, message: "Payment already processed" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Verify with Paystack
     const res  = await fetch(
       `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
