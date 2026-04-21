@@ -52,6 +52,7 @@ const VendorDashboard = () => {
   const [verifIdUrl,      setVerifIdUrl]      = useState<string | null>(null);
   const [uploadingId,     setUploadingId]     = useState(false);
   const [payingVerif,     setPayingVerif]     = useState(false);
+  const [payingUpgrade,   setPayingUpgrade]   = useState(false);
 
   const fetchVendorData = async () => {
     if (!user) return;
@@ -287,7 +288,7 @@ const VendorDashboard = () => {
     const PaystackPop = (window as any).PaystackPop;
     const ref = `verif_${vendor.id}_${Date.now()}`;
     const handler = PaystackPop.setup({
-      key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
+      key: "pk_live_86d78a3f9090b60d4d45f2ee1caf54dda3198ad5",
       email: user!.email,
       amount: 150000, // ₦1,500 in kobo
       currency: "NGN",
@@ -312,6 +313,55 @@ const VendorDashboard = () => {
           });
         }
         setPayingVerif(false);
+      },
+    });
+    handler.openIframe();
+  };
+
+  // ── Store upgrade payment (triggered from CTA card) ───────────────────────
+  const initiateUpgradePayment = () => {
+    if (!(window as any).PaystackPop) {
+      if (!document.querySelector('script[src="https://js.paystack.co/v1/inline.js"]')) {
+        const s = document.createElement("script");
+        s.src = "https://js.paystack.co/v1/inline.js";
+        s.async = true;
+        document.body.appendChild(s);
+      }
+      toast({ title: "Loading payment…", description: "Please tap again in a moment." });
+      return;
+    }
+    if (!user?.email) {
+      toast({ title: "Please sign in first", variant: "destructive" });
+      return;
+    }
+    const PaystackPop = (window as any).PaystackPop;
+    const ref = `store_upgrade_${vendor.id}_${Date.now()}`;
+    const handler = PaystackPop.setup({
+      key: "pk_live_86d78a3f9090b60d4d45f2ee1caf54dda3198ad5",
+      email: user.email,
+      amount: 200000, // ₦2,000 in kobo
+      currency: "NGN",
+      ref,
+      metadata: { vendor_id: vendor.id },
+      channels: ["card", "bank_transfer", "ussd", "bank"],
+      onClose: () => toast({ title: "Payment cancelled" }),
+      callback: async (response: any) => {
+        setPayingUpgrade(true);
+        try {
+          const { data, error } = await supabase.functions.invoke("verify-store-upgrade", {
+            body: { reference: response.reference, vendor_id: vendor.id },
+          });
+          if (error || !data?.success) throw new Error(error?.message || data?.error || "Verification failed");
+          toast({ title: "🎉 Store Upgraded!", description: "Premium features active for 30 days." });
+          setVendor((v: any) => ({ ...v, is_store_upgraded: true, store_upgrade_expires_at: data.ends_at }));
+        } catch (err: any) {
+          toast({
+            title: "Payment received but activation failed",
+            description: "Contact support with ref: " + response.reference,
+            variant: "destructive",
+          });
+        }
+        setPayingUpgrade(false);
       },
     });
     handler.openIframe();
@@ -362,7 +412,7 @@ const VendorDashboard = () => {
       const PaystackPop = (window as any).PaystackPop;
       const ref = `vr_${vendor.id}_${Date.now()}`;
       const handler = PaystackPop.setup({
-        key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
+        key: "pk_live_86d78a3f9090b60d4d45f2ee1caf54dda3198ad5",
         email: user!.email,
         amount: 120000, // ₦1,200 in kobo
         currency: "NGN",
@@ -540,9 +590,18 @@ const VendorDashboard = () => {
               <div
                 className="relative rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-background p-5 overflow-hidden cursor-pointer group"
                 onClick={() => {
-                  const el = document.querySelector('[value="verify"]') as HTMLElement;
-                  if (el) el.click();
-                  setTimeout(() => document.querySelector('[data-tab="verify"]')?.scrollIntoView({ behavior: "smooth", block: "start" }), 150);
+                  // Click the verify tab
+                  const tab = document.querySelector('[value="verify"]') as HTMLElement;
+                  if (tab) tab.click();
+                  // Then scroll to the ID upload area
+                  setTimeout(() => {
+                    const uploadArea = document.getElementById("id-upload-area");
+                    if (uploadArea) {
+                      uploadArea.scrollIntoView({ behavior: "smooth", block: "center" });
+                    } else {
+                      document.querySelector('[data-tab="verify"]')?.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }
+                  }, 150);
                 }}
               >
                 <div className="absolute top-0 right-0 w-24 h-24 rounded-full bg-primary/10 -translate-y-8 translate-x-8" />
@@ -559,7 +618,7 @@ const VendorDashboard = () => {
                     <span className="text-[10px] text-muted-foreground">→ instant activation</span>
                   </div>
                   <div className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-primary group-hover:gap-2.5 transition-all">
-                    Get verified now <span className="text-base">→</span>
+                    Tap to get verified <span className="text-base">→</span>
                   </div>
                 </div>
               </div>
@@ -569,11 +628,7 @@ const VendorDashboard = () => {
             {(!vendor.is_store_upgraded || (vendor.store_upgrade_expires_at && new Date(vendor.store_upgrade_expires_at) < new Date())) && (
               <div
                 className="relative rounded-2xl border border-accent/30 bg-gradient-to-br from-accent/10 via-accent/5 to-background p-5 overflow-hidden cursor-pointer group"
-                onClick={() => {
-                  const el = document.querySelector('[value="store"]') as HTMLElement;
-                  if (el) el.click();
-                  setTimeout(() => document.querySelector('[data-tab="store"]')?.scrollIntoView({ behavior: "smooth", block: "start" }), 150);
-                }}
+                onClick={initiateUpgradePayment}
               >
                 <div className="absolute top-0 right-0 w-24 h-24 rounded-full bg-accent/10 -translate-y-8 translate-x-8" />
                 <div className="relative">
@@ -589,7 +644,7 @@ const VendorDashboard = () => {
                     <span className="text-[10px] text-muted-foreground">→ 30 days</span>
                   </div>
                   <div className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-accent group-hover:gap-2.5 transition-all">
-                    Upgrade store now <span className="text-base">→</span>
+                    {payingUpgrade ? "Processing…" : "Tap to pay & upgrade"} <span className="text-base">→</span>
                   </div>
                 </div>
               </div>
@@ -966,7 +1021,7 @@ const VendorDashboard = () => {
                     </div>
 
                     {/* ID upload */}
-                    <div className="space-y-2">
+                    <div id="id-upload-area" className="space-y-2">
                       <Label className="text-sm font-medium flex items-center gap-1.5">
                         <FileCheck className="h-4 w-4" /> Upload Your ID
                       </Label>
@@ -1002,7 +1057,7 @@ const VendorDashboard = () => {
                       {payingVerif ? (
                         <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Verifying payment…</>
                       ) : (
-                        <><CreditCard className="h-4 w-4 mr-2" />Pay ₦2,000 &amp; Get Verified</>
+                        <><CreditCard className="h-4 w-4 mr-2" />Pay ₦1,500 &amp; Get Verified</>
                       )}
                     </Button>
                     {!verifIdUrl && (
