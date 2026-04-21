@@ -89,6 +89,12 @@ async function handleVerificationPayment(supabase: any, data: any) {
   if (!vendorId) { console.error("paystack-webhook: no vendor_id for verification", data.reference); return; }
   if (data.amount < 150000) return;
 
+  // Idempotency: skip if already verified with this reference
+  const { data: existingVerif } = await supabase.from("vendors")
+    .select("id, is_verified, verification_payment_ref")
+    .eq("id", vendorId).single();
+  if (existingVerif?.is_verified && existingVerif?.verification_payment_ref === data.reference) return;
+
   const { error } = await supabase.from("vendors").update({
     is_verified: true,
     verification_payment_ref: data.reference,
@@ -116,7 +122,7 @@ async function handleStoreUpgrade(supabase: any, data: any) {
 
   const { error: insertError } = await supabase.from("vendor_store_upgrades").insert({
     vendor_id: vendorId, payment_reference: data.reference,
-    payment_status: "confirmed", amount: 1500,
+    payment_status: "confirmed", amount: 2000,
     starts_at: now.toISOString(), ends_at: endsAt.toISOString(),
   });
   if (insertError) throw insertError;
