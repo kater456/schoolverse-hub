@@ -22,6 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import ContactVendorButton from "@/components/ContactVendorButton";
 import VendorQRBadge from "@/components/VendorQRBadge";
+import VendorTestimonialsDisplay from "@/components/vendor/VendorTestimonialsDisplay";
 
 // ── Lightbox ──────────────────────────────────────────────────────────────────
 const Lightbox = ({ images, startIndex, onClose }: {
@@ -713,6 +714,9 @@ const VendorProfile = () => {
                 )}
               </div>
 
+              {/* Testimonials */}
+              <VendorTestimonialsDisplay vendorId={vendor.id} />
+
               {/* Comments */}
               <Card className="border-border/50">
                 <CardContent className="p-4">
@@ -892,4 +896,3 @@ const VendorProfile = () => {
 };
 
 export default VendorProfile;
-
