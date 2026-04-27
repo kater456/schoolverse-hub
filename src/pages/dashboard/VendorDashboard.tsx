@@ -25,6 +25,7 @@ import { compressImage } from "@/lib/compressImage";
 import VendorControlCenter from "@/components/vendor/VendorControlCenter";
 import VendorDealManager from "@/components/vendor/VendorDealManager";
 import VendorStoreUpgrade from "@/components/vendor/VendorStoreUpgrade";
+import VendorTestimonialManager from "@/components/vendor/VendorTestimonialManager";
 
 const VendorDashboard = () => {
   const { user, signOut } = useAuth();
@@ -666,6 +667,7 @@ const VendorDashboard = () => {
             <TabsTrigger value="control"><ToggleLeft className="h-4 w-4 mr-1" />Controls</TabsTrigger>
             <TabsTrigger value="deals"><Flame className="h-4 w-4 mr-1" />Deals</TabsTrigger>
             <TabsTrigger value="store" data-tab="store"><Crown className="h-4 w-4 mr-1" />Store</TabsTrigger>
+            <TabsTrigger value="testimonials"><MessageSquare className="h-4 w-4 mr-1" />Reviews</TabsTrigger>
             <TabsTrigger value="settings"><Settings className="h-4 w-4 mr-1" />Settings</TabsTrigger>
           </TabsList>
 
@@ -1093,6 +1095,11 @@ const VendorDashboard = () => {
               vendor={vendor}
               onUpdate={(v) => setVendor((prev: any) => ({ ...prev, ...v }))}
             />
+          </TabsContent>
+
+          {/* ── Testimonials Tab ── */}
+          <TabsContent value="testimonials">
+            <VendorTestimonialManager vendorId={vendor.id} />
           </TabsContent>
 
           {/* ── Settings Tab ── */}
