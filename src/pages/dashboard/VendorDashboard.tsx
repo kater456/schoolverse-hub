@@ -1077,7 +1077,11 @@ const VendorDashboard = () => {
           </TabsContent>
 
           {/* ── Control Center Tab ── */}
-          <TabsContent value="control">
+          <TabsContent value="control" className="space-y-4">
+            <VendorProfilePicture
+              vendor={vendor}
+              onUpdate={(updates) => setVendor((v: any) => ({ ...v, ...updates }))}
+            />
             <VendorControlCenter
               vendor={vendor}
               onUpdate={(updates) => setVendor((v: any) => ({ ...v, ...updates }))}
