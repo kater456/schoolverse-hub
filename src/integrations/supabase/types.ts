@@ -364,7 +364,7 @@ export type Database = {
           is_active: boolean
           link_url: string | null
           media_type: string
-          media_url: string
+          media_url: string | null
           school_ids: string[] | null
           target_type: string | null
           title: string
@@ -384,7 +384,7 @@ export type Database = {
           is_active?: boolean
           link_url?: string | null
           media_type?: string
-          media_url: string
+          media_url?: string | null
           school_ids?: string[] | null
           target_type?: string | null
           title?: string
@@ -404,7 +404,7 @@ export type Database = {
           is_active?: boolean
           link_url?: string | null
           media_type?: string
-          media_url?: string
+          media_url?: string | null
           school_ids?: string[] | null
           target_type?: string | null
           title?: string
@@ -416,42 +416,69 @@ export type Database = {
       platform_settings: {
         Row: {
           allow_registrations: boolean | null
+          auto_approve_ghana: boolean | null
+          auto_disable_inactive: boolean | null
+          auto_flag_keywords: boolean | null
+          auto_notify_pending: boolean | null
+          auto_revoke_expired_promo: boolean | null
+          auto_votw_reminder: boolean | null
           created_at: string
           email_notifications: boolean | null
           featured_reels_enabled: boolean | null
           id: string
+          inactivity_days: number | null
           maintenance_mode: boolean | null
           paystack_required: boolean | null
           platform_name: string | null
+          store_upgrade_enabled: boolean | null
           support_email: string | null
           support_phone: string | null
           updated_at: string
+          verification_payment_enabled: boolean | null
         }
         Insert: {
           allow_registrations?: boolean | null
+          auto_approve_ghana?: boolean | null
+          auto_disable_inactive?: boolean | null
+          auto_flag_keywords?: boolean | null
+          auto_notify_pending?: boolean | null
+          auto_revoke_expired_promo?: boolean | null
+          auto_votw_reminder?: boolean | null
           created_at?: string
           email_notifications?: boolean | null
           featured_reels_enabled?: boolean | null
           id?: string
+          inactivity_days?: number | null
           maintenance_mode?: boolean | null
           paystack_required?: boolean | null
           platform_name?: string | null
+          store_upgrade_enabled?: boolean | null
           support_email?: string | null
           support_phone?: string | null
           updated_at?: string
+          verification_payment_enabled?: boolean | null
         }
         Update: {
           allow_registrations?: boolean | null
+          auto_approve_ghana?: boolean | null
+          auto_disable_inactive?: boolean | null
+          auto_flag_keywords?: boolean | null
+          auto_notify_pending?: boolean | null
+          auto_revoke_expired_promo?: boolean | null
+          auto_votw_reminder?: boolean | null
           created_at?: string
           email_notifications?: boolean | null
           featured_reels_enabled?: boolean | null
           id?: string
+          inactivity_days?: number | null
           maintenance_mode?: boolean | null
           paystack_required?: boolean | null
           platform_name?: string | null
+          store_upgrade_enabled?: boolean | null
           support_email?: string | null
           support_phone?: string | null
           updated_at?: string
+          verification_payment_enabled?: boolean | null
         }
         Relationships: []
       }
@@ -1478,7 +1505,11 @@ export type Database = {
           social_twitter: string | null
           status_message: string | null
           stock_status: string | null
+          store_accent_color: string | null
+          store_design_saves: number | null
+          store_display_view: string | null
           store_layout: string | null
+          store_name_position: string | null
           store_number: number | null
           store_theme_color: string | null
           store_upgrade_expires_at: string | null
@@ -1522,7 +1553,11 @@ export type Database = {
           social_twitter?: string | null
           status_message?: string | null
           stock_status?: string | null
+          store_accent_color?: string | null
+          store_design_saves?: number | null
+          store_display_view?: string | null
           store_layout?: string | null
+          store_name_position?: string | null
           store_number?: number | null
           store_theme_color?: string | null
           store_upgrade_expires_at?: string | null
@@ -1566,7 +1601,11 @@ export type Database = {
           social_twitter?: string | null
           status_message?: string | null
           stock_status?: string | null
+          store_accent_color?: string | null
+          store_design_saves?: number | null
+          store_display_view?: string | null
           store_layout?: string | null
+          store_name_position?: string | null
           store_number?: number | null
           store_theme_color?: string | null
           store_upgrade_expires_at?: string | null
@@ -1598,6 +1637,57 @@ export type Database = {
             columns: ["school_id"]
             isOneToOne: false
             referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      votw_nominations: {
+        Row: {
+          created_at: string | null
+          id: string
+          nominated_by: string
+          note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          school_id: string | null
+          status: string
+          vendor_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          nominated_by: string
+          note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          school_id?: string | null
+          status?: string
+          vendor_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          nominated_by?: string
+          note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          school_id?: string | null
+          status?: string
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "votw_nominations_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "votw_nominations_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
             referencedColumns: ["id"]
           },
         ]
