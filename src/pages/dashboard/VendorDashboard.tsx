@@ -56,6 +56,12 @@ const VendorDashboard = () => {
   const [payingVerif,     setPayingVerif]     = useState(false);
   const [payingUpgrade,   setPayingUpgrade]   = useState(false);
 
+  // Paystack shop link ref-entry fallback
+  const [showUpgradeRefInput,  setShowUpgradeRefInput]  = useState(false);
+  const [showVerifRefInput,    setShowVerifRefInput]    = useState(false);
+  const [upgradeRef,           setUpgradeRef]           = useState("");
+  const [verifRef,             setVerifRef]             = useState("");
+
   const fetchVendorData = async () => {
     if (!user) return;
     const { data: v } = await supabase
@@ -123,13 +129,6 @@ const VendorDashboard = () => {
 
   useEffect(() => {
     if (!user) return;
-    // Load Paystack script for all payment buttons in this dashboard
-    if (!(window as any).PaystackPop) {
-      const script = document.createElement("script");
-      script.src   = "https://js.paystack.co/v1/inline.js";
-      script.async = true;
-      document.body.appendChild(script);
-    }
     fetchVendorData();
 
     const channel = supabase
@@ -261,112 +260,76 @@ const VendorDashboard = () => {
     setUploadingId(false);
   };
 
-  // ── Paystack script (shared, injected once) ──────────────────────────────────
-  useEffect(() => {
-    if ((window as any).PaystackPop) return;
-    if (document.querySelector('script[src="https://js.paystack.co/v1/inline.js"]')) return;
-    const s = document.createElement("script");
-    s.src = "https://js.paystack.co/v1/inline.js";
-    s.async = true;
-    document.body.appendChild(s);
-  }, []);
-
+  // ── Open Verified Badge payment (Paystack Shop) ───────────────────────────
   const openVerifPaystack = () => {
     if (!verifIdUrl) {
       toast({ title: "Upload your ID first", variant: "destructive" });
       return;
     }
-    if (!(window as any).PaystackPop) {
-      // Inject script if missing and ask user to retry
-      if (!document.querySelector('script[src="https://js.paystack.co/v1/inline.js"]')) {
-        const s = document.createElement("script");
-        s.src = "https://js.paystack.co/v1/inline.js";
-        s.async = true;
-        document.body.appendChild(s);
-      }
-      toast({ title: "Loading payment…", description: "Please tap the button again in a moment." });
-      return;
-    }
-    const PaystackPop = (window as any).PaystackPop;
-    const ref = `verif_${vendor.id}_${Date.now()}`;
-    const handler = PaystackPop.setup({
-      key: "pk_live_86d78a3f9090b60d4d45f2ee1caf54dda3198ad5",
-      email: user!.email,
-      amount: 150000, // ₦1,500 in kobo
-      currency: "NGN",
-      ref,
-      metadata: { vendor_id: vendor.id },
-      channels: ["card", "bank_transfer", "ussd", "bank"],
-      onClose: () => toast({ title: "Payment cancelled" }),
-      callback: async (response: any) => {
-        setPayingVerif(true);
-        try {
-          const { data, error } = await supabase.functions.invoke("verify-vendor-verification", {
-            body: { reference: response.reference, vendor_id: vendor.id },
-          });
-          if (error || !data?.success) throw new Error(error?.message || data?.error || "Verification failed");
-          toast({ title: "🎉 You're now Verified!", description: "Your verified badge is live on your profile." });
-          setVendor((v: any) => ({ ...v, is_verified: true }));
-        } catch (err: any) {
-          toast({
-            title: "Verification failed",
-            description: "Payment received but activation failed. Ref: " + response.reference,
-            variant: "destructive",
-          });
-        }
-        setPayingVerif(false);
-      },
-    });
-    handler.openIframe();
+    window.open("https://paystack.shop/pay/kx1eydu0s-", "_blank", "noopener,noreferrer");
+    setShowVerifRefInput(true);
   };
 
-  // ── Store upgrade payment (triggered from CTA card) ───────────────────────
-  const initiateUpgradePayment = () => {
-    if (!(window as any).PaystackPop) {
-      if (!document.querySelector('script[src="https://js.paystack.co/v1/inline.js"]')) {
-        const s = document.createElement("script");
-        s.src = "https://js.paystack.co/v1/inline.js";
-        s.async = true;
-        document.body.appendChild(s);
-      }
-      toast({ title: "Loading payment…", description: "Please tap again in a moment." });
+  // ── Verify badge with reference (after Paystack Shop payment) ────────────
+  const confirmVerifRef = async () => {
+    if (!verifRef.trim()) {
+      toast({ title: "Enter your transaction reference", variant: "destructive" });
       return;
     }
+    setPayingVerif(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("verify-vendor-verification", {
+        body: { reference: verifRef.trim(), vendor_id: vendor.id },
+      });
+      if (error || !data?.success) throw new Error(error?.message || data?.error || "Verification failed");
+      toast({ title: "🎉 You're now Verified!", description: "Your verified badge is live on your profile." });
+      setVendor((v: any) => ({ ...v, is_verified: true }));
+      setShowVerifRefInput(false);
+      setVerifRef("");
+    } catch (err: any) {
+      toast({
+        title: "Could not activate badge",
+        description: err.message + " — Double-check the reference, or contact support.",
+        variant: "destructive",
+      });
+    }
+    setPayingVerif(false);
+  };
+
+  // ── Open Store Upgrade payment (Paystack Shop) ────────────────────────────
+  const initiateUpgradePayment = () => {
     if (!user?.email) {
       toast({ title: "Please sign in first", variant: "destructive" });
       return;
     }
-    const PaystackPop = (window as any).PaystackPop;
-    const ref = `store_upgrade_${vendor.id}_${Date.now()}`;
-    const handler = PaystackPop.setup({
-      key: "pk_live_86d78a3f9090b60d4d45f2ee1caf54dda3198ad5",
-      email: user.email,
-      amount: 200000, // ₦2,000 in kobo
-      currency: "NGN",
-      ref,
-      metadata: { vendor_id: vendor.id },
-      channels: ["card", "bank_transfer", "ussd", "bank"],
-      onClose: () => toast({ title: "Payment cancelled" }),
-      callback: async (response: any) => {
-        setPayingUpgrade(true);
-        try {
-          const { data, error } = await supabase.functions.invoke("verify-store-upgrade", {
-            body: { reference: response.reference, vendor_id: vendor.id },
-          });
-          if (error || !data?.success) throw new Error(error?.message || data?.error || "Verification failed");
-          toast({ title: "🎉 Store Upgraded!", description: "Premium features active for 30 days." });
-          setVendor((v: any) => ({ ...v, is_store_upgraded: true, store_upgrade_expires_at: data.ends_at }));
-        } catch (err: any) {
-          toast({
-            title: "Payment received but activation failed",
-            description: "Contact support with ref: " + response.reference,
-            variant: "destructive",
-          });
-        }
-        setPayingUpgrade(false);
-      },
-    });
-    handler.openIframe();
+    window.open("https://paystack.shop/pay/7k6qdy068t", "_blank", "noopener,noreferrer");
+    setShowUpgradeRefInput(true);
+  };
+
+  // ── Confirm store upgrade with reference ──────────────────────────────────
+  const confirmUpgradeRef = async () => {
+    if (!upgradeRef.trim()) {
+      toast({ title: "Enter your transaction reference", variant: "destructive" });
+      return;
+    }
+    setPayingUpgrade(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("verify-store-upgrade", {
+        body: { reference: upgradeRef.trim(), vendor_id: vendor.id },
+      });
+      if (error || !data?.success) throw new Error(error?.message || data?.error || "Verification failed");
+      toast({ title: "🎉 Store Upgraded!", description: "Premium features active for 30 days." });
+      setVendor((v: any) => ({ ...v, is_store_upgraded: true, store_upgrade_expires_at: data.ends_at }));
+      setShowUpgradeRefInput(false);
+      setUpgradeRef("");
+    } catch (err: any) {
+      toast({
+        title: "Could not activate upgrade",
+        description: err.message + " — Double-check the reference, or contact support.",
+        variant: "destructive",
+      });
+    }
+    setPayingUpgrade(false);
   };
 
   // ── Mark delivered ───────────────────────────────────────────────────────────
@@ -590,23 +553,9 @@ const VendorDashboard = () => {
             {/* Get Verified CTA */}
             {!vendor.is_verified && (
               <div
-                className="relative rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-background p-5 overflow-hidden cursor-pointer group"
-                onClick={() => {
-                  // Click the verify tab
-                  const tab = document.querySelector('[value="verify"]') as HTMLElement;
-                  if (tab) tab.click();
-                  // Then scroll to the ID upload area
-                  setTimeout(() => {
-                    const uploadArea = document.getElementById("id-upload-area");
-                    if (uploadArea) {
-                      uploadArea.scrollIntoView({ behavior: "smooth", block: "center" });
-                    } else {
-                      document.querySelector('[data-tab="verify"]')?.scrollIntoView({ behavior: "smooth", block: "start" });
-                    }
-                  }, 150);
-                }}
+                className="relative rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-background p-5 overflow-hidden"
               >
-                <div className="absolute top-0 right-0 w-24 h-24 rounded-full bg-primary/10 -translate-y-8 translate-x-8" />
+                <div className="absolute top-0 right-0 w-24 h-24 rounded-full bg-primary/10 -translate-y-8 translate-x-8 pointer-events-none" />
                 <div className="relative">
                   <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center mb-3">
                     <ShieldCheck className="h-5 w-5 text-primary" />
@@ -615,13 +564,58 @@ const VendorDashboard = () => {
                   <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
                     Build trust with customers. Your ✅ badge shows on your profile and all listings.
                   </p>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 mb-3">
                     <span className="text-xs font-semibold text-primary">₦1,500 one-time</span>
                     <span className="text-[10px] text-muted-foreground">→ instant activation</span>
                   </div>
-                  <div className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-primary group-hover:gap-2.5 transition-all">
-                    Tap to get verified <span className="text-base">→</span>
-                  </div>
+
+                  {!showVerifRefInput ? (
+                    <button
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:gap-2.5 transition-all cursor-pointer"
+                      onClick={() => {
+                        const tab = document.querySelector('[value="verify"]') as HTMLElement;
+                        if (tab) tab.click();
+                        setTimeout(() => {
+                          const uploadArea = document.getElementById("id-upload-area");
+                          if (uploadArea) {
+                            uploadArea.scrollIntoView({ behavior: "smooth", block: "center" });
+                          } else {
+                            document.querySelector('[data-tab="verify"]')?.scrollIntoView({ behavior: "smooth", block: "start" });
+                          }
+                        }, 150);
+                      }}
+                    >
+                      Tap to get verified <span className="text-base">→</span>
+                    </button>
+                  ) : (
+                    <div className="space-y-2 mt-1">
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        ✅ Payment page opened. Paste your <strong>Transaction ID / Reference</strong> below after paying:
+                      </p>
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="e.g. T123456789"
+                          value={verifRef}
+                          onChange={(e) => setVerifRef(e.target.value)}
+                          className="h-8 text-xs flex-1"
+                        />
+                        <Button
+                          size="sm"
+                          className="h-8 text-xs bg-primary text-primary-foreground hover:bg-primary/90 shrink-0"
+                          onClick={confirmVerifRef}
+                          disabled={payingVerif || !verifRef.trim()}
+                        >
+                          {payingVerif ? <Loader2 className="h-3 w-3 animate-spin" /> : "Confirm"}
+                        </Button>
+                      </div>
+                      <button
+                        className="text-[10px] text-muted-foreground hover:text-foreground underline"
+                        onClick={() => { setShowVerifRefInput(false); setVerifRef(""); }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -629,10 +623,9 @@ const VendorDashboard = () => {
             {/* Store Upgrade CTA */}
             {(!vendor.is_store_upgraded || (vendor.store_upgrade_expires_at && new Date(vendor.store_upgrade_expires_at) < new Date())) && (
               <div
-                className="relative rounded-2xl border border-accent/30 bg-gradient-to-br from-accent/10 via-accent/5 to-background p-5 overflow-hidden cursor-pointer group"
-                onClick={initiateUpgradePayment}
+                className="relative rounded-2xl border border-accent/30 bg-gradient-to-br from-accent/10 via-accent/5 to-background p-5 overflow-hidden"
               >
-                <div className="absolute top-0 right-0 w-24 h-24 rounded-full bg-accent/10 -translate-y-8 translate-x-8" />
+                <div className="absolute top-0 right-0 w-24 h-24 rounded-full bg-accent/10 -translate-y-8 translate-x-8 pointer-events-none" />
                 <div className="relative">
                   <div className="w-10 h-10 rounded-xl bg-accent/15 flex items-center justify-center mb-3">
                     <Crown className="h-5 w-5 text-accent" />
@@ -641,13 +634,47 @@ const VendorDashboard = () => {
                   <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
                     Custom banner, theme colors, product arrangement, and premium store layout.
                   </p>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 mb-3">
                     <span className="text-xs font-semibold text-accent">₦2,000/month</span>
                     <span className="text-[10px] text-muted-foreground">→ 30 days</span>
                   </div>
-                  <div className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-accent group-hover:gap-2.5 transition-all">
-                    {payingUpgrade ? "Processing…" : "Tap to pay & upgrade"} <span className="text-base">→</span>
-                  </div>
+
+                  {!showUpgradeRefInput ? (
+                    <button
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-accent hover:gap-2.5 transition-all cursor-pointer"
+                      onClick={initiateUpgradePayment}
+                    >
+                      Tap to pay &amp; upgrade <span className="text-base">→</span>
+                    </button>
+                  ) : (
+                    <div className="space-y-2 mt-1">
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        ✅ Payment page opened. Paste your <strong>Transaction ID / Reference</strong> below after paying:
+                      </p>
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="e.g. T123456789"
+                          value={upgradeRef}
+                          onChange={(e) => setUpgradeRef(e.target.value)}
+                          className="h-8 text-xs flex-1"
+                        />
+                        <Button
+                          size="sm"
+                          className="h-8 text-xs bg-accent text-accent-foreground hover:bg-accent/90 shrink-0"
+                          onClick={confirmUpgradeRef}
+                          disabled={payingUpgrade || !upgradeRef.trim()}
+                        >
+                          {payingUpgrade ? <Loader2 className="h-3 w-3 animate-spin" /> : "Confirm"}
+                        </Button>
+                      </div>
+                      <button
+                        className="text-[10px] text-muted-foreground hover:text-foreground underline"
+                        onClick={() => { setShowUpgradeRefInput(false); setUpgradeRef(""); }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -1068,6 +1095,35 @@ const VendorDashboard = () => {
                         You must upload your ID before you can pay
                       </p>
                     )}
+
+                    {/* Reference input — shown after payment link opened */}
+                    {showVerifRefInput && (
+                      <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-3">
+                        <p className="text-sm font-medium">✅ Payment page opened in a new tab</p>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          After paying, copy your <strong>Transaction ID / Reference</strong> from the Paystack receipt and paste it below. Your badge activates instantly.
+                        </p>
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="e.g. T123456789"
+                            value={verifRef}
+                            onChange={(e) => setVerifRef(e.target.value)}
+                            className="h-9 text-sm flex-1"
+                          />
+                          <Button
+                            className="h-9 bg-primary text-primary-foreground hover:bg-primary/90 shrink-0"
+                            onClick={confirmVerifRef}
+                            disabled={payingVerif || !verifRef.trim()}
+                          >
+                            {payingVerif ? <Loader2 className="h-4 w-4 animate-spin" /> : "Activate"}
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Can't find your reference? Check your email receipt from Paystack, or contact support.
+                        </p>
+                      </div>
+                    )}
+
                     <p className="text-xs text-muted-foreground text-center">
                       Your verified badge goes live immediately after payment is confirmed.
                     </p>
