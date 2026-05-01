@@ -23,6 +23,7 @@ import VendorVideoManager from "@/components/vendor/VendorVideoManager";
 import ThemeToggle from "@/components/ThemeToggle";
 import { compressImage } from "@/lib/compressImage";
 import VendorControlCenter from "@/components/vendor/VendorControlCenter";
+import VendorProfilePicture from "@/components/vendor/VendorProfilePicture";
 import VendorDealManager from "@/components/vendor/VendorDealManager";
 import VendorStoreUpgrade from "@/components/vendor/VendorStoreUpgrade";
 import VendorTestimonialManager from "@/components/vendor/VendorTestimonialManager";
@@ -1077,7 +1078,11 @@ const VendorDashboard = () => {
           </TabsContent>
 
           {/* ── Control Center Tab ── */}
-          <TabsContent value="control">
+          <TabsContent value="control" className="space-y-4">
+            <VendorProfilePicture
+              vendor={vendor}
+              onUpdate={(updates) => setVendor((v: any) => ({ ...v, ...updates }))}
+            />
             <VendorControlCenter
               vendor={vendor}
               onUpdate={(updates) => setVendor((v: any) => ({ ...v, ...updates }))}

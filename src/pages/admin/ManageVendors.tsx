@@ -123,7 +123,14 @@ const ManageVendors = () => {
     try { await fn(); } finally { setActionLoading(null); }
   };
 
-  const approveVendor    = (id: string) => run(id, () => patch(id, { is_approved: true }, "Vendor approved ✅"));
+  const approveVendor    = (id: string) => run(id, async () => {
+    const ok = await patch(id, { is_approved: true }, "Vendor approved ✅");
+    if (ok) {
+      supabase.functions.invoke("notify-super-admin", {
+        body: { type: "new_vendor", title: "New vendor joined", message: "A new vendor has been approved on the platform." },
+      }).catch(() => {});
+    }
+  });
   const removeVendor     = (id: string) => run(id, () => patch(id, { is_active: false  }, "Vendor removed"));
   const reactivateVendor = (id: string) => run(id, () => patch(id, { is_active: true, is_approved: false, is_suspended: false }, "Vendor restored to pending"));
   const overridePayment  = (id: string) => run(id, () => patch(id, { payment_status: "overridden" }, "Payment overridden ✅"));

@@ -352,9 +352,9 @@ const VendorStoreUpgrade = ({ vendor, onUpdate }: VendorStoreUpgradeProps) => {
     const ref = `store_upgrade_${vendor.id}_${Date.now()}`;
     const PaystackPop = (window as any).PaystackPop;
     const handler = PaystackPop.setup({
-      key: "pk_live_86d78a3f9090b60d4d45f2ee1caf54dda3198ad5",
+      key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || "pk_live_86d78a3f9090b60d4d45f2ee1caf54dda3198ad5",
       email: user!.email,
-      amount: 150000,
+      amount: 200000,
       currency: "NGN",
       ref,
       metadata: { vendor_id: vendor.id },
@@ -437,6 +437,7 @@ const VendorStoreUpgrade = ({ vendor, onUpdate }: VendorStoreUpgradeProps) => {
                 <li className="flex items-center gap-2"><Tag className="h-4 w-4 text-accent" /> Store name placement control</li>
               </ul>
               <Button
+                type="button"
                 onClick={initiateUpgradePayment}
                 disabled={paying}
                 className="w-full bg-gradient-to-r from-accent to-primary text-accent-foreground shadow-lg hover:shadow-xl"

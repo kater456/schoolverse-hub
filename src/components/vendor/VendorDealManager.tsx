@@ -62,6 +62,14 @@ const VendorDealManager = ({ vendorId }: { vendorId: string }) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Deal created! 🔥" });
+      // Notify super admin via email
+      supabase.functions.invoke("notify-super-admin", {
+        body: {
+          type: "new_deal",
+          title: `New deal: ${title}`,
+          message: `A vendor just posted a new deal "${title}" expiring ${new Date(expiresAt).toLocaleDateString()}.`,
+        },
+      }).catch(() => {});
       setTitle(""); setDescription(""); setOriginalPrice(""); setDealPrice(""); setExpiresAt("");
       setShowForm(false);
       fetchDeals();
