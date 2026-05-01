@@ -77,7 +77,7 @@ Deno.serve(async (req) => {
         vendor_id,
         payment_reference: reference,
         payment_status: "confirmed",
-        amount: 2000,
+        amount: 1500,
         starts_at: now.toISOString(),
         ends_at: endsAt.toISOString(),
       });
