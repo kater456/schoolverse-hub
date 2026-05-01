@@ -425,7 +425,9 @@ const VendorProfile = () => {
               <div className="flex items-start gap-3 mb-2 flex-wrap">
                 <div className="relative shrink-0">
                   <Avatar className="h-10 w-10 border-2 border-accent">
-                    {selectedImage ? <AvatarImage src={selectedImage} alt={vendor.business_name} /> : null}
+                    {vendor.profile_image_url ? (
+                      <AvatarImage src={vendor.profile_image_url} alt={vendor.business_name} className="object-cover" />
+                    ) : selectedImage ? <AvatarImage src={selectedImage} alt={vendor.business_name} /> : null}
                     <AvatarFallback className="bg-accent/10 text-accent">{vendor.business_name?.charAt(0) || "V"}</AvatarFallback>
                   </Avatar>
                   {vendorOnline && (
