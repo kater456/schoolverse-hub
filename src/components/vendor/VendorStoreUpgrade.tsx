@@ -176,6 +176,8 @@ const VendorStoreUpgrade = ({ vendor, onUpdate }: VendorStoreUpgradeProps) => {
   const [isUpgraded,      setIsUpgraded]      = useState(false);
   const [expiresAt,       setExpiresAt]       = useState<string | null>(null);
   const [paying,          setPaying]          = useState(false);
+  const [showRefInput,    setShowRefInput]    = useState(false);
+  const [manualRef,       setManualRef]       = useState("");
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const [savingDesign,    setSavingDesign]    = useState(false);
   const [designSaveCount, setDesignSaveCount] = useState(0);
@@ -324,60 +326,43 @@ const VendorStoreUpgrade = ({ vendor, onUpdate }: VendorStoreUpgradeProps) => {
   };
 
   // ── Payment script loader ─────────────────────────────────────────────────
-  useEffect(() => {
-    if ((window as any).PaystackPop) return; // already loaded
-    if (document.querySelector('script[src="https://js.paystack.co/v1/inline.js"]')) return; // already injected
-    const s = document.createElement("script");
-    s.src = "https://js.paystack.co/v1/inline.js";
-    s.async = true;
-    document.body.appendChild(s);
-  }, []);
+  // No longer needed for Paystack shop links — kept as comment for reference
 
   const initiateUpgradePayment = () => {
-    // If script not loaded yet, inject it and retry in 1.5s
-    if (!(window as any).PaystackPop) {
-      if (!document.querySelector('script[src="https://js.paystack.co/v1/inline.js"]')) {
-        const s = document.createElement("script");
-        s.src = "https://js.paystack.co/v1/inline.js";
-        s.async = true;
-        document.body.appendChild(s);
-      }
-      toast({ title: "Loading payment…", description: "Please click again in a moment." });
-      return;
-    }
     if (!user?.email) {
       toast({ title: "Please sign in first", variant: "destructive" });
       return;
     }
-    const ref = `store_upgrade_${vendor.id}_${Date.now()}`;
-    const PaystackPop = (window as any).PaystackPop;
-    const handler = PaystackPop.setup({
-      key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || "pk_live_86d78a3f9090b60d4d45f2ee1caf54dda3198ad5",
-      email: user!.email,
-      amount: 200000,
-      currency: "NGN",
-      ref,
-      metadata: { vendor_id: vendor.id },
-      onClose: () => toast({ title: "Payment cancelled" }),
-      callback: async (response: any) => {
-        setPaying(true);
-        try {
-          const { data, error } = await supabase.functions.invoke("verify-store-upgrade", {
-            body: { reference: response.reference, vendor_id: vendor.id },
-          });
-          if (error || !data?.success) throw new Error(error?.message || data?.error || "Verification failed");
-          const endsAt = data.ends_at;
-          toast({ title: "🎉 Store Upgraded!", description: "Premium features active for 30 days." });
-          setIsUpgraded(true);
-          setExpiresAt(endsAt);
-          onUpdate({ ...vendor, is_store_upgraded: true, store_upgrade_expires_at: endsAt });
-        } catch (err: any) {
-          toast({ title: "Error", description: "Payment received but activation failed. Ref: " + response.reference, variant: "destructive" });
-        }
-        setPaying(false);
-      },
-    });
-    handler.openIframe();
+    window.open("https://paystack.shop/pay/7k6qdy068t", "_blank", "noopener,noreferrer");
+    setShowRefInput(true);
+  };
+
+  const confirmUpgrade = async () => {
+    if (!manualRef.trim()) {
+      toast({ title: "Enter your transaction reference", variant: "destructive" });
+      return;
+    }
+    setPaying(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("verify-store-upgrade", {
+        body: { reference: manualRef.trim(), vendor_id: vendor.id },
+      });
+      if (error || !data?.success) throw new Error(error?.message || data?.error || "Verification failed");
+      const endsAt = data.ends_at;
+      toast({ title: "🎉 Store Upgraded!", description: "Premium features active for 30 days." });
+      setIsUpgraded(true);
+      setExpiresAt(endsAt);
+      onUpdate({ ...vendor, is_store_upgraded: true, store_upgrade_expires_at: endsAt });
+      setShowRefInput(false);
+      setManualRef("");
+    } catch (err: any) {
+      toast({
+        title: "Could not activate upgrade",
+        description: err.message + " — Double-check the reference, or contact support.",
+        variant: "destructive",
+      });
+    }
+    setPaying(false);
   };
 
   const daysLeft = expiresAt ? Math.max(0, Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 86400000)) : 0;
@@ -448,6 +433,40 @@ const VendorStoreUpgrade = ({ vendor, onUpdate }: VendorStoreUpgradeProps) => {
                   <><Crown className="h-4 w-4 mr-2" />Upgrade for ₦2,000/month</>
                 )}
               </Button>
+
+              {/* Reference input — shown after shop link opened */}
+              {showRefInput && (
+                <div className="rounded-lg border border-accent/30 bg-accent/5 p-4 space-y-3">
+                  <p className="text-sm font-medium">✅ Payment page opened in a new tab</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    After paying, copy your <strong>Transaction ID / Reference</strong> from the Paystack receipt and paste it below. Your store upgrades instantly.
+                  </p>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="e.g. T123456789"
+                      value={manualRef}
+                      onChange={(e) => setManualRef(e.target.value)}
+                      className="h-9 text-sm flex-1"
+                    />
+                    <Button
+                      className="h-9 bg-accent text-accent-foreground hover:bg-accent/90 shrink-0"
+                      onClick={confirmUpgrade}
+                      disabled={paying || !manualRef.trim()}
+                    >
+                      {paying ? <Loader2 className="h-4 w-4 animate-spin" /> : "Activate"}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Can't find your reference? Check your email receipt from Paystack, or contact support.
+                  </p>
+                  <button
+                    className="text-xs text-muted-foreground hover:text-foreground underline"
+                    onClick={() => { setShowRefInput(false); setManualRef(""); }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </CardContent>
