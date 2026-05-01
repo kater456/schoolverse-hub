@@ -58,9 +58,9 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Verify amount is at least ₦2,000 (200,000 kobo)
+    // Verify amount is at least ₦1,500 (150,000 kobo)
     const amountInKobo = paystackData.data.amount;
-    if (amountInKobo < 200000) {
+    if (amountInKobo < 150000) {
       return new Response(JSON.stringify({ error: "Insufficient payment amount" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
