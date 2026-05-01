@@ -79,6 +79,32 @@ export type Database = {
         }
         Relationships: []
       }
+      announcement_reads: {
+        Row: {
+          announcement_id: string
+          read_at: string
+          user_id: string
+        }
+        Insert: {
+          announcement_id: string
+          read_at?: string
+          user_id: string
+        }
+        Update: {
+          announcement_id?: string
+          read_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "announcement_reads_announcement_id_fkey"
+            columns: ["announcement_id"]
+            isOneToOne: false
+            referencedRelation: "platform_announcements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campus_locations: {
         Row: {
           created_at: string
@@ -410,6 +436,36 @@ export type Database = {
           title?: string
           updated_at?: string
           view_count?: number | null
+        }
+        Relationships: []
+      }
+      platform_announcements: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          related_id: string | null
+          school_id: string | null
+          title: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          related_id?: string | null
+          school_id?: string | null
+          title: string
+          type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          related_id?: string | null
+          school_id?: string | null
+          title?: string
+          type?: string
         }
         Relationships: []
       }
@@ -1497,6 +1553,7 @@ export type Database = {
           parent_vendor_id: string | null
           payment_reference: string | null
           payment_status: string | null
+          profile_image_url: string | null
           promoted_until: string | null
           reels_enabled: boolean | null
           school_id: string
@@ -1545,6 +1602,7 @@ export type Database = {
           parent_vendor_id?: string | null
           payment_reference?: string | null
           payment_status?: string | null
+          profile_image_url?: string | null
           promoted_until?: string | null
           reels_enabled?: boolean | null
           school_id: string
@@ -1593,6 +1651,7 @@ export type Database = {
           parent_vendor_id?: string | null
           payment_reference?: string | null
           payment_status?: string | null
+          profile_image_url?: string | null
           promoted_until?: string | null
           reels_enabled?: boolean | null
           school_id?: string
