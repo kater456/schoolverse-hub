@@ -354,7 +354,7 @@ const VendorStoreUpgrade = ({ vendor, onUpdate }: VendorStoreUpgradeProps) => {
     const handler = PaystackPop.setup({
       key: "pk_live_86d78a3f9090b60d4d45f2ee1caf54dda3198ad5",
       email: user!.email,
-      amount: 200000,
+      amount: 150000,
       currency: "NGN",
       ref,
       metadata: { vendor_id: vendor.id },
