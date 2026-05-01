@@ -23,6 +23,7 @@ import VendorVideoManager from "@/components/vendor/VendorVideoManager";
 import ThemeToggle from "@/components/ThemeToggle";
 import { compressImage } from "@/lib/compressImage";
 import VendorControlCenter from "@/components/vendor/VendorControlCenter";
+import VendorProfilePicture from "@/components/vendor/VendorProfilePicture";
 import VendorDealManager from "@/components/vendor/VendorDealManager";
 import VendorStoreUpgrade from "@/components/vendor/VendorStoreUpgrade";
 import VendorTestimonialManager from "@/components/vendor/VendorTestimonialManager";
