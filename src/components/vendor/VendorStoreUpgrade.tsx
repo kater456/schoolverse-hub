@@ -437,6 +437,7 @@ const VendorStoreUpgrade = ({ vendor, onUpdate }: VendorStoreUpgradeProps) => {
                 <li className="flex items-center gap-2"><Tag className="h-4 w-4 text-accent" /> Store name placement control</li>
               </ul>
               <Button
+                type="button"
                 onClick={initiateUpgradePayment}
                 disabled={paying}
                 className="w-full bg-gradient-to-r from-accent to-primary text-accent-foreground shadow-lg hover:shadow-xl"
