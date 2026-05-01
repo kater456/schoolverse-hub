@@ -30,6 +30,7 @@ interface Conversation {
   vendor_id: string | null;
   vendor_unread: number | null;
   buyer_unread: number | null;
+  is_flagged?: boolean | null;
   vendors?: {
     id: string;
     business_name: string;
