@@ -12,6 +12,7 @@ import PromotionNotification from "@/components/PromotionNotification";
 import PageTracker from "@/components/PageTracker";
 import ScrollToTop from "@/components/ScrollToTop";
 import AdPopup from "@/components/AdPopup";
+import PushPrompt from "@/components/PushPrompt";
 import { Loader2 } from "lucide-react";
 
 // ── Lazy-loaded pages (only downloaded when visited) ─────────────────────────
@@ -79,6 +80,7 @@ const App = () => (
         <AppDownloadPopup />
         <PromotionNotification />
         <AdPopup />
+        <PushPrompt />
         <BrowserRouter>
           <ScrollToTop />
           <PageTracker />
