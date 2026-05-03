@@ -644,6 +644,42 @@ export type Database = {
           },
         ]
       }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          last_used_at: string
+          p256dh: string
+          school_id: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          last_used_at?: string
+          p256dh: string
+          school_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          last_used_at?: string
+          p256dh?: string
+          school_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       ratings: {
         Row: {
           comment: string | null
@@ -1056,6 +1092,7 @@ export type Database = {
           deal_price: number | null
           description: string | null
           expires_at: string
+          expiry_notified: boolean
           id: string
           is_active: boolean | null
           original_price: number | null
@@ -1067,6 +1104,7 @@ export type Database = {
           deal_price?: number | null
           description?: string | null
           expires_at: string
+          expiry_notified?: boolean
           id?: string
           is_active?: boolean | null
           original_price?: number | null
@@ -1078,6 +1116,7 @@ export type Database = {
           deal_price?: number | null
           description?: string | null
           expires_at?: string
+          expiry_notified?: boolean
           id?: string
           is_active?: boolean | null
           original_price?: number | null
@@ -1756,6 +1795,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      dispatch_push: {
+        Args: {
+          _body: string
+          _school_id?: string
+          _tag?: string
+          _title: string
+          _url: string
+        }
+        Returns: undefined
+      }
       get_my_role_details: {
         Args: never
         Returns: {
@@ -1791,6 +1840,7 @@ export type Database = {
       is_super_admin: { Args: { _user_id?: string }; Returns: boolean }
       is_trial_active: { Args: { _user_id: string }; Returns: boolean }
       is_vendor_featured: { Args: { _vendor_id: string }; Returns: boolean }
+      notify_expiring_deals: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role:
