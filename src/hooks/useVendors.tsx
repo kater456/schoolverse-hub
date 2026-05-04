@@ -90,34 +90,75 @@ export const useVendors = (options?: UseVendorsOptions) => {
   return { vendors, isLoading, refetch: fetchVendors };
 };
 
-export const useAllVendors = () => {
+/**
+ * Scalable admin vendors hook:
+ * - server-side pagination (default 50/page)
+ * - server-side search (ilike on business_name / category / contact_number)
+ * - status filter (active | rejected | all)
+ * - realtime subscription so new/updated vendors appear live
+ */
+export interface UseAllVendorsOpts {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  status?: "active" | "rejected" | "all";
+}
+
+export const useAllVendors = (opts: UseAllVendorsOpts = {}) => {
+  const { page = 0, pageSize = 50, search = "", status = "all" } = opts;
   const [vendors, setVendors] = useState<any[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchAllVendors = async () => {
     setIsLoading(true);
-    const { data, error } = await supabase
+    let q = supabase
       .from("vendors")
-      .select(`
-        *,
-        schools(name),
-        campus_locations(name),
-        vendor_images(id, image_url, is_primary),
-        vendor_private_details(*),
-        vendor_ratings(rating),
-        vendor_comments(id)
-      `)
+      .select(
+        `*, schools(name), campus_locations(name), vendor_images(id, image_url, is_primary), vendor_private_details(*), vendor_ratings(rating), vendor_comments(id)`,
+        { count: "exact" }
+      )
       .order("created_at", { ascending: false });
 
-    if (!error && data) {
-      setVendors(data);
+    if (status === "active") q = q.neq("is_active", false);
+    if (status === "rejected") q = q.eq("is_active", false);
+
+    const term = search.trim();
+    if (term) {
+      const safe = term.replace(/[%,]/g, "");
+      q = q.or(
+        `business_name.ilike.%${safe}%,category.ilike.%${safe}%,contact_number.ilike.%${safe}%`
+      );
+    }
+
+    const from = page * pageSize;
+    const to = from + pageSize - 1;
+    q = q.range(from, to);
+
+    const { data, error, count } = await q;
+    if (!error) {
+      setVendors(data || []);
+      setTotalCount(count || 0);
     }
     setIsLoading(false);
   };
 
   useEffect(() => {
     fetchAllVendors();
-  }, []);
+    // realtime: refetch on any vendors mutation
+    const ch = supabase
+      .channel("admin-vendors-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "vendors" },
+        () => fetchAllVendors()
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(ch);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, pageSize, search, status]);
 
-  return { vendors, isLoading, refetch: fetchAllVendors };
+  return { vendors, totalCount, isLoading, refetch: fetchAllVendors };
 };
