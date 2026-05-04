@@ -402,13 +402,18 @@ const ManageVendors = () => {
   return (
     <AdminLayout>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <h1 className="text-2xl font-bold">Manage Vendors</h1>
+        <div>
+          <h1 className="text-2xl font-bold">Manage Vendors</h1>
+          <p className="text-xs text-muted-foreground mt-1">
+            {totalCount.toLocaleString()} total · live updates on
+          </p>
+        </div>
         <div className="relative w-full sm:w-72">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search vendors..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             className="pl-9"
           />
         </div>
@@ -417,10 +422,10 @@ const ManageVendors = () => {
       {isLoading ? (
         <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin" /></div>
       ) : (
-        <Tabs defaultValue="active" className="space-y-4">
+        <Tabs value={statusTab} onValueChange={(v) => { setStatusTab(v as any); setPage(0); }} className="space-y-4">
           <TabsList>
-            <TabsTrigger value="active">Active & Pending ({activeVendors.length})</TabsTrigger>
-            <TabsTrigger value="rejected">Rejected / Removed ({rejectedVendors.length})</TabsTrigger>
+            <TabsTrigger value="active">Active & Pending</TabsTrigger>
+            <TabsTrigger value="rejected">Rejected / Removed</TabsTrigger>
           </TabsList>
 
           <TabsContent value="active">
@@ -443,6 +448,17 @@ const ManageVendors = () => {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Pagination */}
+          <div className="flex items-center justify-between text-sm text-muted-foreground pt-2">
+            <span>Page {page + 1} of {totalPages} · {totalCount.toLocaleString()} vendors</span>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" disabled={page === 0}
+                onClick={() => setPage((p) => Math.max(0, p - 1))}>Previous</Button>
+              <Button size="sm" variant="outline" disabled={page + 1 >= totalPages}
+                onClick={() => setPage((p) => p + 1)}>Next</Button>
+            </div>
+          </div>
         </Tabs>
       )}
 
