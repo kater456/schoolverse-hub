@@ -197,19 +197,10 @@ const ManageVendors = () => {
     setPromoteLoading(false);
   };
 
-  const filterBySearch = (list: any[]) => {
-    if (!searchQuery.trim()) return list;
-    const q = searchQuery.toLowerCase();
-    return list.filter((v: any) =>
-      v.business_name?.toLowerCase().includes(q) ||
-      v.category?.toLowerCase().includes(q) ||
-      v.schools?.name?.toLowerCase().includes(q) ||
-      v.contact_number?.toLowerCase().includes(q)
-    );
-  };
-
-  const activeVendors   = filterBySearch(vendors.filter((v: any) => v.is_active !== false));
-  const rejectedVendors = filterBySearch(vendors.filter((v: any) => v.is_active === false));
+  // Server returns the right slice already; keep these for tab labels
+  const activeVendors   = vendors;
+  const rejectedVendors = vendors;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
   // ── Table renderer ──────────────────────────────────────────────────────────
   const renderTable = (list: any[], showReactivate = false) => (
