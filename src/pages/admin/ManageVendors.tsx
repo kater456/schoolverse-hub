@@ -49,7 +49,21 @@ const isPromoted = (v: any) => v?.promoted_until && new Date(v.promoted_until) >
 // ── Component ─────────────────────────────────────────────────────────────────
 
 const ManageVendors = () => {
-  const { vendors, isLoading, refetch } = useAllVendors();
+  const [page, setPage] = useState(0);
+  const pageSize = 50;
+  const [statusTab, setStatusTab] = useState<"active" | "rejected">("active");
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // debounce search → server query
+  useEffect(() => {
+    const t = setTimeout(() => { setSearchQuery(searchInput.trim()); setPage(0); }, 350);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  const { vendors, totalCount, isLoading, refetch } = useAllVendors({
+    page, pageSize, search: searchQuery, status: statusTab,
+  });
   const { toast } = useToast();
 
   const [detailVendor,   setDetailVendor]   = useState<any>(null);
@@ -57,7 +71,6 @@ const ManageVendors = () => {
   const [promoteDays,    setPromoteDays]    = useState("");
   const [actionLoading,  setActionLoading]  = useState<string | null>(null);
   const [promoteLoading, setPromoteLoading] = useState(false);
-  const [searchQuery,    setSearchQuery]    = useState("");
 
   // School change state
   const [schools,          setSchools]          = useState<any[]>([]);
