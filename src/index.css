@@ -4,39 +4,38 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 
+  /* 
   Campus Market Design System
-  A professional multi-tenant school marketplace platform
-  Color Palette: Deep Navy, Warm Amber, Clean Grays
+  Brand: Deep Teal + Vibrant Orange
 */
 
 @layer base {
   :root {
     /* Core Brand Colors */
-    --background: 220 20% 98%;
-    --foreground: 222 47% 11%;
+    --background: 180 25% 98%;
+    --foreground: 185 60% 10%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 185 60% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 185 60% 10%;
 
-    /* Primary: Deep Navy Blue - Trust & Professionalism */
-    --primary: 222 47% 20%;
-    --primary-foreground: 210 40% 98%;
+    /* Primary: Deep Teal */
+    --primary: 184 76% 24%;
+    --primary-foreground: 180 25% 98%;
 
-    /* Secondary: Soft Blue Gray */
-    --secondary: 215 25% 94%;
-    --secondary-foreground: 222 47% 20%;
+    /* Secondary: Soft Teal Gray */
+    --secondary: 184 25% 93%;
+    --secondary-foreground: 184 76% 20%;
 
-    /* Muted: Subtle Gray */
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%;
+    /* Muted */
+    --muted: 184 16% 95%;
+    --muted-foreground: 185 14% 42%;
 
-    /* Accent: Warm Amber - Action & Energy */
-    --accent: 38 92% 50%;
-    --accent-foreground: 222 47% 11%;
+    /* Accent: Vibrant Orange */
+    --accent: 22 95% 54%;
+    --accent-foreground: 0 0% 100%;
 
     /* Success: Educational Green */
     --success: 142 71% 45%;
