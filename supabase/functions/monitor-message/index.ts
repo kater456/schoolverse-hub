@@ -94,8 +94,9 @@ Rules:
         try {
           const clean = text.replace(/```json|```/g, "").trim();
           const parsed = JSON.parse(clean);
-          flagged = parsed.is_suspicious || false;
-          flagReason = parsed.flag_reason || null;
+          // AI can escalate but never downgrade a regex-detected flag
+          flagged = flagged || parsed.is_suspicious || false;
+          flagReason = flagReason || parsed.flag_reason || null;
           detectedPrice = parsed.detected_price || null;
           summary = parsed.summary || null;
 
