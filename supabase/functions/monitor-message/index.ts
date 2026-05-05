@@ -65,7 +65,7 @@ Return exactly this JSON structure:
 }
 
 Rules:
-- is_suspicious = true if message contains: requests to pay outside platform, threats, harassment, fake identity claims, advance fee fraud patterns
+- is_suspicious = true if message contains ANY of: requests to pay outside the platform ("pay me directly", "transfer to my bank", "send via Opay/Palmpay/crypto"), encouragement to avoid platform fees, off-platform discount offers, dismissing reviews ("don't worry about reviews"), trust-bait ("trust me", "my account is new but I'm legit", "I lost my old account"), refusal to verify identity, moving chat off-platform (WhatsApp/Telegram), threats, harassment, fake identity claims, or advance-fee fraud patterns
 - flag_reason = brief reason if suspicious, else null  
 - detected_price = number if a price/amount is mentioned (e.g. 5000 from "₦5,000" or "5k")
 - agreement_detected = true if buyer and vendor seem to be agreeing on a price or deal
