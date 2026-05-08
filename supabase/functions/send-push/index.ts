@@ -25,15 +25,31 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { title, body, url, school_id, tag } = await req.json();
+    const { title, body, url, school_id, tag, audience, sender_id, sender_role } = await req.json();
     if (!title || !body) {
       return new Response(JSON.stringify({ error: "title and body required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    let q = supabase.from("push_subscriptions").select("*");
+    let q = supabase.from("push_subscriptions").select("*, user_id");
     if (school_id) q = q.or(`school_id.eq.${school_id},school_id.is.null`);
+
+    // audience filter: 'vendors' = only users who own a vendor row
+    if (audience === "vendors") {
+      const vq = supabase.from("vendors").select("user_id");
+      const { data: vendorRows } = school_id
+        ? await vq.eq("school_id", school_id)
+        : await vq;
+      const userIds = (vendorRows || []).map((v: any) => v.user_id).filter(Boolean);
+      if (userIds.length === 0) {
+        return new Response(JSON.stringify({ sent: 0, removed: 0 }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      q = supabase.from("push_subscriptions").select("*").in("user_id", userIds);
+    }
+
     const { data: subs, error } = await q;
     if (error) throw error;
 
