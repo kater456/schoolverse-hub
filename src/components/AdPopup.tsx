@@ -126,7 +126,7 @@ const AdPopup = () => {
       hasShown.current = true;
       setAds(eligible);
       setCurrentIdx(0);
-      setCountdown(30);
+      setCountdown(eligible[0]?.display_duration || 60);
       setVisible(true);
       trackView(eligible[0]);
     };
