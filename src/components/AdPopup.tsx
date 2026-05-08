@@ -144,7 +144,7 @@ const AdPopup = () => {
           if (currentIdx < ads.length - 1) {
             const next = currentIdx + 1;
             setCurrentIdx(next);
-            setCountdown(30);
+            setCountdown(ads[next]?.display_duration || 60);
             trackView(ads[next]);
           } else {
             setVisible(false);
@@ -160,20 +160,24 @@ const AdPopup = () => {
   const trackView = async (ad: any) => {
     if (!ad?.id) return;
     try {
-      await supabase
-        .from("platform_ads")
-        .update({ view_count: (ad.view_count || 0) + 1 } as any)
-        .eq("id", ad.id);
+      await (supabase.from("ad_events") as any).insert({
+        ad_id: ad.id,
+        event_type: "view",
+        school_id: userSchoolId,
+        user_id: user?.id ?? null,
+      });
     } catch (_) {}
   };
 
   const trackClick = async (ad: any) => {
     if (!ad?.id) return;
     try {
-      await supabase
-        .from("platform_ads")
-        .update({ click_count: (ad.click_count || 0) + 1 } as any)
-        .eq("id", ad.id);
+      await (supabase.from("ad_events") as any).insert({
+        ad_id: ad.id,
+        event_type: "click",
+        school_id: userSchoolId,
+        user_id: user?.id ?? null,
+      });
     } catch (_) {}
   };
 
@@ -183,7 +187,7 @@ const AdPopup = () => {
     if (currentIdx < ads.length - 1) {
       const next = currentIdx + 1;
       setCurrentIdx(next);
-      setCountdown(30);
+      setCountdown(ads[next]?.display_duration || 60);
       trackView(ads[next]);
     } else {
       setVisible(false);
@@ -193,7 +197,7 @@ const AdPopup = () => {
   const goPrev = () => {
     if (currentIdx > 0) {
       setCurrentIdx(currentIdx - 1);
-      setCountdown(30);
+      setCountdown(ads[currentIdx - 1]?.display_duration || 60);
     }
   };
 
