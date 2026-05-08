@@ -761,6 +761,15 @@ const SubAdminDashboard = () => {
             </div>
           )}
 
+          {/* ── NOTIFICATIONS ── */}
+          {activeTab === "notifications" && (
+            <div className="space-y-4">
+              <h1 className="text-2xl font-bold flex items-center gap-2"><Bell className="h-6 w-6 text-primary" />Push Notifications</h1>
+              <p className="text-sm text-muted-foreground">Send updates to vendors on your campus. Super admins are notified of all broadcasts.</p>
+              <PushBroadcastPanel scope="sub_admin" />
+            </div>
+          )}
+
           {/* ── FULL MANAGEMENT ── */}
           {activeTab === "management" && (
             <div className="space-y-4">
