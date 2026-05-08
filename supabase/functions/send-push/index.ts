@@ -69,7 +69,19 @@ Deno.serve(async (req) => {
       await supabase.from("push_subscriptions").delete().in("endpoint", stale);
     }
 
-    return new Response(JSON.stringify({ sent: (subs?.length || 0) - stale.length, removed: stale.length }), {
+    const sentCount = (subs?.length || 0) - stale.length;
+
+    // Log broadcast for audit (admin sees sub-admin sends)
+    if (sender_id) {
+      await supabase.from("admin_activity_log").insert({
+        admin_id: sender_id,
+        action: "push_broadcast",
+        target_type: "push",
+        details: { title, body, url, school_id, audience, tag, sender_role, recipients: sentCount },
+      });
+    }
+
+    return new Response(JSON.stringify({ sent: sentCount, removed: stale.length }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e: any) {
