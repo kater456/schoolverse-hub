@@ -57,6 +57,7 @@ const NAV = [
   { key: "performance",  label: "Performance",  icon: TrendingUp },
   { key: "messages",     label: "Messages",     icon: MessageCircle, badge: "flagged" },
   { key: "votw",         label: "VOTW",         icon: Trophy },
+  { key: "notifications", label: "Notifications", icon: Bell },
   { key: "management",   label: "Full Manage",  icon: Settings },
 ];
 
