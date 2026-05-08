@@ -8,7 +8,11 @@ const corsHeaders = {
 
 const VAPID_PUBLIC = Deno.env.get("VAPID_PUBLIC_KEY")!;
 const VAPID_PRIVATE = Deno.env.get("VAPID_PRIVATE_KEY")!;
-const VAPID_SUBJECT = Deno.env.get("VAPID_SUBJECT") || "mailto:calebworks4@gmail.com";
+let VAPID_SUBJECT = Deno.env.get("VAPID_SUBJECT") || "mailto:calebworks4@gmail.com";
+// Normalize: web-push requires mailto: or https:// URL
+if (VAPID_SUBJECT && !VAPID_SUBJECT.startsWith("mailto:") && !VAPID_SUBJECT.startsWith("http")) {
+  VAPID_SUBJECT = `mailto:${VAPID_SUBJECT}`;
+}
 
 webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE);
 
