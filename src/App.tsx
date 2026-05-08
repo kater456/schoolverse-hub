@@ -44,6 +44,7 @@ const ManageAds            = lazy(() => import("./pages/admin/ManageAds"));
 const AdminAnalytics       = lazy(() => import("./pages/admin/AdminAnalytics"));
 const AdminChats           = lazy(() => import("./pages/admin/AdminChats"));
 const ManageSubAdmins      = lazy(() => import("./pages/admin/ManageSubAdmins"));
+const AdminNotifications   = lazy(() => import("./pages/admin/AdminNotifications"));
 
 // Dashboards
 const VendorDashboard   = lazy(() => import("./pages/dashboard/VendorDashboard"));
