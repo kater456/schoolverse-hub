@@ -504,6 +504,7 @@ const AdminDashboard = () => {
               { label: "Locations",        href: "/admin/locations",  icon: MapPin,       desc: "Delivery zones" },
               { label: "Featured Listings",href: "/admin/featured",   icon: Star,         desc: "Confirm payments" },
               { label: "Sub-Admins",       href: "/admin/sub-admins", icon: ShieldCheck,  desc: "Campus managers" },
+              { label: "Push Notifications", href: "/admin/notifications", icon: Bell,    desc: "Broadcast to users" },
             ].map(({ label, href, icon: Icon, desc }) => (
               <Link key={href} to={href}>
                 <div className="flex items-start gap-2.5 p-3 rounded-xl border border-border/50 hover:border-accent/40 hover:bg-accent/4 transition-all cursor-pointer group">
