@@ -13,7 +13,7 @@ import {
   Activity, CreditCard, UserPlus, Wrench, Film, Settings, MessageSquare,
   Check, X, AlertTriangle, ArrowRight, BarChart3, Building2, MapPin,
   Megaphone, ShieldCheck, Zap, Globe, Trophy, Crown, Eye,
-  ChevronRight, RefreshCw, CircleCheck, CircleX, Loader2,
+  ChevronRight, RefreshCw, CircleCheck, CircleX, Loader2, Bell,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import {
