@@ -19,6 +19,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import ThemeToggle from "@/components/ThemeToggle";
 import ManageVendorsSubAdmin from "@/pages/admin/ManageVendorsSubAdmin";
+import PushBroadcastPanel from "@/components/PushBroadcastPanel";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, BarChart, Bar,
@@ -57,6 +58,7 @@ const NAV = [
   { key: "performance",  label: "Performance",  icon: TrendingUp },
   { key: "messages",     label: "Messages",     icon: MessageCircle, badge: "flagged" },
   { key: "votw",         label: "VOTW",         icon: Trophy },
+  { key: "notifications", label: "Notifications", icon: Bell },
   { key: "management",   label: "Full Manage",  icon: Settings },
 ];
 
@@ -757,6 +759,15 @@ const SubAdminDashboard = () => {
                   )}
                 </CardContent>
               </Card>
+            </div>
+          )}
+
+          {/* ── NOTIFICATIONS ── */}
+          {activeTab === "notifications" && (
+            <div className="space-y-4">
+              <h1 className="text-2xl font-bold flex items-center gap-2"><Bell className="h-6 w-6 text-primary" />Push Notifications</h1>
+              <p className="text-sm text-muted-foreground">Send updates to vendors on your campus. Super admins are notified of all broadcasts.</p>
+              <PushBroadcastPanel scope="sub_admin" />
             </div>
           )}
 

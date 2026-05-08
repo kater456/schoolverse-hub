@@ -8,7 +8,11 @@ const corsHeaders = {
 
 const VAPID_PUBLIC = Deno.env.get("VAPID_PUBLIC_KEY")!;
 const VAPID_PRIVATE = Deno.env.get("VAPID_PRIVATE_KEY")!;
-const VAPID_SUBJECT = Deno.env.get("VAPID_SUBJECT") || "mailto:calebworks4@gmail.com";
+let VAPID_SUBJECT = Deno.env.get("VAPID_SUBJECT") || "mailto:calebworks4@gmail.com";
+// Normalize: web-push requires mailto: or https:// URL
+if (VAPID_SUBJECT && !VAPID_SUBJECT.startsWith("mailto:") && !VAPID_SUBJECT.startsWith("http")) {
+  VAPID_SUBJECT = `mailto:${VAPID_SUBJECT}`;
+}
 
 webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE);
 
@@ -21,15 +25,31 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { title, body, url, school_id, tag } = await req.json();
+    const { title, body, url, school_id, tag, audience, sender_id, sender_role } = await req.json();
     if (!title || !body) {
       return new Response(JSON.stringify({ error: "title and body required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    let q = supabase.from("push_subscriptions").select("*");
+    let q = supabase.from("push_subscriptions").select("*, user_id");
     if (school_id) q = q.or(`school_id.eq.${school_id},school_id.is.null`);
+
+    // audience filter: 'vendors' = only users who own a vendor row
+    if (audience === "vendors") {
+      const vq = supabase.from("vendors").select("user_id");
+      const { data: vendorRows } = school_id
+        ? await vq.eq("school_id", school_id)
+        : await vq;
+      const userIds = (vendorRows || []).map((v: any) => v.user_id).filter(Boolean);
+      if (userIds.length === 0) {
+        return new Response(JSON.stringify({ sent: 0, removed: 0 }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      q = supabase.from("push_subscriptions").select("*").in("user_id", userIds);
+    }
+
     const { data: subs, error } = await q;
     if (error) throw error;
 
@@ -49,7 +69,19 @@ Deno.serve(async (req) => {
       await supabase.from("push_subscriptions").delete().in("endpoint", stale);
     }
 
-    return new Response(JSON.stringify({ sent: (subs?.length || 0) - stale.length, removed: stale.length }), {
+    const sentCount = (subs?.length || 0) - stale.length;
+
+    // Log broadcast for audit (admin sees sub-admin sends)
+    if (sender_id) {
+      await supabase.from("admin_activity_log").insert({
+        admin_id: sender_id,
+        action: "push_broadcast",
+        target_type: "push",
+        details: { title, body, url, school_id, audience, tag, sender_role, recipients: sentCount },
+      });
+    }
+
+    return new Response(JSON.stringify({ sent: sentCount, removed: stale.length }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e: any) {

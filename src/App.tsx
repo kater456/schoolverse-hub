@@ -44,6 +44,7 @@ const ManageAds            = lazy(() => import("./pages/admin/ManageAds"));
 const AdminAnalytics       = lazy(() => import("./pages/admin/AdminAnalytics"));
 const AdminChats           = lazy(() => import("./pages/admin/AdminChats"));
 const ManageSubAdmins      = lazy(() => import("./pages/admin/ManageSubAdmins"));
+const AdminNotifications   = lazy(() => import("./pages/admin/AdminNotifications"));
 
 // Dashboards
 const VendorDashboard   = lazy(() => import("./pages/dashboard/VendorDashboard"));
@@ -131,6 +132,9 @@ const App = () => (
               } />
               <Route path="/admin/sub-admins" element={
                 <ProtectedRoute allowedRoles={["super_admin"]}><ManageSubAdmins /></ProtectedRoute>
+              } />
+              <Route path="/admin/notifications" element={
+                <ProtectedRoute allowedRoles={["super_admin"]}><AdminNotifications /></ProtectedRoute>
               } />
 
               {/* Vendor Dashboard */}

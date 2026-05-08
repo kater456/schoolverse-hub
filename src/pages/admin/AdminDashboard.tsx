@@ -13,7 +13,7 @@ import {
   Activity, CreditCard, UserPlus, Wrench, Film, Settings, MessageSquare,
   Check, X, AlertTriangle, ArrowRight, BarChart3, Building2, MapPin,
   Megaphone, ShieldCheck, Zap, Globe, Trophy, Crown, Eye,
-  ChevronRight, RefreshCw, CircleCheck, CircleX, Loader2,
+  ChevronRight, RefreshCw, CircleCheck, CircleX, Loader2, Bell,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -504,6 +504,7 @@ const AdminDashboard = () => {
               { label: "Locations",        href: "/admin/locations",  icon: MapPin,       desc: "Delivery zones" },
               { label: "Featured Listings",href: "/admin/featured",   icon: Star,         desc: "Confirm payments" },
               { label: "Sub-Admins",       href: "/admin/sub-admins", icon: ShieldCheck,  desc: "Campus managers" },
+              { label: "Push Notifications", href: "/admin/notifications", icon: Bell,    desc: "Broadcast to users" },
             ].map(({ label, href, icon: Icon, desc }) => (
               <Link key={href} to={href}>
                 <div className="flex items-start gap-2.5 p-3 rounded-xl border border-border/50 hover:border-accent/40 hover:bg-accent/4 transition-all cursor-pointer group">
