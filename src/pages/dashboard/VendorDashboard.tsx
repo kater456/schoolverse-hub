@@ -400,7 +400,7 @@ const VendorDashboard = () => {
     const vendorCountry = vendor.country || "Nigeria";
     const isPendingPayment = vendorCountry === "Nigeria" && vendor.payment_status === "unpaid";
 
-    const retryPayment = () => {
+    const retryPayment = async () => {
       if (!(window as any).PaystackPop) {
         if (!document.querySelector('script[src="https://js.paystack.co/v1/inline.js"]')) {
           const s = document.createElement("script");
@@ -411,16 +411,17 @@ const VendorDashboard = () => {
         toast({ title: "Loading payment…", description: "Please tap again in a moment." });
         return;
       }
+      const plan = await resolvePlan("registration");
       const PaystackPop = (window as any).PaystackPop;
       const ref = `vr_${vendor.id}_${Date.now()}`;
       const handler = PaystackPop.setup({
         key: "pk_live_86d78a3f9090b60d4d45f2ee1caf54dda3198ad5",
         email: user!.email,
-        amount: 120000, // ₦1,200 in kobo
-        currency: "NGN",
+        amount: plan.amountSubunits,
+        currency: plan.currency,
         ref,
-        metadata: { vendor_id: vendor.id },
-        channels: ["card", "bank_transfer", "ussd", "bank"],
+        metadata: { vendor_id: vendor.id, plan: "registration" },
+        channels: plan.channels,
         onClose: () => toast({ title: "Payment window closed" }),
         callback: async (response: any) => {
           try {
