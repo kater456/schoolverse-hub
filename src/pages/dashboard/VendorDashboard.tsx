@@ -274,13 +274,12 @@ const VendorDashboard = () => {
     document.body.appendChild(s);
   }, []);
 
-  const openVerifPaystack = () => {
+  const openVerifPaystack = async () => {
     if (!verifIdUrl) {
       toast({ title: "Upload your ID first", variant: "destructive" });
       return;
     }
     if (!(window as any).PaystackPop) {
-      // Inject script if missing and ask user to retry
       if (!document.querySelector('script[src="https://js.paystack.co/v1/inline.js"]')) {
         const s = document.createElement("script");
         s.src = "https://js.paystack.co/v1/inline.js";
@@ -290,16 +289,17 @@ const VendorDashboard = () => {
       toast({ title: "Loading payment…", description: "Please tap the button again in a moment." });
       return;
     }
+    const plan = await resolvePlan("verification");
     const PaystackPop = (window as any).PaystackPop;
     const ref = `verif_${vendor.id}_${Date.now()}`;
     const handler = PaystackPop.setup({
       key: "pk_live_86d78a3f9090b60d4d45f2ee1caf54dda3198ad5",
       email: user!.email,
-      amount: 150000, // ₦1,500 in kobo
-      currency: "NGN",
+      amount: plan.amountSubunits,
+      currency: plan.currency,
       ref,
-      metadata: { vendor_id: vendor.id },
-      channels: ["card", "bank_transfer", "ussd", "bank"],
+      metadata: { vendor_id: vendor.id, plan: "verification" },
+      channels: plan.channels,
       onClose: () => toast({ title: "Payment cancelled" }),
       callback: async (response: any) => {
         setPayingVerif(true);
@@ -322,8 +322,6 @@ const VendorDashboard = () => {
     });
     handler.openIframe();
   };
-
-  // ── Store upgrade payment (triggered from CTA card) ───────────────────────
   const initiateUpgradePayment = () => {
     if (!(window as any).PaystackPop) {
       if (!document.querySelector('script[src="https://js.paystack.co/v1/inline.js"]')) {
