@@ -5,16 +5,20 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Multi-currency expected amounts (major units) for vendor registration
+const REGISTRATION_PRICES: Record<string, number> = {
+  NGN: 1200,
+  GHS: 12,
+  KES: 100,
+  ZAR: 15,
+};
+
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const PAYSTACK_SECRET_KEY = Deno.env.get("PAYSTACK_SECRET_KEY");
-    if (!PAYSTACK_SECRET_KEY) {
-      throw new Error("PAYSTACK_SECRET_KEY is not configured");
-    }
+    if (!PAYSTACK_SECRET_KEY) throw new Error("PAYSTACK_SECRET_KEY is not configured");
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -22,7 +26,6 @@ Deno.serve(async (req) => {
     );
 
     const { reference, vendor_id } = await req.json();
-
     if (!reference || !vendor_id) {
       return new Response(JSON.stringify({ error: "Missing reference or vendor_id" }), {
         status: 400,
@@ -30,7 +33,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Idempotency: skip if already approved
     const { data: existing } = await supabase
       .from("vendors")
       .select("id, is_approved")
@@ -38,18 +40,16 @@ Deno.serve(async (req) => {
       .single();
 
     if (existing?.is_approved) {
-      return new Response(
-        JSON.stringify({ success: true, message: "Already approved" }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+      return new Response(JSON.stringify({ success: true, message: "Already approved" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    // Verify payment with Paystack
     const paystackRes = await fetch(
       `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
       { headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` } },
     );
-
     const paystackData = await paystackRes.json();
 
     if (!paystackRes.ok || !paystackData.status || paystackData.data?.status !== "success") {
@@ -59,23 +59,31 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Verify amount is at least ₦1,200 (120,000 kobo)
-    if (paystackData.data.amount < 120000) {
+    // Validate currency + amount against expected
+    const currency = (paystackData.data.currency || "NGN").toUpperCase();
+    const amountSubunits = Number(paystackData.data.amount || 0);
+    const expectedMajor = REGISTRATION_PRICES[currency];
+
+    if (!expectedMajor) {
+      return new Response(JSON.stringify({ error: `Unsupported currency: ${currency}` }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    // Allow small rounding tolerance (1 subunit)
+    if (amountSubunits < expectedMajor * 100 - 1) {
       return new Response(JSON.stringify({ error: "Insufficient payment amount" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Approve vendor and mark payment as paid
     const { error: updateError } = await supabase
       .from("vendors")
       .update({ is_approved: true, payment_status: "paid", payment_reference: reference })
       .eq("id", vendor_id);
-
     if (updateError) throw updateError;
 
-    // In-app notification
     await supabase.from("vendor_notifications").insert({
       vendor_id,
       type: "approval",
