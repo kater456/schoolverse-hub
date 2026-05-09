@@ -29,6 +29,7 @@ import VendorStoreUpgrade from "@/components/vendor/VendorStoreUpgrade";
 import VendorTestimonialManager from "@/components/vendor/VendorTestimonialManager";
 import VendorAIAdvisor from "@/components/vendor/VendorAiAdvisor";
 import VendorCommunity from "@/components/vendor/VendorCommunity";
+import { resolvePlan } from "@/lib/pricing";
 
 const VendorDashboard = () => {
   const { user, signOut } = useAuth();
