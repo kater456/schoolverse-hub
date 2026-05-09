@@ -79,6 +79,79 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_community_posts: {
+        Row: {
+          content: string
+          created_at: string | null
+          generated_by: string | null
+          id: string
+          is_vendor_edited: boolean | null
+          vendor_edit: string | null
+          vendor_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          generated_by?: string | null
+          id?: string
+          is_vendor_edited?: boolean | null
+          vendor_edit?: string | null
+          vendor_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          generated_by?: string | null
+          id?: string
+          is_vendor_edited?: boolean | null
+          vendor_edit?: string | null
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_community_posts_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_conversations: {
+        Row: {
+          ai_reply: string
+          context_snapshot: Json | null
+          created_at: string | null
+          id: string
+          user_message: string
+          vendor_id: string
+        }
+        Insert: {
+          ai_reply: string
+          context_snapshot?: Json | null
+          created_at?: string | null
+          id?: string
+          user_message: string
+          vendor_id: string
+        }
+        Update: {
+          ai_reply?: string
+          context_snapshot?: Json | null
+          created_at?: string | null
+          id?: string
+          user_message?: string
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_conversations_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       announcement_reads: {
         Row: {
           announcement_id: string
