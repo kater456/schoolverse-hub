@@ -27,7 +27,7 @@ import VendorProfilePicture from "@/components/vendor/VendorProfilePicture";
 import VendorDealManager from "@/components/vendor/VendorDealManager";
 import VendorStoreUpgrade from "@/components/vendor/VendorStoreUpgrade";
 import VendorTestimonialManager from "@/components/vendor/VendorTestimonialManager";
-import VendorAIAdvisor from "@/components/vendor/VendorAIAdvisor";
+import VendorAIAdvisor from "@/components/vendor/VendorAiAdvisor";
 import VendorCommunity from "@/components/vendor/VendorCommunity";
 
 const VendorDashboard = () => {
