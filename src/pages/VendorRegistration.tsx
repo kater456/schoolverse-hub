@@ -18,6 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { CATEGORIES } from "@/lib/constants";
 import { Loader2, Upload, FileCheck, ShieldCheck, CheckCircle2, CreditCard, PenLine } from "lucide-react";
+import { resolvePlan } from "@/lib/pricing";
 import { compressImage } from "@/lib/compressImage";
 
 const vendorSchema = z.object({
