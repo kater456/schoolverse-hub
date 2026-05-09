@@ -51,9 +51,22 @@ Deno.serve(async (req) => {
       });
     }
 
-    const amount     = data.data.amount; // kobo
-    const minAmount  = plan === "top_listing_reels" ? 200000 : 100000;
-    if (amount < minAmount) {
+    // Multi-currency expected amounts (major units)
+    const FEATURED_PRICES: Record<string, Record<string, number>> = {
+      top_listing:       { NGN: 1000, GHS: 10, KES: 85,  ZAR: 12 },
+      top_listing_reels: { NGN: 2000, GHS: 20, KES: 170, ZAR: 25 },
+    };
+
+    const currency = (data.data.currency || "NGN").toUpperCase();
+    const amountSubunits = Number(data.data.amount || 0);
+    const expectedMajor = FEATURED_PRICES[plan]?.[currency];
+
+    if (!expectedMajor) {
+      return new Response(JSON.stringify({ error: `Unsupported currency or plan: ${currency}/${plan}` }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (amountSubunits < expectedMajor * 100 - 1) {
       return new Response(JSON.stringify({ error: "Insufficient payment amount" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -68,7 +81,7 @@ Deno.serve(async (req) => {
       vendor_id,
       payment_reference: reference,
       payment_status: "confirmed",
-      amount: amount / 100, // convert kobo to naira
+      amount: expectedMajor,
       starts_at: now.toISOString(),
       ends_at: endsAt.toISOString(),
       plan,
