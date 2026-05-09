@@ -127,7 +127,7 @@ const VendorRegistration = () => {
   };
 
   // ── Paystack popup ────────────────────────────────────────────────────────
-  const openPaystackPopup = (vendorId: string) => {
+  const openPaystackPopup = async (vendorId: string) => {
     const PaystackPop = (window as any).PaystackPop;
     if (!PaystackPop) {
       toast({ title: "Payment system not ready", description: "Please wait a moment and try again.", variant: "destructive" });
@@ -135,15 +135,16 @@ const VendorRegistration = () => {
       return;
     }
 
+    const plan = await resolvePlan("registration");
     const reference = `vr_${vendorId}_${Date.now()}`;
     const handler = PaystackPop.setup({
       key: "pk_live_86d78a3f9090b60d4d45f2ee1caf54dda3198ad5",
       email: user!.email,
-      amount: 120000, // ₦1,200 in kobo
-      currency: "NGN",
+      amount: plan.amountSubunits,
+      currency: plan.currency,
       ref: reference,
-      channels: ["card", "bank_transfer", "ussd", "bank"],
-      metadata: { vendor_id: vendorId },
+      channels: plan.channels,
+      metadata: { vendor_id: vendorId, plan: "registration" },
       onClose: () => {
         setPaymentPending(false);
         toast({
