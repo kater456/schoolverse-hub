@@ -5,16 +5,19 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const STORE_UPGRADE_PRICES: Record<string, number> = {
+  NGN: 2000,
+  GHS: 20,
+  KES: 170,
+  ZAR: 25,
+};
+
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const PAYSTACK_SECRET_KEY = Deno.env.get("PAYSTACK_SECRET_KEY");
-    if (!PAYSTACK_SECRET_KEY) {
-      throw new Error("PAYSTACK_SECRET_KEY is not configured");
-    }
+    if (!PAYSTACK_SECRET_KEY) throw new Error("PAYSTACK_SECRET_KEY is not configured");
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -22,7 +25,6 @@ Deno.serve(async (req) => {
     );
 
     const { reference, vendor_id } = await req.json();
-
     if (!reference || !vendor_id) {
       return new Response(JSON.stringify({ error: "Missing reference or vendor_id" }), {
         status: 400,
@@ -30,7 +32,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Idempotency: if this reference was already processed, return existing result
     const { data: existing } = await supabase
       .from("vendor_store_upgrades")
       .select("id, ends_at")
@@ -44,7 +45,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Verify payment with Paystack
     const paystackRes = await fetch(
       `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
       { headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` } },
@@ -58,9 +58,17 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Verify amount is at least ₦2,000 (200,000 kobo)
-    const amountInKobo = paystackData.data.amount;
-    if (amountInKobo < 200000) {
+    const currency = (paystackData.data.currency || "NGN").toUpperCase();
+    const amountSubunits = Number(paystackData.data.amount || 0);
+    const expectedMajor = STORE_UPGRADE_PRICES[currency];
+
+    if (!expectedMajor) {
+      return new Response(JSON.stringify({ error: `Unsupported currency: ${currency}` }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (amountSubunits < expectedMajor * 100 - 1) {
       return new Response(JSON.stringify({ error: "Insufficient payment amount" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -68,23 +76,20 @@ Deno.serve(async (req) => {
     }
 
     const now = new Date();
-    const endsAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days
+    const endsAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
-    // Create store upgrade record
     const { error: insertError } = await supabase
       .from("vendor_store_upgrades")
       .insert({
         vendor_id,
         payment_reference: reference,
         payment_status: "confirmed",
-        amount: 2000,
+        amount: expectedMajor,
         starts_at: now.toISOString(),
         ends_at: endsAt.toISOString(),
       });
-
     if (insertError) throw insertError;
 
-    // Update vendor record
     const { error: updateError } = await supabase
       .from("vendors")
       .update({
@@ -92,28 +97,20 @@ Deno.serve(async (req) => {
         store_upgrade_expires_at: endsAt.toISOString(),
       })
       .eq("id", vendor_id);
-
     if (updateError) throw updateError;
 
-    // In-app notification
     await supabase.from("vendor_notifications").insert({
       vendor_id,
       type: "store_upgrade",
       title: "🎉 Store Upgraded!",
       message: `Your premium store is now active until ${endsAt.toLocaleDateString("en-GB", {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
+        day: "numeric", month: "long", year: "numeric",
       })}.`,
       is_read: false,
     });
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        message: "Store upgraded successfully",
-        ends_at: endsAt.toISOString(),
-      }),
+      JSON.stringify({ success: true, message: "Store upgraded successfully", ends_at: endsAt.toISOString() }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error: unknown) {
