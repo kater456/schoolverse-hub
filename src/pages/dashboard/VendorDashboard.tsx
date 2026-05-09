@@ -322,7 +322,7 @@ const VendorDashboard = () => {
     });
     handler.openIframe();
   };
-  const initiateUpgradePayment = () => {
+  const initiateUpgradePayment = async () => {
     if (!(window as any).PaystackPop) {
       if (!document.querySelector('script[src="https://js.paystack.co/v1/inline.js"]')) {
         const s = document.createElement("script");
@@ -337,16 +337,17 @@ const VendorDashboard = () => {
       toast({ title: "Please sign in first", variant: "destructive" });
       return;
     }
+    const plan = await resolvePlan("store_upgrade");
     const PaystackPop = (window as any).PaystackPop;
     const ref = `store_upgrade_${vendor.id}_${Date.now()}`;
     const handler = PaystackPop.setup({
       key: "pk_live_86d78a3f9090b60d4d45f2ee1caf54dda3198ad5",
       email: user.email,
-      amount: 200000, // ₦2,000 in kobo
-      currency: "NGN",
+      amount: plan.amountSubunits,
+      currency: plan.currency,
       ref,
-      metadata: { vendor_id: vendor.id },
-      channels: ["card", "bank_transfer", "ussd", "bank"],
+      metadata: { vendor_id: vendor.id, plan: "store_upgrade" },
+      channels: plan.channels,
       onClose: () => toast({ title: "Payment cancelled" }),
       callback: async (response: any) => {
         setPayingUpgrade(true);
@@ -369,8 +370,6 @@ const VendorDashboard = () => {
     });
     handler.openIframe();
   };
-
-  // ── Mark delivered ───────────────────────────────────────────────────────────
   const markDelivered = async (txnId: string) => {
     const { error } = await supabase.from("transactions").update({ vendor_marked_delivered: true } as any).eq("id", txnId);
     if (!error) {
