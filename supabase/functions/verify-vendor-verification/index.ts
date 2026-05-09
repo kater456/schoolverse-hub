@@ -5,6 +5,13 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const VERIFICATION_PRICES: Record<string, number> = {
+  NGN: 1500,
+  GHS: 15,
+  KES: 130,
+  ZAR: 18,
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -25,7 +32,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Idempotency: if already verified with this reference, skip
     const { data: existing } = await supabase
       .from("vendors")
       .select("id, is_verified, verification_payment_ref")
@@ -39,7 +45,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Verify with Paystack
     const res = await fetch(
       `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
       { headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` } },
@@ -53,15 +58,23 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Must be at least ₦1,500 (150,000 kobo)
-    if (data.data.amount < 150000) {
+    const currency = (data.data.currency || "NGN").toUpperCase();
+    const amountSubunits = Number(data.data.amount || 0);
+    const expectedMajor = VERIFICATION_PRICES[currency];
+
+    if (!expectedMajor) {
+      return new Response(JSON.stringify({ error: `Unsupported currency: ${currency}` }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (amountSubunits < expectedMajor * 100 - 1) {
       return new Response(JSON.stringify({ error: "Insufficient payment amount" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Mark vendor as verified automatically
     const { error: updateError } = await supabase
       .from("vendors")
       .update({
@@ -70,10 +83,8 @@ Deno.serve(async (req) => {
         verification_applied_at: new Date().toISOString(),
       })
       .eq("id", vendor_id);
-
     if (updateError) throw updateError;
 
-    // In-app notification
     await supabase.from("vendor_notifications").insert({
       vendor_id,
       type: "verification",
