@@ -136,6 +136,10 @@ const VendorProfile = () => {
   const [shareOpen,   setShareOpen]             = useState(false);
   const [copied,      setCopied]                = useState(false);
   const [vendorOnline, setVendorOnline]         = useState(false);
+  const [liveLocation, setLiveLocation]         = useState<{
+    on: boolean; lat: number | null; lng: number | null; label: string | null;
+  } | null>(null);
+  const [isUserVerified, setIsUserVerified]     = useState(false);
 
   // ── Report state ──────────────────────────────────────────────────────────
   const [reportOpen,     setReportOpen]     = useState(false);
@@ -223,13 +227,31 @@ const VendorProfile = () => {
         // Fetch vendor online status
         const { data: presence } = await (supabase as any)
           .from("vendor_presence")
-          .select("is_online, last_seen")
+          .select("is_online, last_seen, live_location_on, live_location_lat, live_location_lng, live_location_label")
           .eq("vendor_id", id)
           .maybeSingle();
         if (presence) {
           const lastSeen = new Date(presence.last_seen).getTime();
           const isRecentlyActive = Date.now() - lastSeen < 5 * 60 * 1000;
           setVendorOnline(presence.is_online && isRecentlyActive);
+          if (presence.live_location_on) {
+            setLiveLocation({
+              on:    true,
+              lat:   presence.live_location_lat ?? null,
+              lng:   presence.live_location_lng ?? null,
+              label: presence.live_location_label ?? null,
+            });
+          }
+        }
+
+        // Check if current user is verified
+        if (user) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("is_user_verified")
+            .eq("user_id", user.id)
+            .maybeSingle();
+          setIsUserVerified(!!(profile as any)?.is_user_verified);
         }
       }
       setIsLoading(false);
@@ -459,6 +481,45 @@ const VendorProfile = () => {
                 {vendor.schools?.name && <Badge variant="outline">🎓 {vendor.schools.name}</Badge>}
                 {vendor.campus_locations?.name && (
                   <Badge variant="outline"><MapPin className="h-3 w-3 mr-1" />{vendor.campus_locations.name}</Badge>
+                )}
+
+                {/* Live location badge — only shown when vendor has it on */}
+                {liveLocation?.on && (
+                  <div className="w-full mt-1">
+                    {isUserVerified ? (
+                      <div className="flex items-center gap-2 p-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                            Live now
+                          </span>
+                          {liveLocation.label && (
+                            <span className="text-xs text-emerald-600/80 dark:text-emerald-500 ml-1.5">
+                              — {liveLocation.label}
+                            </span>
+                          )}
+                          {liveLocation.lat && (
+                            <a
+                              href={`https://maps.google.com/?q=${liveLocation.lat},${liveLocation.lng}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block text-[10px] text-emerald-700 underline mt-0.5"
+                            >
+                              Open in Google Maps →
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/50 border border-border/50">
+                        <MapPin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                        <p className="text-xs text-muted-foreground">
+                          <strong className="text-foreground">Seller is live nearby.</strong>{" "}
+                          <a href="/account" className="text-primary underline">Verify your account</a> to see exact location.
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
 
