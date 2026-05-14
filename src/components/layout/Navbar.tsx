@@ -21,7 +21,7 @@ const Navbar = () => {
   // Determine where the avatar/initials should link to based on role
   const profileLink = isApprovedVendor
     ? "/vendor-dashboard"
-    : vendorDashLink || subAdminLink || "/messages";
+    : vendorDashLink || subAdminLink || "/account";
 
   useEffect(() => {
     if (!user) { setIsApprovedVendor(false); setUnreadCount(0); setUserInitials(""); return; }
