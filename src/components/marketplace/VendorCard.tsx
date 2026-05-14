@@ -10,6 +10,7 @@ interface VendorCardProps {
     vendor_of_week_expires_at?: string | null;
     reels_enabled?: boolean;
     promoted_until?: string | null;
+    live_location_on?: boolean;
   };
   index?: number;
 }
@@ -26,6 +27,8 @@ const VendorCard = ({ vendor, index = 0 }: VendorCardProps) => {
   const hasReels = !!(vendor as any).reels_enabled &&
     !!(vendor as any).promoted_until &&
     new Date((vendor as any).promoted_until) > new Date();
+
+  const isLive = !!(vendor as any).live_location_on;
 
   // Intersection Observer for fade-in / fade-out on scroll
   useEffect(() => {
@@ -95,10 +98,18 @@ const VendorCard = ({ vendor, index = 0 }: VendorCardProps) => {
             ) : null}
 
             {/* Reels badge */}
-            {hasReels && (
+            {hasReels && !isLive && (
               <Badge className="absolute top-2 right-2 bg-black/70 text-white border-0 text-[10px] px-2 backdrop-blur-sm">
                 <Play className="h-2.5 w-2.5 mr-1 fill-current" />Reels
               </Badge>
+            )}
+
+            {/* Live location dot */}
+            {isLive && (
+              <div className="absolute top-2 right-2 flex items-center gap-1 bg-emerald-500 text-white rounded-full px-2 py-0.5 text-[10px] font-semibold shadow-md shadow-emerald-500/40">
+                <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                Live
+              </div>
             )}
 
             {/* Category — bottom right */}
