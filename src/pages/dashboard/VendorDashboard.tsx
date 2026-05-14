@@ -29,6 +29,7 @@ import VendorStoreUpgrade from "@/components/vendor/VendorStoreUpgrade";
 import VendorTestimonialManager from "@/components/vendor/VendorTestimonialManager";
 import VendorAIAdvisor from "@/components/vendor/VendorAiAdvisor";
 import VendorCommunity from "@/components/vendor/VendorCommunity";
+import VendorLiveLocation from "@/components/vendor/VendorLiveLocation";
 import { resolvePlan } from "@/lib/pricing";
 
 const VendorDashboard = () => {
@@ -1131,6 +1132,9 @@ const VendorDashboard = () => {
           {/* ── Settings Tab ── */}
           <TabsContent value="settings">
             <div className="space-y-4 max-w-xl">
+
+              {/* Live Location */}
+              <VendorLiveLocation vendor={vendor} userId={user!.id} />
 
               {/* Store Controls */}
               <Card className="border-border/50">
