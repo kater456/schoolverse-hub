@@ -9,6 +9,7 @@ export type PlanKey =
   | "registration"
   | "store_upgrade"
   | "verification"
+  | "user_verification"
   | "featured_top_listing"
   | "featured_top_listing_reels";
 
@@ -47,6 +48,12 @@ const PRICES: Record<PlanKey, Record<Currency, PriceRow>> = {
     GHS: { amount: 15,   display: "GH₵15"  },
     KES: { amount: 130,  display: "KES 130"},
     ZAR: { amount: 18,   display: "R18"    },
+  },
+  user_verification: {
+    NGN: { amount: 1000, display: "₦1,000" },
+    GHS: { amount: 10,   display: "GH₵10"  },
+    KES: { amount: 85,   display: "KES 85" },
+    ZAR: { amount: 12,   display: "R12"    },
   },
   featured_top_listing: {
     NGN: { amount: 1000, display: "₦1,000" },
