@@ -53,6 +53,7 @@ const SubAdminDashboard = lazy(() => import("./pages/dashboard/SubAdminDashboard
 // Chat
 const MessagesPage = lazy(() => import("./pages/MessagesPage"));
 const ChatPage     = lazy(() => import("./pages/ChatPage"));
+const AccountPage  = lazy(() => import("./pages/AccountPage"));
 
 // ── Page loading fallback ─────────────────────────────────────────────────────
 const PageLoader = () => (
@@ -148,6 +149,11 @@ const App = () => (
               } />
               <Route path="/chat/:conversationId" element={
                 <ProtectedRoute><ChatPage /></ProtectedRoute>
+              } />
+
+              {/* User Account */}
+              <Route path="/account" element={
+                <ProtectedRoute><AccountPage /></ProtectedRoute>
               } />
 
               {/* Sub-Admin */}
