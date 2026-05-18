@@ -13,14 +13,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import {
-  MapPin, Phone, MessageCircle, Heart, MessageSquare, Eye,
+  MapPin, Phone, MessageCircle, Heart, MessageSquare, Eye, Navigation,
   Send, Loader2, Star, ShieldCheck, Instagram, Twitter, Music2,
   ZoomIn, X, ChevronLeft, ChevronRight, Flag, Upload, AlertTriangle, Share2, Copy, Check,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import ContactVendorButton from "@/components/ContactVendorButton";
+import { useNotify } from "@/hooks/useNotify";
 import VendorQRBadge from "@/components/VendorQRBadge";
 import VendorTestimonialsDisplay from "@/components/vendor/VendorTestimonialsDisplay";
 
@@ -98,7 +98,8 @@ const Lightbox = ({ images, startIndex, onClose }: {
 // ── Main Component ────────────────────────────────────────────────────────────
 const VendorProfile = () => {
   const { id } = useParams<{ id: string }>();
-  const { user } = useAuth();
+  const { user }    = useAuth();
+  const { notify }  = useNotify();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -136,9 +137,7 @@ const VendorProfile = () => {
   const [shareOpen,   setShareOpen]             = useState(false);
   const [copied,      setCopied]                = useState(false);
   const [vendorOnline, setVendorOnline]         = useState(false);
-  const [liveLocation, setLiveLocation]         = useState<{
-    on: boolean; lat: number | null; lng: number | null; label: string | null;
-  } | null>(null);
+  const [liveLocation, setLiveLocation]         = useState<{ on: boolean; lat: number | null; lng: number | null; label: string | null } | null>(null);
   const [isUserVerified, setIsUserVerified]     = useState(false);
 
   // ── Report state ──────────────────────────────────────────────────────────
@@ -172,6 +171,8 @@ const VendorProfile = () => {
             vendor_id: id, viewer_id: user?.id || null, school_id: data.schools?.id || null,
           } as any);
           sessionStorage.setItem(viewKey, "1");
+          // Fire professional notification to vendor (fire-and-forget)
+          notify.profileView({ vendorId: id, url: `/vendor/${id}` });
         }
 
         const [viewsRes, likesRes, userLike, commentsRes, ratingsRes] = await Promise.all([
@@ -237,14 +238,14 @@ const VendorProfile = () => {
           if (presence.live_location_on) {
             setLiveLocation({
               on:    true,
-              lat:   presence.live_location_lat ?? null,
-              lng:   presence.live_location_lng ?? null,
+              lat:   presence.live_location_lat   ?? null,
+              lng:   presence.live_location_lng   ?? null,
               label: presence.live_location_label ?? null,
             });
           }
         }
 
-        // Check if current user is verified
+        // Check if the current viewer is a verified user
         if (user) {
           const { data: profile } = await supabase
             .from("profiles")
@@ -285,7 +286,19 @@ const VendorProfile = () => {
       .insert({ vendor_id: id!, user_id: user!.id, content: commentText.trim() } as any)
       .select("*, profiles:user_id(first_name, last_name)").single();
     if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
-    else { setComments((prev) => [data, ...prev]); setCommentText(""); }
+    else {
+      setComments((prev) => [data, ...prev]);
+      setCommentText("");
+      // Professional notification to vendor
+      const senderName = data?.profiles
+        ? `${(data.profiles as any).first_name || ""} ${(data.profiles as any).last_name || ""}`.trim()
+        : undefined;
+      notify.newComment({
+        vendorId: id!,
+        senderName,
+        preview: commentText.trim().slice(0, 60),
+      });
+    }
   };
 
   const submitRating = async () => {
@@ -372,9 +385,58 @@ const VendorProfile = () => {
   const totalRatings = ratings.length;
   const hasSocialLinks = vendor.is_verified && (vendor.social_instagram || vendor.social_tiktok || vendor.social_twitter);
 
+  // ── Store design settings (upgraded stores only) ──────────────────────────
+  const isUpgraded    = vendor.is_store_upgraded &&
+    vendor.store_upgrade_expires_at &&
+    new Date(vendor.store_upgrade_expires_at) > new Date();
+  const themeColor    = isUpgraded && vendor.store_theme_color  ? vendor.store_theme_color  : null;
+  const accentColor   = isUpgraded && vendor.store_accent_color ? vendor.store_accent_color : null;
+  const storeLayout   = isUpgraded && vendor.store_layout       ? vendor.store_layout       : "grid";
+  const displayView   = isUpgraded && vendor.store_display_view ? vendor.store_display_view : "grid";
+  const namePosition  = isUpgraded && vendor.store_name_position ? vendor.store_name_position : "top-left";
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" style={themeColor ? { "--vendor-theme": themeColor, "--vendor-accent": accentColor || themeColor } as React.CSSProperties : {}}>
       <Navbar />
+
+      {/* ── Upgraded store hero banner ── */}
+      {isUpgraded && vendor.banner_url && (
+        <div
+          className="w-full h-36 sm:h-48 overflow-hidden relative"
+          style={{ background: themeColor ? `linear-gradient(135deg, ${themeColor}dd, ${accentColor || themeColor}99)` : undefined }}
+        >
+          <img
+            src={vendor.banner_url}
+            alt={`${vendor.business_name} store banner`}
+            className="w-full h-full object-cover"
+          />
+          {/* Brand name overlay positioned by store_name_position */}
+          <div className={`absolute inset-0 flex ${
+            namePosition?.includes("mid")    ? "items-center" :
+            namePosition?.includes("bottom") ? "items-end pb-3" : "items-start pt-3"
+          } ${
+            namePosition?.includes("center") ? "justify-center text-center" :
+            namePosition?.includes("right")  ? "justify-end pr-4 text-right" : "justify-start pl-4"
+          }`}>
+            {vendor.brand_name && (
+              <div
+                className="px-3 py-1 rounded-full backdrop-blur-sm font-bold text-white text-sm shadow-lg"
+                style={{ background: themeColor ? `${themeColor}cc` : "rgba(0,0,0,0.5)" }}
+              >
+                {vendor.brand_name}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── No banner but has theme — colored strip ── */}
+      {isUpgraded && !vendor.banner_url && themeColor && (
+        <div
+          className="w-full h-12"
+          style={{ background: `linear-gradient(90deg, ${themeColor}, ${accentColor || themeColor}88)` }}
+        />
+      )}
 
       {lightboxOpen && allImageUrls.length > 0 && (
         <Lightbox images={allImageUrls} startIndex={lightboxIndex} onClose={() => setLightboxOpen(false)} />
@@ -483,39 +545,72 @@ const VendorProfile = () => {
                   <Badge variant="outline"><MapPin className="h-3 w-3 mr-1" />{vendor.campus_locations.name}</Badge>
                 )}
 
-                {/* Live location badge — only shown when vendor has it on */}
+                {/* ── Live location (verified users only) ── */}
                 {liveLocation?.on && (
-                  <div className="w-full mt-1">
+                  <div className="w-full mt-2">
                     {isUserVerified ? (
-                      <div className="flex items-center gap-2 p-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
-                            Live now
+                      <div className="space-y-2">
+                        {/* Live status pill */}
+                        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" />
+                          <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 flex-1">
+                            Seller is live on campus now
+                            {liveLocation.label ? ` — ${liveLocation.label}` : ""}
                           </span>
-                          {liveLocation.label && (
-                            <span className="text-xs text-emerald-600/80 dark:text-emerald-500 ml-1.5">
-                              — {liveLocation.label}
-                            </span>
-                          )}
-                          {liveLocation.lat && (
-                            <a
-                              href={`https://maps.google.com/?q=${liveLocation.lat},${liveLocation.lng}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="block text-[10px] text-emerald-700 underline mt-0.5"
-                            >
-                              Open in Google Maps →
-                            </a>
-                          )}
                         </div>
+
+                        {/* Embedded Google Map (GPS coordinates) */}
+                        {liveLocation.lat && liveLocation.lng && (
+                          <div className="rounded-xl overflow-hidden border border-border/50 shadow-sm">
+                            <iframe
+                              title="Seller live location"
+                              src={`https://www.google.com/maps/embed/v1/place?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&q=${liveLocation.lat},${liveLocation.lng}&zoom=17`}
+                              width="100%"
+                              height="220"
+                              style={{ border: 0, display: "block" }}
+                              loading="lazy"
+                              referrerPolicy="no-referrer-when-downgrade"
+                              allowFullScreen
+                            />
+                            <div className="flex border-t border-border/40 bg-muted/20">
+                              <a
+                                href={`https://www.google.com/maps?q=${liveLocation.lat},${liveLocation.lng}`}
+                                target="_blank" rel="noopener noreferrer"
+                                className="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium text-primary py-2.5 hover:bg-muted/40 transition-colors"
+                              >
+                                <MapPin className="h-3.5 w-3.5" /> Open in Maps
+                              </a>
+                              <div className="w-px bg-border/40" />
+                              <a
+                                href={`https://www.google.com/maps/dir/?api=1&destination=${liveLocation.lat},${liveLocation.lng}&travelmode=walking`}
+                                target="_blank" rel="noopener noreferrer"
+                                className="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium text-emerald-600 py-2.5 hover:bg-muted/40 transition-colors"
+                              >
+                                <Navigation className="h-3.5 w-3.5" /> Get Directions
+                              </a>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Text-only location — Maps search link */}
+                        {!liveLocation.lat && liveLocation.label && (
+                          <a
+                            href={`https://www.google.com/maps/search/${encodeURIComponent(liveLocation.label)}`}
+                            target="_blank" rel="noopener noreferrer"
+                            className="flex items-center gap-2 p-2.5 rounded-lg border border-border/50 bg-muted/20 hover:bg-muted/40 transition-colors"
+                          >
+                            <MapPin className="h-3.5 w-3.5 text-accent flex-shrink-0" />
+                            <span className="text-xs font-medium flex-1">{liveLocation.label}</span>
+                            <span className="text-[10px] text-primary">Search on Maps →</span>
+                          </a>
+                        )}
                       </div>
                     ) : (
                       <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/50 border border-border/50">
-                        <MapPin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" />
                         <p className="text-xs text-muted-foreground">
-                          <strong className="text-foreground">Seller is live nearby.</strong>{" "}
-                          <a href="/account" className="text-primary underline">Verify your account</a> to see exact location.
+                          <strong className="text-foreground">This seller is live nearby.</strong>{" "}
+                          <a href="/account" className="text-primary underline">Verify your account</a> to see their exact location on Google Maps.
                         </p>
                       </div>
                     )}
@@ -660,56 +755,181 @@ const VendorProfile = () => {
                 </Card>
               )}
 
-              {/* Vendor Products */}
+              {/* Vendor Products — respects store layout and display view */}
               {vendorProducts.length > 0 && (
-                <Card className="border-border/50 mb-4">
+                <Card
+                  className="border-border/50 mb-4 overflow-hidden"
+                  style={themeColor ? { borderColor: `${themeColor}40` } : {}}
+                >
+                  {/* Themed section header */}
+                  <div
+                    className="px-4 py-3 flex items-center gap-2"
+                    style={themeColor
+                      ? { background: `linear-gradient(90deg, ${themeColor}18, transparent)`, borderBottom: `1px solid ${themeColor}20` }
+                      : { borderBottom: "1px solid hsl(var(--border) / 0.5)" }
+                    }
+                  >
+                    <span
+                      className="text-sm font-bold"
+                      style={themeColor ? { color: themeColor } : {}}
+                    >
+                      🛍️ Products &amp; Prices
+                    </span>
+                    {isUpgraded && vendor.brand_name && (
+                      <span className="ml-auto text-[10px] font-semibold opacity-60">{vendor.brand_name}</span>
+                    )}
+                  </div>
+
                   <CardContent className="p-4">
-                    <h3 className="font-semibold text-sm mb-3">🛍️ Products & Prices</h3>
-                    <div className={`gap-3 ${vendor.store_layout === "list" ? "space-y-3" : vendor.store_layout === "showcase" ? "space-y-4" : "grid grid-cols-2"}`}>
-                      {vendorProducts.map((p: any) => (
-                        vendor.store_layout === "list" ? (
-                          <div key={p.id} className="flex items-center gap-3 border-b border-border/30 pb-3 last:border-0">
-                            {p.image_url && <img src={p.image_url} alt={p.name} className="w-14 h-14 rounded-lg object-cover shrink-0" />}
+                    {/* ── HANGER view (3D clothes display) ── */}
+                    {displayView === "hanger" && (
+                      <div className="flex gap-4 overflow-x-auto pb-2">
+                        {vendorProducts.map((p: any) => (
+                          <div key={p.id} className="flex flex-col items-center flex-shrink-0 w-24">
+                            <div className="w-px h-3 bg-gray-400" />
+                            <div className="w-8 h-1 rounded-full bg-gray-400 mb-0.5" />
+                            <div
+                              className="w-24 rounded-xl overflow-hidden border-2 shadow-sm"
+                              style={{ borderColor: themeColor ? `${themeColor}80` : undefined }}
+                            >
+                              {p.image_url
+                                ? <img src={p.image_url} alt={p.name} className="w-full h-24 object-cover" />
+                                : <div className="w-full h-24 flex items-center justify-center text-2xl" style={{ background: themeColor ? `${themeColor}15` : "#f5f5f5" }}>🏪</div>
+                              }
+                              <div className="p-1.5 text-center" style={{ background: themeColor ? `${themeColor}10` : undefined }}>
+                                <p className="text-[9px] font-semibold truncate">{p.name}</p>
+                                <p className="text-[9px] font-bold" style={{ color: accentColor || themeColor || "inherit" }}>
+                                  ₦{Number(p.price).toLocaleString()}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* ── SHELF view (2D shelf rows) ── */}
+                    {displayView === "shelf" && (
+                      <div className="space-y-4">
+                        {Array.from({ length: Math.ceil(vendorProducts.length / 3) }).map((_, row) => (
+                          <div key={row}>
+                            <div className="flex gap-2">
+                              {vendorProducts.slice(row * 3, row * 3 + 3).map((p: any) => (
+                                <div key={p.id} className="flex-1 rounded-lg overflow-hidden border border-border/40 shadow-sm">
+                                  {p.image_url
+                                    ? <img src={p.image_url} alt={p.name} className="w-full h-20 object-cover" />
+                                    : <div className="w-full h-20 flex items-center justify-center" style={{ background: themeColor ? `${themeColor}12` : "#f5f5f5" }}>🏷️</div>
+                                  }
+                                  <div className="p-1.5">
+                                    <p className="text-[10px] font-semibold truncate">{p.name}</p>
+                                    <p className="text-[10px] font-bold" style={{ color: accentColor || themeColor || "green" }}>
+                                      ₦{Number(p.price).toLocaleString()}
+                                    </p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                            {/* Shelf plank */}
+                            <div
+                              className="w-full h-1.5 rounded mt-1 shadow-sm"
+                              style={{ background: themeColor ? `${themeColor}60` : "#d1d5db" }}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* ── LIST view ── */}
+                    {(storeLayout === "list" || (!["hanger","shelf"].includes(displayView) && storeLayout === "list")) && (
+                      <div className="space-y-3">
+                        {vendorProducts.map((p: any) => (
+                          <div key={p.id}
+                            className="flex items-center gap-3 border-b border-border/30 pb-3 last:border-0"
+                          >
+                            {p.image_url && (
+                              <img src={p.image_url} alt={p.name}
+                                className="w-14 h-14 rounded-lg object-cover shrink-0 border"
+                                style={{ borderColor: themeColor ? `${themeColor}40` : undefined }}
+                              />
+                            )}
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium text-foreground truncate">{p.name}</p>
                               {p.description && <p className="text-xs text-muted-foreground line-clamp-1">{p.description}</p>}
                             </div>
-                            <span className="text-sm font-bold text-success shrink-0">₦{p.price.toLocaleString()}</span>
+                            <span
+                              className="text-sm font-bold shrink-0"
+                              style={{ color: accentColor || themeColor || "inherit" }}
+                            >
+                              ₦{Number(p.price).toLocaleString()}
+                            </span>
                           </div>
-                        ) : vendor.store_layout === "showcase" ? (
-                          <div key={p.id} className="rounded-xl overflow-hidden border border-border/50">
+                        ))}
+                      </div>
+                    )}
+
+                    {/* ── SHOWCASE view ── */}
+                    {storeLayout === "showcase" && !["hanger","shelf","list"].includes(displayView) && (
+                      <div className="space-y-4">
+                        {vendorProducts.map((p: any) => (
+                          <div key={p.id}
+                            className="rounded-xl overflow-hidden border shadow-sm"
+                            style={{ borderColor: themeColor ? `${themeColor}30` : undefined }}
+                          >
                             {p.image_url && <img src={p.image_url} alt={p.name} className="w-full h-40 object-cover" />}
-                            <div className="p-3">
+                            <div
+                              className="p-3"
+                              style={themeColor ? { background: `linear-gradient(180deg, ${themeColor}08, transparent)` } : {}}
+                            >
                               <div className="flex justify-between items-start">
                                 <div>
                                   <p className="font-semibold text-sm text-foreground">{p.name}</p>
                                   {p.category && <Badge variant="outline" className="text-[10px] mt-1">{p.category}</Badge>}
                                 </div>
-                                <span className="font-bold text-success">₦{p.price.toLocaleString()}</span>
+                                <span
+                                  className="font-bold"
+                                  style={{ color: accentColor || themeColor || "green" }}
+                                >
+                                  ₦{Number(p.price).toLocaleString()}
+                                </span>
                               </div>
                               {p.description && <p className="text-xs text-muted-foreground mt-1">{p.description}</p>}
                             </div>
                           </div>
-                        ) : (
-                          <div key={p.id} className="rounded-xl overflow-hidden border border-border/50">
-                            {p.image_url && <img src={p.image_url} alt={p.name} className="w-full h-24 object-cover" />}
-                            <div className="p-2">
+                        ))}
+                      </div>
+                    )}
+
+                    {/* ── GRID view (default) ── */}
+                    {!["hanger","shelf","list","showcase"].includes(displayView) && storeLayout !== "list" && storeLayout !== "showcase" && (
+                      <div className="grid grid-cols-2 gap-3">
+                        {vendorProducts.map((p: any) => (
+                          <div
+                            key={p.id}
+                            className="rounded-xl overflow-hidden border shadow-sm"
+                            style={{ borderColor: themeColor ? `${themeColor}30` : undefined }}
+                          >
+                            {p.image_url
+                              ? <img src={p.image_url} alt={p.name} className="w-full h-24 object-cover" />
+                              : <div className="w-full h-24 flex items-center justify-center" style={{ background: themeColor ? `${themeColor}12` : "#f5f5f5" }}>🏪</div>
+                            }
+                            <div
+                              className="p-2"
+                              style={themeColor ? { background: `${themeColor}06` } : {}}
+                            >
                               <p className="text-xs font-semibold text-foreground truncate">{p.name}</p>
-                              <span className="text-xs font-bold text-success">₦{p.price.toLocaleString()}</span>
+                              <span
+                                className="text-xs font-bold"
+                                style={{ color: accentColor || themeColor || "green" }}
+                              >
+                                ₦{Number(p.price).toLocaleString()}
+                              </span>
                             </div>
                           </div>
-                        )
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
-              )}
-
-              {/* Store Banner (upgraded stores) */}
-              {vendor.banner_url && vendor.is_store_upgraded && vendor.store_upgrade_expires_at && new Date(vendor.store_upgrade_expires_at) > new Date() && (
-                <div className="mb-4 rounded-xl overflow-hidden border border-border/50">
-                  <img src={vendor.banner_url} alt="Store banner" className="w-full h-28 object-cover" />
-                </div>
               )}
 
               {/* Contact */}
