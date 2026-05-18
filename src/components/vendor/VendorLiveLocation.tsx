@@ -5,7 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { MapPin, Navigation, Loader2, AlertTriangle, ShieldAlert, CheckCircle2 } from "lucide-react";
+import {
+  MapPin, Navigation, Loader2, AlertTriangle,
+  ShieldAlert, CheckCircle2, ExternalLink,
+} from "lucide-react";
 
 interface Props {
   vendor: any;
@@ -13,11 +16,21 @@ interface Props {
 }
 
 interface LocationState {
-  on: boolean;
-  lat: number | null;
-  lng: number | null;
+  on:    boolean;
+  lat:   number | null;
+  lng:   number | null;
   label: string;
 }
+
+// ── Google Maps embed URL (no API key needed for basic embeds) ────────────────
+const buildMapsEmbedUrl = (lat: number, lng: number) =>
+  `https://maps.google.com/maps?q=${lat},${lng}&z=17&output=embed`;
+
+// ── Google Maps directions / navigation link ──────────────────────────────────
+const buildMapsLink = (lat: number, lng: number, label?: string) => {
+  const dest = label ? encodeURIComponent(label) : `${lat},${lng}`;
+  return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=walking`;
+};
 
 export default function VendorLiveLocation({ vendor, userId }: Props) {
   const { toast } = useToast();
@@ -30,9 +43,9 @@ export default function VendorLiveLocation({ vendor, userId }: Props) {
   const [mode, setMode]               = useState<"gps" | "manual">("gps");
   const watchRef = useRef<number | null>(null);
 
-  // ── Fetch current location state ──────────────────────────────────────────
+  // ── Fetch current state ────────────────────────────────────────────────────
   useEffect(() => {
-    const fetch = async () => {
+    const fetchLocation = async () => {
       const { data } = await (supabase as any)
         .from("vendor_presence")
         .select("live_location_on, live_location_lat, live_location_lng, live_location_label")
@@ -41,44 +54,39 @@ export default function VendorLiveLocation({ vendor, userId }: Props) {
 
       if (data) {
         setLocation({
-          on:    data.live_location_on ?? false,
-          lat:   data.live_location_lat ?? null,
-          lng:   data.live_location_lng ?? null,
+          on:    data.live_location_on    ?? false,
+          lat:   data.live_location_lat   ?? null,
+          lng:   data.live_location_lng   ?? null,
           label: data.live_location_label ?? "",
         });
         setManualLabel(data.live_location_label ?? "");
       }
       setLoading(false);
     };
-    fetch();
+    fetchLocation();
 
-    // Cleanup GPS watch on unmount
     return () => {
-      if (watchRef.current !== null) {
-        navigator.geolocation.clearWatch(watchRef.current);
-      }
+      if (watchRef.current !== null) navigator.geolocation.clearWatch(watchRef.current);
     };
   }, [vendor.id]);
 
-  // ── Save to Supabase ────────────────────────────────────────────────────────
+  // ── Persist to Supabase ────────────────────────────────────────────────────
   const saveLocation = async (updates: Partial<LocationState> & { on: boolean }) => {
     setSaving(true);
     try {
-      const upsertData: any = {
-        vendor_id:            vendor.id,
-        user_id:              userId,
-        is_online:            true,
-        last_seen:            new Date().toISOString(),
-        live_location_on:     updates.on,
-        live_location_lat:    updates.on ? (updates.lat ?? null) : null,
-        live_location_lng:    updates.on ? (updates.lng ?? null) : null,
-        live_location_label:  updates.on ? (updates.label ?? "") : null,
-        location_updated_at:  new Date().toISOString(),
-      };
-
       const { error } = await (supabase as any)
         .from("vendor_presence")
-        .upsert(upsertData, { onConflict: "vendor_id" });
+        .upsert({
+          vendor_id:           vendor.id,
+          user_id:             userId,
+          is_online:           true,
+          last_seen:           new Date().toISOString(),
+          live_location_on:    updates.on,
+          live_location_lat:   updates.on ? (updates.lat  ?? null) : null,
+          live_location_lng:   updates.on ? (updates.lng  ?? null) : null,
+          live_location_label: updates.on ? (updates.label ?? "")  : null,
+          location_updated_at: new Date().toISOString(),
+        }, { onConflict: "vendor_id" });
 
       if (error) throw error;
       setLocation((prev) => ({ ...prev, ...updates }));
@@ -88,7 +96,7 @@ export default function VendorLiveLocation({ vendor, userId }: Props) {
     setSaving(false);
   };
 
-  // ── Turn OFF location ────────────────────────────────────────────────────────
+  // ── Turn off ───────────────────────────────────────────────────────────────
   const turnOff = async () => {
     if (watchRef.current !== null) {
       navigator.geolocation.clearWatch(watchRef.current);
@@ -99,39 +107,40 @@ export default function VendorLiveLocation({ vendor, userId }: Props) {
     toast({ title: "Live location turned off 🔒", description: "Buyers can no longer see your location." });
   };
 
-  // ── GPS mode ─────────────────────────────────────────────────────────────────
+  // ── GPS mode ──────────────────────────────────────────────────────────────
   const enableGPS = () => {
     if (!("geolocation" in navigator)) {
-      toast({ title: "GPS not available", description: "Your browser does not support location sharing.", variant: "destructive" });
+      toast({ title: "GPS not supported", variant: "destructive" });
       return;
     }
     setGpsLoading(true);
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const { latitude: lat, longitude: lng } = pos.coords;
-        await saveLocation({ on: true, lat, lng, label: manualLabel || "Live GPS location" });
+        await saveLocation({ on: true, lat, lng, label: manualLabel.trim() || "Live GPS location" });
         setGpsLoading(false);
-        toast({ title: "📍 Live location is ON", description: "Verified buyers can now see your location." });
+        toast({ title: "📍 You're now live on Campus Market" });
 
-        // Watch for position updates every ~60s
+        // Watch for updates (every ~60s, low battery impact)
         if (watchRef.current !== null) navigator.geolocation.clearWatch(watchRef.current);
         watchRef.current = navigator.geolocation.watchPosition(
-          async (updated) => {
+          async (upd) => {
             await (supabase as any).from("vendor_presence").update({
-              live_location_lat:   updated.coords.latitude,
-              live_location_lng:   updated.coords.longitude,
+              live_location_lat:   upd.coords.latitude,
+              live_location_lng:   upd.coords.longitude,
               location_updated_at: new Date().toISOString(),
             }).eq("vendor_id", vendor.id);
+            setLocation((prev) => ({ ...prev, lat: upd.coords.latitude, lng: upd.coords.longitude }));
           },
           undefined,
           { maximumAge: 60000, timeout: 20000, enableHighAccuracy: false }
         );
       },
-      (err) => {
+      () => {
         setGpsLoading(false);
         toast({
           title: "Location permission denied",
-          description: "Please allow location access in your browser settings, or use the manual option.",
+          description: "Allow location access in your browser settings, or switch to 'Type Location'.",
           variant: "destructive",
         });
       },
@@ -139,23 +148,18 @@ export default function VendorLiveLocation({ vendor, userId }: Props) {
     );
   };
 
-  // ── Manual mode ─────────────────────────────────────────────────────────────
+  // ── Manual mode ────────────────────────────────────────────────────────────
   const enableManual = async () => {
     if (!manualLabel.trim()) {
-      toast({ title: "Enter your location", description: "e.g. 'Engineering Block Entrance' or 'Main Library Steps'", variant: "destructive" });
+      toast({ title: "Enter your location", variant: "destructive" });
       return;
     }
     await saveLocation({ on: true, lat: null, lng: null, label: manualLabel.trim() });
-    toast({ title: "📍 Live location is ON", description: "Verified buyers can see your location text." });
+    toast({ title: "📍 Location is live on your profile" });
   };
 
-  if (loading) return (
-    <div className="flex justify-center py-4">
-      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-    </div>
-  );
+  if (loading) return <div className="flex justify-center py-4"><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /></div>;
 
-  // ── Not verified — gate the feature ─────────────────────────────────────────
   if (!vendor.is_verified) {
     return (
       <Card className="border-border/50">
@@ -163,9 +167,9 @@ export default function VendorLiveLocation({ vendor, userId }: Props) {
           <div className="flex items-start gap-3">
             <MapPin className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-medium text-foreground">Live Location Sharing</p>
+              <p className="text-sm font-medium">Live Location Sharing</p>
               <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                Get your verified badge to unlock live location sharing. Buyers can find you on campus in real time.
+                Get your verified badge to unlock live location sharing on your store.
               </p>
             </div>
           </div>
@@ -191,37 +195,78 @@ export default function VendorLiveLocation({ vendor, userId }: Props) {
 
       <CardContent className="space-y-4">
 
-        {/* Current state — ON */}
+        {/* ── ACTIVE state ── */}
         {location.on && (
           <div className="space-y-3">
+            {/* Status bar */}
             <div className="flex items-start gap-2.5 p-3 rounded-lg bg-emerald-100/60 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800">
               <CheckCircle2 className="h-4 w-4 text-emerald-600 flex-shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
-                  Your location is live
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">Your location is live</p>
+                <p className="text-xs text-emerald-600/80 dark:text-emerald-500 mt-0.5 truncate">
+                  {location.label || (location.lat ? "GPS coordinates active" : "Text location active")}
                 </p>
-                <p className="text-xs text-emerald-600/80 dark:text-emerald-500 mt-0.5">
-                  {location.label || (location.lat ? "GPS coordinates active" : "Location sharing on")}
-                </p>
-                {location.lat && (
-                  <a
-                    href={`https://maps.google.com/?q=${location.lat},${location.lng}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[10px] text-emerald-700 underline mt-0.5 block"
-                  >
-                    View on Google Maps →
-                  </a>
-                )}
               </div>
             </div>
 
-            {/* Security warning — always visible when ON */}
+            {/* ── Google Maps embed (GPS only) ── */}
+            {location.lat && location.lng && (
+              <div className="rounded-xl overflow-hidden border border-border/50 shadow-sm">
+                <iframe
+                  title="Your live location on Google Maps"
+                  src={buildMapsEmbedUrl(location.lat, location.lng)}
+                  width="100%"
+                  height="200"
+                  style={{ border: 0, display: "block" }}
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  allowFullScreen
+                />
+                {/* Open in Google Maps / Get directions */}
+                <div className="flex gap-2 p-2 bg-muted/30 border-t border-border/40">
+                  <a
+                    href={`https://www.google.com/maps?q=${location.lat},${location.lng}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 py-1.5"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" /> Open in Maps
+                  </a>
+                  <div className="w-px bg-border/50" />
+                  <a
+                    href={buildMapsLink(location.lat, location.lng, location.label)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium text-emerald-600 hover:text-emerald-700 py-1.5"
+                  >
+                    <Navigation className="h-3.5 w-3.5" /> Get Directions
+                  </a>
+                </div>
+              </div>
+            )}
+
+            {/* Text-only location (no GPS) */}
+            {!location.lat && location.label && (
+              <div className="flex items-center gap-2 p-3 rounded-lg border border-border/50 bg-muted/20">
+                <MapPin className="h-4 w-4 text-accent flex-shrink-0" />
+                <p className="text-sm font-medium">{location.label}</p>
+                <a
+                  href={`https://www.google.com/maps/search/${encodeURIComponent(location.label)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ml-auto text-xs text-primary underline flex-shrink-0"
+                >
+                  Search Maps →
+                </a>
+              </div>
+            )}
+
+            {/* Security reminder */}
             <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800">
               <AlertTriangle className="h-3.5 w-3.5 text-amber-600 flex-shrink-0 mt-0.5" />
               <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
-                <strong>Reminder:</strong> Turn off your live location when you leave your selling spot.
-                Your real-time position is visible to verified buyers.
+                <strong>Security reminder:</strong> Turn off your live location when you leave this spot.
+                Your position is visible to verified buyers in real time.
               </p>
             </div>
 
@@ -232,17 +277,20 @@ export default function VendorLiveLocation({ vendor, userId }: Props) {
               onClick={turnOff}
               disabled={saving}
             >
-              {saving ? <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" /> : <ShieldAlert className="h-3.5 w-3.5 mr-2" />}
+              {saving
+                ? <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
+                : <ShieldAlert className="h-3.5 w-3.5 mr-2" />
+              }
               Turn Off Live Location
             </Button>
           </div>
         )}
 
-        {/* Current state — OFF */}
+        {/* ── OFF state ── */}
         {!location.on && (
           <div className="space-y-3">
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Let verified buyers find you on campus right now. Only verified users can see your live location.
+              Let verified buyers find you on campus right now. Your pinned location appears on Google Maps on your public store page.
             </p>
 
             {/* Mode selector */}
@@ -265,30 +313,33 @@ export default function VendorLiveLocation({ vendor, userId }: Props) {
               ))}
             </div>
 
-            {/* Manual label input */}
+            {/* GPS — optional label */}
+            {mode === "gps" && (
+              <div className="space-y-1.5">
+                <Label className="text-xs">Describe where you are <span className="text-muted-foreground">(optional — helps buyers find you faster)</span></Label>
+                <Input
+                  placeholder="e.g. 'Near the cafeteria entrance', 'Engineering Block A'"
+                  value={manualLabel}
+                  onChange={(e) => setManualLabel(e.target.value)}
+                  className="h-9 text-sm"
+                />
+              </div>
+            )}
+
+            {/* Manual — required label */}
             {mode === "manual" && (
               <div className="space-y-1.5">
-                <Label className="text-xs">Where are you right now?</Label>
+                <Label className="text-xs">Where are you right now? *</Label>
                 <Input
-                  placeholder="e.g. Engineering Block Entrance, Main Library Steps…"
+                  placeholder="e.g. Main Library Steps, Faculty Admin Block Entrance…"
                   value={manualLabel}
                   onChange={(e) => setManualLabel(e.target.value)}
                   className="h-9 text-sm"
                   onKeyDown={(e) => { if (e.key === "Enter") enableManual(); }}
                 />
-              </div>
-            )}
-
-            {/* GPS label (optional) */}
-            {mode === "gps" && (
-              <div className="space-y-1.5">
-                <Label className="text-xs">Add a label <span className="text-muted-foreground">(optional)</span></Label>
-                <Input
-                  placeholder="e.g. 'Near the cafeteria' helps buyers find you faster"
-                  value={manualLabel}
-                  onChange={(e) => setManualLabel(e.target.value)}
-                  className="h-9 text-sm"
-                />
+                <p className="text-[10px] text-muted-foreground">
+                  Buyers will see this text and can search it on Google Maps.
+                </p>
               </div>
             )}
 
@@ -299,14 +350,13 @@ export default function VendorLiveLocation({ vendor, userId }: Props) {
               disabled={saving || gpsLoading}
             >
               {(saving || gpsLoading)
-                ? <><Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />Getting location…</>
-                : <><MapPin className="h-3.5 w-3.5 mr-2" />Go Live</>
+                ? <><Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />{gpsLoading ? "Getting your location…" : "Saving…"}</>
+                : <><MapPin className="h-3.5 w-3.5 mr-2" />Go Live on Campus Market</>
               }
             </Button>
 
             <p className="text-[10px] text-muted-foreground text-center leading-relaxed">
-              Only verified buyers can see your live location.
-              Remember to turn it off when you're done selling.
+              Only verified buyers can see your live location. Always turn it off when you leave.
             </p>
           </div>
         )}
