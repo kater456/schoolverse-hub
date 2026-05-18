@@ -687,7 +687,7 @@ const VendorDashboard = () => {
 
           {/* Reels */}
           <TabsContent value="reels">
-            <VendorVideoManager vendorId={vendor.id} reelsEnabled={vendor.reels_enabled || false} />
+            <VendorVideoManager vendorId={vendor.id} reelsEnabled={vendor.reels_enabled || false} vendor={vendor} />
           </TabsContent>
 
           {/* Profile */}
