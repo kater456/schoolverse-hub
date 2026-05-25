@@ -657,31 +657,151 @@ const VendorDashboard = () => {
         )}
 
         {/* ── Tabs ── */}
-        <Tabs defaultValue="products" className="space-y-4">
-          <TabsList className="flex-wrap h-auto gap-1">
-            <TabsTrigger value="products"><Package   className="h-4 w-4 mr-1" />Products</TabsTrigger>
-            <TabsTrigger value="reels">  <Film       className="h-4 w-4 mr-1" />Reels</TabsTrigger>
-            <TabsTrigger value="orders"> <ShoppingBag className="h-4 w-4 mr-1" />Orders</TabsTrigger>
-            <TabsTrigger value="profile"><User       className="h-4 w-4 mr-1" />Profile</TabsTrigger>
-            <TabsTrigger value="engagement"><BarChart3 className="h-4 w-4 mr-1" />Insights</TabsTrigger>
-            <TabsTrigger value="verify" data-tab="verify"> <ShieldCheck className="h-4 w-4 mr-1" />
-              {vendor.is_verified ? "Verified ✅" : "Get Verified"}
-            </TabsTrigger>
-            <TabsTrigger value="control"><ToggleLeft className="h-4 w-4 mr-1" />Controls</TabsTrigger>
-            <TabsTrigger value="deals"><Flame className="h-4 w-4 mr-1" />Deals</TabsTrigger>
-            <TabsTrigger value="store" data-tab="store"><Crown className="h-4 w-4 mr-1" />Store</TabsTrigger>
-            <TabsTrigger value="testimonials"><MessageSquare className="h-4 w-4 mr-1" />Reviews</TabsTrigger>
-            {vendor.is_store_upgraded && (
-              !vendor.store_upgrade_expires_at || new Date(vendor.store_upgrade_expires_at) > new Date()
-            ) && (
-              <TabsTrigger value="ai"><Sparkles className="h-4 w-4 mr-1" />AI Advisor</TabsTrigger>
-            )}
-            {vendor.is_store_upgraded && (
-              !vendor.store_upgrade_expires_at || new Date(vendor.store_upgrade_expires_at) > new Date()
-            ) && (
-              <TabsTrigger value="community"><Users className="h-4 w-4 mr-1" />Community</TabsTrigger>
-            )}
-            <TabsTrigger value="settings"><Settings className="h-4 w-4 mr-1" />Settings</TabsTrigger>
+        <Tabs defaultValue="products" className="space-y-0">
+          {/* ── Clean grouped navigation ──────────────────────────────────────── */}
+          <TabsList className="h-auto bg-transparent p-0 flex flex-col w-full mb-5">
+            {/* ── Mobile: horizontal scrolling pill row ── */}
+            <div className="flex sm:hidden gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+              {[
+                { v: "products",    icon: Package,      label: "Products" },
+                { v: "reels",       icon: Film,         label: "Reels"    },
+                { v: "orders",      icon: ShoppingBag,  label: "Orders"   },
+                { v: "deals",       icon: Flame,        label: "Deals"    },
+                { v: "profile",     icon: User,         label: "Profile"  },
+                { v: "verify",      icon: ShieldCheck,  label: vendor.is_verified ? "Verified ✅" : "Verify" },
+                { v: "engagement",  icon: BarChart3,    label: "Insights" },
+                { v: "store",       icon: Crown,        label: "Store"    },
+                { v: "testimonials",icon: MessageSquare,label: "Reviews"  },
+                ...(vendor.is_store_upgraded && (!vendor.store_upgrade_expires_at || new Date(vendor.store_upgrade_expires_at) > new Date())
+                  ? [
+                      { v: "ai",        icon: Sparkles, label: "AI"       },
+                      { v: "community", icon: Users,    label: "Community"},
+                    ] : []),
+                { v: "control",  icon: ToggleLeft, label: "Controls" },
+                { v: "settings", icon: Settings,   label: "Settings" },
+              ].map(({ v, icon: Icon, label }) => (
+                <TabsTrigger
+                  key={v}
+                  value={v}
+                  className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 h-8 text-xs font-medium rounded-full border border-border/50 bg-background data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary data-[state=active]:shadow-sm whitespace-nowrap"
+                >
+                  <Icon className="h-3 w-3" />{label}
+                </TabsTrigger>
+              ))}
+            </div>
+
+            {/* ── Desktop: grouped card navigation ── */}
+            <div className="hidden sm:grid grid-cols-5 gap-2">
+              {/* Group 1 — Sell */}
+              <div className="space-y-1">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50 px-1 mb-1.5">Sell</p>
+                {[
+                  { v: "products", icon: Package,     label: "Products" },
+                  { v: "reels",    icon: Film,         label: "Reels"    },
+                  { v: "orders",   icon: ShoppingBag,  label: "Orders"   },
+                  { v: "deals",    icon: Flame,        label: "Deals"    },
+                ].map(({ v, icon: Icon, label }) => (
+                  <TabsTrigger
+                    key={v}
+                    value={v}
+                    className="w-full justify-start gap-2 px-3 h-9 text-sm font-medium rounded-xl border-0 bg-transparent hover:bg-muted/60 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none"
+                  >
+                    <Icon className="h-4 w-4 shrink-0" />{label}
+                  </TabsTrigger>
+                ))}
+              </div>
+
+              {/* Group 2 — Profile */}
+              <div className="space-y-1">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50 px-1 mb-1.5">Profile</p>
+                {[
+                  { v: "profile",      icon: User,         label: "My Profile" },
+                  { v: "verify",       icon: ShieldCheck,  label: vendor.is_verified ? "Verified ✅" : "Get Verified" },
+                  { v: "testimonials", icon: MessageSquare,label: "Reviews"    },
+                ].map(({ v, icon: Icon, label }) => (
+                  <TabsTrigger
+                    key={v}
+                    value={v}
+                    className="w-full justify-start gap-2 px-3 h-9 text-sm font-medium rounded-xl border-0 bg-transparent hover:bg-muted/60 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none"
+                  >
+                    <Icon className="h-4 w-4 shrink-0" />{label}
+                  </TabsTrigger>
+                ))}
+              </div>
+
+              {/* Group 3 — Analytics */}
+              <div className="space-y-1">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50 px-1 mb-1.5">Analytics</p>
+                <TabsTrigger
+                  value="engagement"
+                  className="w-full justify-start gap-2 px-3 h-9 text-sm font-medium rounded-xl border-0 bg-transparent hover:bg-muted/60 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none"
+                >
+                  <BarChart3 className="h-4 w-4 shrink-0" />Insights
+                </TabsTrigger>
+                <TabsTrigger
+                  value="store"
+                  className="w-full justify-start gap-2 px-3 h-9 text-sm font-medium rounded-xl border-0 bg-transparent hover:bg-muted/60 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none"
+                >
+                  <Crown className="h-4 w-4 shrink-0 text-accent" />
+                  <span>Store Design</span>
+                  {!vendor.is_store_upgraded && <span className="ml-auto text-[9px] font-bold text-accent bg-accent/10 rounded px-1">PRO</span>}
+                </TabsTrigger>
+              </div>
+
+              {/* Group 4 — Pro */}
+              <div className="space-y-1">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50 px-1 mb-1.5">
+                  Pro {vendor.is_store_upgraded ? "✦" : ""}
+                </p>
+                {vendor.is_store_upgraded && (!vendor.store_upgrade_expires_at || new Date(vendor.store_upgrade_expires_at) > new Date()) ? (
+                  <>
+                    <TabsTrigger
+                      value="ai"
+                      className="w-full justify-start gap-2 px-3 h-9 text-sm font-medium rounded-xl border-0 bg-transparent hover:bg-muted/60 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none"
+                    >
+                      <Sparkles className="h-4 w-4 shrink-0 text-accent" />AI Advisor
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="community"
+                      className="w-full justify-start gap-2 px-3 h-9 text-sm font-medium rounded-xl border-0 bg-transparent hover:bg-muted/60 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none"
+                    >
+                      <Users className="h-4 w-4 shrink-0" />Community
+                    </TabsTrigger>
+                  </>
+                ) : (
+                  <div className="px-3 py-2 rounded-xl border border-dashed border-accent/30 bg-accent/5 text-center">
+                    <Crown className="h-4 w-4 text-accent mx-auto mb-1" />
+                    <p className="text-[10px] text-muted-foreground leading-tight">Upgrade to unlock AI Advisor & Community</p>
+                    <button
+                      className="mt-2 text-[10px] font-bold text-accent hover:underline"
+                      onClick={() => { const t = document.querySelector('[value="store"]') as HTMLElement; t?.click(); }}
+                    >
+                      Upgrade →
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Group 5 — Settings */}
+              <div className="space-y-1">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50 px-1 mb-1.5">Settings</p>
+                {[
+                  { v: "control",  icon: ToggleLeft, label: "Controls" },
+                  { v: "settings", icon: Settings,   label: "Settings" },
+                ].map(({ v, icon: Icon, label }) => (
+                  <TabsTrigger
+                    key={v}
+                    value={v}
+                    className="w-full justify-start gap-2 px-3 h-9 text-sm font-medium rounded-xl border-0 bg-transparent hover:bg-muted/60 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none"
+                  >
+                    <Icon className="h-4 w-4 shrink-0" />{label}
+                  </TabsTrigger>
+                ))}
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div className="hidden sm:block h-px bg-border/50 mt-3" />
           </TabsList>
 
           {/* Products */}
