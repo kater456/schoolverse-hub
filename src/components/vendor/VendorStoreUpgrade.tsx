@@ -206,8 +206,10 @@ const VendorStoreUpgrade = ({ vendor, onUpdate }: VendorStoreUpgradeProps) => {
       script.async = true;
       document.body.appendChild(script);
     }
-    const upgraded = vendor.is_store_upgraded && vendor.store_upgrade_expires_at &&
-      new Date(vendor.store_upgrade_expires_at) > new Date();
+    const upgraded = vendor.is_store_upgraded === true && (
+      !vendor.store_upgrade_expires_at ||
+      new Date(vendor.store_upgrade_expires_at) > new Date()
+    );
     setIsUpgraded(!!upgraded);
     setExpiresAt(vendor.store_upgrade_expires_at);
     setBannerUrl(vendor.banner_url || "");
