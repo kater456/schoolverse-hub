@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Phone, Star, ShieldCheck, Trophy, Play } from "lucide-react";
 import type { Vendor } from "@/hooks/useVendors";
+import { TrustScoreBadge, computeTrustScore } from "@/components/guarantee/TrustScore";
 
 interface VendorCardProps {
   vendor: Vendor & {
@@ -162,6 +163,11 @@ const VendorCard = ({ vendor, index = 0 }: VendorCardProps) => {
                 {vendor.description}
               </p>
             )}
+
+            {/* Trust score badge */}
+            <div className="mt-1.5">
+              <TrustScoreBadge score={computeTrustScore(vendor)} size="xs" />
+            </div>
 
             <div className="flex items-center gap-2 mt-2 text-[10px] text-muted-foreground flex-wrap">
               {vendor.school_name && (
