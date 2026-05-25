@@ -44,9 +44,12 @@ export default function VendorVideoGenerator({ vendorId, vendor }: Props) {
   const [pastVideos,   setPastVideos]   = useState<any[]>([]);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const isUpgraded = vendor?.is_store_upgraded &&
-    vendor?.store_upgrade_expires_at &&
-    new Date(vendor.store_upgrade_expires_at) > new Date();
+  // Treat as upgraded if is_store_upgraded is true AND
+  // either no expiry date is set (manually granted) OR the expiry is in the future.
+  const isUpgraded = vendor?.is_store_upgraded === true && (
+    !vendor?.store_upgrade_expires_at ||
+    new Date(vendor.store_upgrade_expires_at) > new Date()
+  );
 
   // Load past AI-generated videos
   useEffect(() => {
