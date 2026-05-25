@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import AIChatbox from "@/components/AIChatbox";
 import SplashScreen from "@/components/SplashScreen";
+import CampusSpotlight from "@/components/landing/CampusSpotlight";
 
 const CATEGORY_ICONS: Record<string, string> = {
   "Food & Snacks": "🍔",
@@ -278,6 +279,9 @@ const Index = () => {
             </div>
           </div>
         </section>
+
+        {/* ── Campus Spotlight ── */}
+        <CampusSpotlight />
 
         {/* ── How It Works ── */}
         <section className="py-16 px-4 bg-muted/50">
