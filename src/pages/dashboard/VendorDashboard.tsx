@@ -29,6 +29,8 @@ import VendorStoreUpgrade from "@/components/vendor/VendorStoreUpgrade";
 import VendorTestimonialManager from "@/components/vendor/VendorTestimonialManager";
 import VendorAIAdvisor from "@/components/vendor/VendorAiAdvisor";
 import VendorCommunity from "@/components/vendor/VendorCommunity";
+import { TrustScoreBreakdown } from "@/components/guarantee/TrustScore";
+import ExitPortfolio from "@/components/vendor/ExitPortfolio";
 import VendorLiveLocation from "@/components/vendor/VendorLiveLocation";
 import { resolvePlan } from "@/lib/pricing";
 
@@ -1260,6 +1262,20 @@ const VendorDashboard = () => {
           {/* ── Settings Tab ── */}
           <TabsContent value="settings">
             <div className="space-y-4 max-w-xl">
+
+              {/* ── Trust Score ── */}
+              <TrustScoreBreakdown vendor={vendor} />
+
+              {/* ── Exit Portfolio ── */}
+              <ExitPortfolio
+                vendor={vendor}
+                stats={{
+                  totalOrders:   transactions.length,
+                  totalRevenue:  transactions.reduce((s: number, t: any) => s + (t.amount ?? 0), 0),
+                  totalProducts: 0,
+                  topCategory:   vendor.category,
+                }}
+              />
 
               {/* Live Location */}
               <VendorLiveLocation vendor={vendor} userId={user!.id} />
