@@ -671,10 +671,14 @@ const VendorDashboard = () => {
             <TabsTrigger value="deals"><Flame className="h-4 w-4 mr-1" />Deals</TabsTrigger>
             <TabsTrigger value="store" data-tab="store"><Crown className="h-4 w-4 mr-1" />Store</TabsTrigger>
             <TabsTrigger value="testimonials"><MessageSquare className="h-4 w-4 mr-1" />Reviews</TabsTrigger>
-            {vendor.is_verified && vendor.is_store_upgraded && (
+            {vendor.is_store_upgraded && (
+              !vendor.store_upgrade_expires_at || new Date(vendor.store_upgrade_expires_at) > new Date()
+            ) && (
               <TabsTrigger value="ai"><Sparkles className="h-4 w-4 mr-1" />AI Advisor</TabsTrigger>
             )}
-            {vendor.is_verified && vendor.is_store_upgraded && (
+            {vendor.is_store_upgraded && (
+              !vendor.store_upgrade_expires_at || new Date(vendor.store_upgrade_expires_at) > new Date()
+            ) && (
               <TabsTrigger value="community"><Users className="h-4 w-4 mr-1" />Community</TabsTrigger>
             )}
             <TabsTrigger value="settings"><Settings className="h-4 w-4 mr-1" />Settings</TabsTrigger>
@@ -1115,15 +1119,19 @@ const VendorDashboard = () => {
             <VendorTestimonialManager vendorId={vendor.id} />
           </TabsContent>
 
-          {/* ── AI Advisor Tab (verified + upgraded only) ── */}
-          {vendor.is_verified && vendor.is_store_upgraded && (
+          {/* ── AI Advisor Tab (upgraded stores) ── */}
+          {vendor.is_store_upgraded && (
+            !vendor.store_upgrade_expires_at || new Date(vendor.store_upgrade_expires_at) > new Date()
+          ) && (
             <TabsContent value="ai">
               <VendorAIAdvisor vendor={vendor} />
             </TabsContent>
           )}
 
-          {/* ── Community Tab (verified + upgraded only) ── */}
-          {vendor.is_verified && vendor.is_store_upgraded && (
+          {/* ── Community Tab (upgraded stores) ── */}
+          {vendor.is_store_upgraded && (
+            !vendor.store_upgrade_expires_at || new Date(vendor.store_upgrade_expires_at) > new Date()
+          ) && (
             <TabsContent value="community">
               <VendorCommunity vendor={vendor} />
             </TabsContent>
