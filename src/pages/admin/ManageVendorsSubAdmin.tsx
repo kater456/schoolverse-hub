@@ -17,7 +17,7 @@ import {
 import {
   Check, X, Loader2, ShieldCheck, Globe, Ban,
   CreditCard, Banknote, CircleSlash, MoreVertical, ShieldOff, Megaphone,
-  UserX, UserCheck, Star, Film, Search,
+  UserX, UserCheck, Star, Film, Search, Crown, Sparkles, Zap, Calendar,
 } from "lucide-react";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -68,6 +68,7 @@ const ManageVendorsSubAdmin = () => {
       id, business_name, category, description, contact_number,
       country, is_approved, is_active, is_verified, is_suspended,
       reels_enabled, payment_status, payment_reference, promoted_until, created_at,
+      is_store_upgraded, store_upgrade_expires_at, ai_video_enabled,
       schools(name),
       campus_locations(name),
       vendor_private_details(full_name, vendor_photo_url, residential_location, personal_contact),
@@ -131,6 +132,35 @@ const ManageVendorsSubAdmin = () => {
     patch(v.id, { reels_enabled: !v.reels_enabled }, v.reels_enabled ? "Reels revoked" : "Reels granted ✅")
   );
 
+  // ── NEW: Store upgrade & AI video overrides ─────────────────────────────
+  const grantStoreUpgrade = (v: any) => run(v.id, () => {
+    const expires = new Date();
+    expires.setDate(expires.getDate() + 30);
+    return patch(v.id, {
+      is_store_upgraded: true,
+      store_upgrade_expires_at: expires.toISOString(),
+    }, "Store upgrade granted (30 days) ✅");
+  });
+
+  const revokeStoreUpgrade = (v: any) => run(v.id, () =>
+    patch(v.id, {
+      is_store_upgraded: false,
+      store_upgrade_expires_at: null,
+    }, "Store upgrade revoked")
+  );
+
+  const grantAIVideo = (v: any) => run(v.id, () =>
+    patch(v.id, { ai_video_enabled: true }, "AI Video access granted ✅")
+  );
+
+  const revokeAIVideo = (v: any) => run(v.id, () =>
+    patch(v.id, { ai_video_enabled: false }, "AI Video access revoked")
+  );
+
+  const isUpgradeActive = (v: any) =>
+    v?.is_store_upgraded === true &&
+    (!v?.store_upgrade_expires_at || new Date(v.store_upgrade_expires_at) > new Date());
+
   const handlePromote = async () => {
     if (!promoteVendor || !promoteDays || isNaN(Number(promoteDays)) || Number(promoteDays) < 1) return;
     setPromoteLoading(true);
@@ -155,6 +185,10 @@ const ManageVendorsSubAdmin = () => {
   const pendingVendors  = filterBySearch(vendors.filter((v) => v.is_active !== false && !v.is_approved));
   const approvedVendors = filterBySearch(vendors.filter((v) => v.is_active !== false && v.is_approved));
   const removedVendors  = filterBySearch(vendors.filter((v) => v.is_active === false));
+  const proVendors      = filterBySearch(vendors.filter((v) =>
+    v.is_store_upgraded === true &&
+    (!v.store_upgrade_expires_at || new Date(v.store_upgrade_expires_at) > new Date())
+  ));
 
   // ── Table renderer ──────────────────────────────────────────────────────────
   const renderTable = (list: any[], showReactivate = false) => (
@@ -340,6 +374,14 @@ const ManageVendorsSubAdmin = () => {
             )}
           </TabsTrigger>
           <TabsTrigger value="approved">Approved ({approvedVendors.length})</TabsTrigger>
+          <TabsTrigger value="pro" className="gap-1.5">
+            <Crown className="h-3.5 w-3.5 text-amber-500" />
+            Pro {proVendors.length > 0 && (
+              <span className="ml-0.5 bg-amber-500 text-white text-xs px-1.5 py-0.5 rounded-full font-medium">
+                {proVendors.length}
+              </span>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="removed">Removed ({removedVendors.length})</TabsTrigger>
         </TabsList>
 
@@ -362,6 +404,150 @@ const ManageVendorsSubAdmin = () => {
               {renderTable(approvedVendors)}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="pro">
+          <div className="space-y-4">
+            {/* Stats bar */}
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { label: "Active Pro Stores",    value: proVendors.length,                                        color: "text-amber-600",  bg: "bg-amber-50 border-amber-200" },
+                { label: "AI Video Enabled",     value: vendors.filter((v) => v.ai_video_enabled).length,         color: "text-purple-600", bg: "bg-purple-50 border-purple-200" },
+                { label: "Expiring This Week",   value: proVendors.filter((v) => {
+                  if (!v.store_upgrade_expires_at) return false;
+                  const diff = new Date(v.store_upgrade_expires_at).getTime() - Date.now();
+                  return diff > 0 && diff < 7 * 24 * 60 * 60 * 1000;
+                }).length, color: "text-red-600", bg: "bg-red-50 border-red-200" },
+              ].map(({ label, value, color, bg }) => (
+                <div key={label} className={`rounded-xl border p-3 ${bg}`}>
+                  <p className={`text-2xl font-bold ${color}`}>{value}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Pro vendor cards */}
+            {proVendors.length === 0 ? (
+              <Card>
+                <CardContent className="py-10 text-center">
+                  <Crown className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
+                  <p className="text-sm text-muted-foreground">No active Pro vendors yet</p>
+                  <p className="text-xs text-muted-foreground/60 mt-1">Vendors who upgrade their store will appear here</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {proVendors.map((v: any) => {
+                  const expires = v.store_upgrade_expires_at ? new Date(v.store_upgrade_expires_at) : null;
+                  const expiringSoon = expires ? (expires.getTime() - Date.now()) < 7 * 24 * 60 * 60 * 1000 : false;
+                  return (
+                    <Card key={v.id} className={`border ${expiringSoon ? "border-red-200" : "border-amber-200/60"}`}>
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 flex-wrap mb-1">
+                              <span className="font-semibold text-sm">{v.business_name}</span>
+                              {v.is_verified && <ShieldCheck className="h-3.5 w-3.5 text-primary" />}
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-semibold flex items-center gap-1">
+                                <Crown className="h-2.5 w-2.5" /> Pro Active
+                              </span>
+                              {v.ai_video_enabled && (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 font-semibold flex items-center gap-1">
+                                  <Sparkles className="h-2.5 w-2.5" /> AI Video
+                                </span>
+                              )}
+                              {expiringSoon && (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-semibold">
+                                  ⚠ Expiring Soon
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground">{v.category} · {v.schools?.name}</p>
+                            {expires && (
+                              <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                Upgrade expires: {expires.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Override actions */}
+                          <div className="flex flex-col gap-1.5 flex-shrink-0">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className={v.ai_video_enabled ? "text-muted-foreground text-xs h-7" : "text-purple-600 border-purple-300 text-xs h-7"}
+                              disabled={actionLoading === v.id}
+                              onClick={() => v.ai_video_enabled ? revokeAIVideo(v) : grantAIVideo(v)}
+                            >
+                              <Sparkles className="h-3 w-3 mr-1" />
+                              {v.ai_video_enabled ? "Revoke AI Video" : "Grant AI Video"}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-amber-600 border-amber-300 text-xs h-7"
+                              disabled={actionLoading === v.id}
+                              onClick={() => grantStoreUpgrade(v)}
+                            >
+                              <Crown className="h-3 w-3 mr-1" /> Extend 30 Days
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-destructive border-destructive/30 text-xs h-7"
+                              disabled={actionLoading === v.id}
+                              onClick={() => revokeStoreUpgrade(v)}
+                            >
+                              <X className="h-3 w-3 mr-1" /> Revoke Pro
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Grant Pro to any vendor */}
+            <Card className="border-dashed border-amber-200">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-amber-500" /> Grant Pro Access to Any Vendor
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Search for a vendor below to manually grant or override Pro access without a payment.
+                  Use this for partnerships, compensation, or testing.
+                </p>
+                <div className="space-y-2">
+                  {approvedVendors.filter((v: any) => !isUpgradeActive(v)).slice(0, 8).map((v: any) => (
+                    <div key={v.id} className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40 border border-border/50">
+                      <div>
+                        <p className="text-xs font-medium">{v.business_name}</p>
+                        <p className="text-[10px] text-muted-foreground">{v.category}</p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-amber-600 border-amber-200 text-xs h-7 gap-1"
+                        disabled={actionLoading === v.id}
+                        onClick={() => grantStoreUpgrade(v)}
+                      >
+                        {actionLoading === v.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Crown className="h-3 w-3" />}
+                        Grant 30 Days
+                      </Button>
+                    </div>
+                  ))}
+                  {approvedVendors.filter((v: any) => !isUpgradeActive(v)).length === 0 && (
+                    <p className="text-xs text-muted-foreground text-center py-3">All approved vendors already have Pro access</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         <TabsContent value="removed">
@@ -420,6 +606,25 @@ const ManageVendorsSubAdmin = () => {
                   onClick={() => toggleReels(detailVendor)}>
                   <Film className="h-3.5 w-3.5 mr-1" />
                   {detailVendor.reels_enabled ? "Revoke Reels" : "Grant Reels"}
+                </Button>
+                {/* Pro Store Override */}
+                {isUpgradeActive(detailVendor) ? (
+                  <Button size="sm" variant="outline" className="text-muted-foreground"
+                    onClick={() => revokeStoreUpgrade(detailVendor)}>
+                    <Crown className="h-3.5 w-3.5 mr-1 text-amber-500" /> Revoke Pro
+                  </Button>
+                ) : (
+                  <Button size="sm" variant="outline" className="text-amber-600 border-amber-300"
+                    onClick={() => grantStoreUpgrade(detailVendor)}>
+                    <Crown className="h-3.5 w-3.5 mr-1" /> Grant Pro (30d)
+                  </Button>
+                )}
+                {/* AI Video Override */}
+                <Button size="sm" variant="outline"
+                  className={detailVendor.ai_video_enabled ? "text-muted-foreground" : "text-purple-600 border-purple-300"}
+                  onClick={() => detailVendor.ai_video_enabled ? revokeAIVideo(detailVendor) : grantAIVideo(detailVendor)}>
+                  <Sparkles className="h-3.5 w-3.5 mr-1" />
+                  {detailVendor.ai_video_enabled ? "Revoke AI Video" : "Grant AI Video"}
                 </Button>
                 {isPromoted(detailVendor) ? (
                   <Button size="sm" variant="outline" className="text-muted-foreground"
