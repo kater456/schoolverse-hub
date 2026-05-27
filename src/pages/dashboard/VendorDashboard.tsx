@@ -31,6 +31,7 @@ import VendorAIAdvisor from "@/components/vendor/VendorAiAdvisor";
 import VendorCommunity from "@/components/vendor/VendorCommunity";
 import { TrustScoreBreakdown } from "@/components/guarantee/TrustScore";
 import ExitPortfolio from "@/components/vendor/ExitPortfolio";
+import ProFeatureGate from "@/components/vendor/ProFeatureGate";
 import VendorLiveLocation from "@/components/vendor/VendorLiveLocation";
 import { resolvePlan } from "@/lib/pricing";
 
@@ -658,153 +659,121 @@ const VendorDashboard = () => {
           </div>
         )}
 
-        {/* ── Tabs ── */}
+        {/* ── Pro Features Showcase (only for upgraded vendors) ── */}
+        {vendor.is_store_upgraded && (!vendor.store_upgrade_expires_at || new Date(vendor.store_upgrade_expires_at) > new Date()) && (
+          <div className="relative rounded-2xl overflow-hidden p-px"
+            style={{ background: "linear-gradient(135deg, #f59e0b, #8b5cf6, #3b82f6)" }}>
+            <div className="rounded-2xl relative overflow-hidden"
+              style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)" }}>
+              {/* Animated glow */}
+              <div className="absolute inset-0 opacity-30"
+                style={{ background: "radial-gradient(ellipse at 20% 50%, rgba(139,92,246,0.4) 0%, transparent 60%), radial-gradient(ellipse at 80% 50%, rgba(59,130,246,0.4) 0%, transparent 60%)" }} />
+              <div className="relative p-4 sm:p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="flex items-center gap-1.5 bg-gradient-to-r from-amber-400/20 to-amber-400/10 border border-amber-400/30 rounded-full px-2.5 py-1">
+                    <Crown className="h-3 w-3 text-amber-400" />
+                    <span className="text-[10px] font-bold text-amber-300 uppercase tracking-widest">Pro Active</span>
+                  </div>
+                  <span className="text-[10px] text-white/40">
+                    {vendor.store_upgrade_expires_at ? `Expires ${new Date(vendor.store_upgrade_expires_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : "Active"}
+                  </span>
+                </div>
+                <p className="text-white font-bold text-sm mb-3">Your Pro Features</p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {[
+                    { icon: "🎬", label: "AI Video", sub: "Veo 3.1 powered", tab: "reels" },
+                    { icon: "✨", label: "AI Advisor", sub: "Business insights", tab: "ai" },
+                    { icon: "👥", label: "Community", sub: "Student network", tab: "community" },
+                    { icon: "🏪", label: "Store Design", sub: "Custom theme", tab: "store" },
+                  ].map(({ icon, label, sub, tab }) => (
+                    <button
+                      key={label}
+                      onClick={() => { const t = document.querySelector(`[value="${tab}"]`) as HTMLElement; t?.click(); }}
+                      className="group flex items-center gap-2 sm:flex-col sm:items-center p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all text-left sm:text-center"
+                    >
+                      <span className="text-2xl sm:text-3xl sm:mb-1">{icon}</span>
+                      <div>
+                        <p className="text-xs font-semibold text-white leading-none">{label}</p>
+                        <p className="text-[10px] text-white/40 mt-0.5 leading-tight">{sub}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Main Dashboard Layout ── */}
         <Tabs defaultValue="products" className="space-y-0">
-          {/* ── Clean grouped navigation ──────────────────────────────────────── */}
-          <TabsList className="h-auto bg-transparent p-0 flex flex-col w-full mb-5">
-            {/* ── Mobile: horizontal scrolling pill row ── */}
-            <div className="flex sm:hidden gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+
+          {/* ═══ DESKTOP: Left sidebar navigation ═══ */}
+          <div className="hidden sm:flex gap-6 items-start">
+            <TabsList className="h-auto bg-card border border-border/50 rounded-2xl p-2 flex flex-col gap-0.5 w-48 flex-shrink-0 sticky top-20 shadow-sm">
+              <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/50 px-2 pt-1 pb-1.5">Store</p>
               {[
-                { v: "products",    icon: Package,      label: "Products" },
-                { v: "reels",       icon: Film,         label: "Reels"    },
-                { v: "orders",      icon: ShoppingBag,  label: "Orders"   },
-                { v: "deals",       icon: Flame,        label: "Deals"    },
-                { v: "profile",     icon: User,         label: "Profile"  },
-                { v: "verify",      icon: ShieldCheck,  label: vendor.is_verified ? "Verified ✅" : "Verify" },
-                { v: "engagement",  icon: BarChart3,    label: "Insights" },
-                { v: "store",       icon: Crown,        label: "Store"    },
-                { v: "testimonials",icon: MessageSquare,label: "Reviews"  },
-                ...(vendor.is_store_upgraded && (!vendor.store_upgrade_expires_at || new Date(vendor.store_upgrade_expires_at) > new Date())
-                  ? [
-                      { v: "ai",        icon: Sparkles, label: "AI"       },
-                      { v: "community", icon: Users,    label: "Community"},
-                    ] : []),
+                { v: "products",  icon: Package,      label: "Products"  },
+                { v: "reels",     icon: Film,         label: "Reels & Videos" },
+                { v: "orders",    icon: ShoppingBag,  label: "Orders"    },
+                { v: "deals",     icon: Flame,        label: "Deals"     },
+              ].map(({ v, icon: Icon, label }) => (
+                <TabsTrigger key={v} value={v}
+                  className="w-full justify-start gap-2.5 px-3 h-9 text-sm rounded-xl border-0 bg-transparent data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm font-medium">
+                  <Icon className="h-4 w-4 shrink-0" />{label}
+                </TabsTrigger>
+              ))}
+
+              <div className="h-px bg-border/50 my-1.5 mx-1" />
+              <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/50 px-2 pb-1.5">Profile</p>
+              {[
+                { v: "profile",      icon: User,         label: "My Profile"  },
+                { v: "verify",       icon: ShieldCheck,  label: vendor.is_verified ? "Verified ✅" : "Get Verified" },
+                { v: "testimonials", icon: MessageSquare,label: "Reviews"     },
+                { v: "engagement",   icon: BarChart3,    label: "Insights"    },
+              ].map(({ v, icon: Icon, label }) => (
+                <TabsTrigger key={v} value={v}
+                  className="w-full justify-start gap-2.5 px-3 h-9 text-sm rounded-xl border-0 bg-transparent data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm font-medium">
+                  <Icon className="h-4 w-4 shrink-0" />{label}
+                </TabsTrigger>
+              ))}
+
+              <div className="h-px bg-border/50 my-1.5 mx-1" />
+              <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/50 px-2 pb-1.5">
+                {vendor.is_store_upgraded ? "⚡ Pro" : "Pro"}
+              </p>
+              <TabsTrigger value="store"
+                className="w-full justify-start gap-2.5 px-3 h-9 text-sm rounded-xl border-0 bg-transparent data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm font-medium">
+                <Crown className="h-4 w-4 shrink-0 text-amber-500" />
+                <span>Store Design</span>
+                {!vendor.is_store_upgraded && <span className="ml-auto text-[9px] bg-amber-100 text-amber-700 rounded px-1 font-bold">PRO</span>}
+              </TabsTrigger>
+              {vendor.is_store_upgraded && (!vendor.store_upgrade_expires_at || new Date(vendor.store_upgrade_expires_at) > new Date()) && (
+                <>
+                  <TabsTrigger value="ai"
+                    className="w-full justify-start gap-2.5 px-3 h-9 text-sm rounded-xl border-0 bg-transparent data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm font-medium">
+                    <Sparkles className="h-4 w-4 shrink-0 text-purple-500" />AI Advisor
+                  </TabsTrigger>
+                  <TabsTrigger value="community"
+                    className="w-full justify-start gap-2.5 px-3 h-9 text-sm rounded-xl border-0 bg-transparent data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm font-medium">
+                    <Users className="h-4 w-4 shrink-0 text-blue-500" />Community
+                  </TabsTrigger>
+                </>
+              )}
+
+              <div className="h-px bg-border/50 my-1.5 mx-1" />
+              {[
                 { v: "control",  icon: ToggleLeft, label: "Controls" },
                 { v: "settings", icon: Settings,   label: "Settings" },
               ].map(({ v, icon: Icon, label }) => (
-                <TabsTrigger
-                  key={v}
-                  value={v}
-                  className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 h-8 text-xs font-medium rounded-full border border-border/50 bg-background data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary data-[state=active]:shadow-sm whitespace-nowrap"
-                >
-                  <Icon className="h-3 w-3" />{label}
+                <TabsTrigger key={v} value={v}
+                  className="w-full justify-start gap-2.5 px-3 h-9 text-sm rounded-xl border-0 bg-transparent data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm font-medium">
+                  <Icon className="h-4 w-4 shrink-0" />{label}
                 </TabsTrigger>
               ))}
-            </div>
+            </TabsList>
 
-            {/* ── Desktop: grouped card navigation ── */}
-            <div className="hidden sm:grid grid-cols-5 gap-2">
-              {/* Group 1 — Sell */}
-              <div className="space-y-1">
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50 px-1 mb-1.5">Sell</p>
-                {[
-                  { v: "products", icon: Package,     label: "Products" },
-                  { v: "reels",    icon: Film,         label: "Reels"    },
-                  { v: "orders",   icon: ShoppingBag,  label: "Orders"   },
-                  { v: "deals",    icon: Flame,        label: "Deals"    },
-                ].map(({ v, icon: Icon, label }) => (
-                  <TabsTrigger
-                    key={v}
-                    value={v}
-                    className="w-full justify-start gap-2 px-3 h-9 text-sm font-medium rounded-xl border-0 bg-transparent hover:bg-muted/60 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none"
-                  >
-                    <Icon className="h-4 w-4 shrink-0" />{label}
-                  </TabsTrigger>
-                ))}
-              </div>
-
-              {/* Group 2 — Profile */}
-              <div className="space-y-1">
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50 px-1 mb-1.5">Profile</p>
-                {[
-                  { v: "profile",      icon: User,         label: "My Profile" },
-                  { v: "verify",       icon: ShieldCheck,  label: vendor.is_verified ? "Verified ✅" : "Get Verified" },
-                  { v: "testimonials", icon: MessageSquare,label: "Reviews"    },
-                ].map(({ v, icon: Icon, label }) => (
-                  <TabsTrigger
-                    key={v}
-                    value={v}
-                    className="w-full justify-start gap-2 px-3 h-9 text-sm font-medium rounded-xl border-0 bg-transparent hover:bg-muted/60 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none"
-                  >
-                    <Icon className="h-4 w-4 shrink-0" />{label}
-                  </TabsTrigger>
-                ))}
-              </div>
-
-              {/* Group 3 — Analytics */}
-              <div className="space-y-1">
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50 px-1 mb-1.5">Analytics</p>
-                <TabsTrigger
-                  value="engagement"
-                  className="w-full justify-start gap-2 px-3 h-9 text-sm font-medium rounded-xl border-0 bg-transparent hover:bg-muted/60 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none"
-                >
-                  <BarChart3 className="h-4 w-4 shrink-0" />Insights
-                </TabsTrigger>
-                <TabsTrigger
-                  value="store"
-                  className="w-full justify-start gap-2 px-3 h-9 text-sm font-medium rounded-xl border-0 bg-transparent hover:bg-muted/60 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none"
-                >
-                  <Crown className="h-4 w-4 shrink-0 text-accent" />
-                  <span>Store Design</span>
-                  {!vendor.is_store_upgraded && <span className="ml-auto text-[9px] font-bold text-accent bg-accent/10 rounded px-1">PRO</span>}
-                </TabsTrigger>
-              </div>
-
-              {/* Group 4 — Pro */}
-              <div className="space-y-1">
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50 px-1 mb-1.5">
-                  Pro {vendor.is_store_upgraded ? "✦" : ""}
-                </p>
-                {vendor.is_store_upgraded && (!vendor.store_upgrade_expires_at || new Date(vendor.store_upgrade_expires_at) > new Date()) ? (
-                  <>
-                    <TabsTrigger
-                      value="ai"
-                      className="w-full justify-start gap-2 px-3 h-9 text-sm font-medium rounded-xl border-0 bg-transparent hover:bg-muted/60 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none"
-                    >
-                      <Sparkles className="h-4 w-4 shrink-0 text-accent" />AI Advisor
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="community"
-                      className="w-full justify-start gap-2 px-3 h-9 text-sm font-medium rounded-xl border-0 bg-transparent hover:bg-muted/60 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none"
-                    >
-                      <Users className="h-4 w-4 shrink-0" />Community
-                    </TabsTrigger>
-                  </>
-                ) : (
-                  <div className="px-3 py-2 rounded-xl border border-dashed border-accent/30 bg-accent/5 text-center">
-                    <Crown className="h-4 w-4 text-accent mx-auto mb-1" />
-                    <p className="text-[10px] text-muted-foreground leading-tight">Upgrade to unlock AI Advisor & Community</p>
-                    <button
-                      className="mt-2 text-[10px] font-bold text-accent hover:underline"
-                      onClick={() => { const t = document.querySelector('[value="store"]') as HTMLElement; t?.click(); }}
-                    >
-                      Upgrade →
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Group 5 — Settings */}
-              <div className="space-y-1">
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50 px-1 mb-1.5">Settings</p>
-                {[
-                  { v: "control",  icon: ToggleLeft, label: "Controls" },
-                  { v: "settings", icon: Settings,   label: "Settings" },
-                ].map(({ v, icon: Icon, label }) => (
-                  <TabsTrigger
-                    key={v}
-                    value={v}
-                    className="w-full justify-start gap-2 px-3 h-9 text-sm font-medium rounded-xl border-0 bg-transparent hover:bg-muted/60 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none"
-                  >
-                    <Icon className="h-4 w-4 shrink-0" />{label}
-                  </TabsTrigger>
-                ))}
-              </div>
-            </div>
-
-            {/* Divider */}
-            <div className="hidden sm:block h-px bg-border/50 mt-3" />
-          </TabsList>
+            {/* Desktop content */}
+            <div className="flex-1 min-w-0">
 
           {/* Products */}
           <TabsContent value="products">
@@ -813,7 +782,15 @@ const VendorDashboard = () => {
 
           {/* Reels */}
           <TabsContent value="reels">
-            <VendorVideoManager vendorId={vendor.id} reelsEnabled={vendor.reels_enabled || false} vendor={vendor} />
+            <ProFeatureGate
+              vendor={vendor}
+              feature="AI Video Generator & Reels"
+              description="Create cinematic product videos with Google Veo 3.1 AI and publish them as reels on your store profile."
+              icon="🎬"
+              onUpgradeSuccess={(v) => setVendor(v)}
+            >
+              <VendorVideoManager vendorId={vendor.id} reelsEnabled={vendor.reels_enabled || false} vendor={vendor} />
+            </ProFeatureGate>
           </TabsContent>
 
           {/* Profile */}
@@ -1230,10 +1207,18 @@ const VendorDashboard = () => {
 
           {/* ── Store Upgrade Tab ── */}
           <TabsContent value="store">
-            <VendorStoreUpgrade
+            <ProFeatureGate
               vendor={vendor}
-              onUpdate={(v) => setVendor((prev: any) => ({ ...prev, ...v }))}
-            />
+              feature="Store Designer"
+              description="Customize your store with a banner, brand colors, and a premium layout that makes your business stand out."
+              icon="🏪"
+              onUpgradeSuccess={(v) => setVendor(v)}
+            >
+              <VendorStoreUpgrade
+                vendor={vendor}
+                onUpdate={(v) => setVendor((prev: any) => ({ ...prev, ...v }))}
+              />
+            </ProFeatureGate>
           </TabsContent>
 
           {/* ── Testimonials Tab ── */}
@@ -1241,23 +1226,31 @@ const VendorDashboard = () => {
             <VendorTestimonialManager vendorId={vendor.id} />
           </TabsContent>
 
-          {/* ── AI Advisor Tab (upgraded stores) ── */}
-          {vendor.is_store_upgraded && (
-            !vendor.store_upgrade_expires_at || new Date(vendor.store_upgrade_expires_at) > new Date()
-          ) && (
-            <TabsContent value="ai">
+          {/* ── AI Advisor Tab — blurred for non-pro ── */}
+          <TabsContent value="ai">
+            <ProFeatureGate
+              vendor={vendor}
+              feature="AI Business Advisor"
+              description="Get AI-powered insights on your sales, pricing, and customer trends. Your personal business coach, available 24/7."
+              icon="✨"
+              onUpgradeSuccess={(v) => setVendor(v)}
+            >
               <VendorAIAdvisor vendor={vendor} />
-            </TabsContent>
-          )}
+            </ProFeatureGate>
+          </TabsContent>
 
-          {/* ── Community Tab (upgraded stores) ── */}
-          {vendor.is_store_upgraded && (
-            !vendor.store_upgrade_expires_at || new Date(vendor.store_upgrade_expires_at) > new Date()
-          ) && (
-            <TabsContent value="community">
+          {/* ── Community Tab — blurred for non-pro ── */}
+          <TabsContent value="community">
+            <ProFeatureGate
+              vendor={vendor}
+              feature="Community Hub"
+              description="Connect with other campus vendors, share tips, collaborate on deals, and build your network of student entrepreneurs."
+              icon="👥"
+              onUpgradeSuccess={(v) => setVendor(v)}
+            >
               <VendorCommunity vendor={vendor} />
-            </TabsContent>
-          )}
+            </ProFeatureGate>
+          </TabsContent>
 
           {/* ── Settings Tab ── */}
           <TabsContent value="settings">
@@ -1430,9 +1423,105 @@ const VendorDashboard = () => {
             </div>
           </TabsContent>
 
+            </div>{/* end desktop content flex-1 */}
+          </div>{/* end desktop flex row */}
+
+          {/* ═══ MOBILE: Full-width tab content (no sidebar) ═══ */}
+          <div className="sm:hidden">
+            {/* Mobile tab content renders natively — Radix TabsContent
+                is already in the DOM, we just let it show below the bottom nav.
+                The hidden desktop sidebar TabsTriggers still control state. */}
+          </div>
+
         </Tabs>
+
+        {/* ═══ MOBILE comment note ═══ */}
       </main>
 
+      {/* ── Mobile bottom nav bar ── */}
+      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-xl border-t border-border/60 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
+        {/* Notch-safe padding */}
+        <div className="flex items-center justify-around px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))]">
+          {[
+            { v: "products",   icon: Package,     label: "Products" },
+            { v: "reels",      icon: Film,        label: "Reels"    },
+            { v: "orders",     icon: ShoppingBag, label: "Orders"   },
+            { v: "profile",    icon: User,        label: "Profile"  },
+            { v: "more-menu",  icon: Settings,    label: "More"     },
+          ].map(({ v, icon: Icon, label }) => (
+            <button
+              key={v}
+              id={`mobile-nav-${v}`}
+              onClick={() => {
+                if (v === "more-menu") {
+                  const el = document.getElementById("mobile-more-menu");
+                  if (el) el.style.display = el.style.display === "none" ? "block" : "none";
+                } else {
+                  // Trigger the hidden desktop tab
+                  const t = document.querySelector(`[value="${v}"]`) as HTMLElement;
+                  if (t) t.click();
+                  // Close more menu
+                  const el = document.getElementById("mobile-more-menu");
+                  if (el) el.style.display = "none";
+                  // Scroll to top of content
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }
+              }}
+              className="flex flex-col items-center gap-1 min-w-[52px] py-1 group"
+            >
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center transition-all group-active:scale-90">
+                <Icon className="h-5 w-5 text-muted-foreground group-active:text-primary transition-colors" />
+              </div>
+              <span className="text-[9px] font-medium text-muted-foreground leading-none">{label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* More menu drawer */}
+        <div
+          id="mobile-more-menu"
+          style={{ display: "none" }}
+          className="absolute bottom-full left-0 right-0 bg-background border-t border-border/60 rounded-t-2xl shadow-2xl px-4 py-4"
+        >
+          <div className="w-8 h-1 bg-muted rounded-full mx-auto mb-4" />
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { v: "deals",        icon: Flame,        label: "Deals",    color: "bg-orange-50 text-orange-600" },
+              { v: "engagement",   icon: BarChart3,    label: "Insights", color: "bg-blue-50 text-blue-600"   },
+              { v: "store",        icon: Crown,        label: "Store",    color: "bg-amber-50 text-amber-600"  },
+              { v: "testimonials", icon: MessageSquare,label: "Reviews",  color: "bg-pink-50 text-pink-600"   },
+              { v: "verify",       icon: ShieldCheck,  label: vendor.is_verified ? "Verified ✅" : "Verify", color: "bg-green-50 text-green-600" },
+              { v: "control",      icon: ToggleLeft,   label: "Controls", color: "bg-purple-50 text-purple-600" },
+              ...(vendor.is_store_upgraded && (!vendor.store_upgrade_expires_at || new Date(vendor.store_upgrade_expires_at) > new Date())
+                ? [
+                    { v: "ai",        icon: Sparkles, label: "AI Advisor", color: "bg-violet-50 text-violet-600" },
+                    { v: "community", icon: Users,    label: "Community",  color: "bg-cyan-50 text-cyan-600"    },
+                  ] : [
+                    { v: "store", icon: Crown, label: "Upgrade ⚡", color: "bg-gradient-to-br from-amber-50 to-orange-50 text-amber-700" },
+                  ]),
+              { v: "settings",     icon: Settings,     label: "Settings", color: "bg-gray-50 text-gray-600"   },
+            ].map(({ v, icon: Icon, label, color }) => (
+              <button
+                key={`more-${v}`}
+                onClick={() => {
+                  const t = document.querySelector(`[value="${v}"]`) as HTMLElement;
+                  if (t) t.click();
+                  const el = document.getElementById("mobile-more-menu");
+                  if (el) el.style.display = "none";
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                className={`flex flex-col items-center gap-2 p-3 rounded-2xl ${color} active:scale-95 transition-transform`}
+              >
+                <Icon className="h-5 w-5" />
+                <span className="text-[10px] font-semibold leading-tight text-center">{label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </nav>
+
+      {/* Spacer for bottom nav on mobile */}
+      <div className="sm:hidden h-20" />
 
     </div>
   );
