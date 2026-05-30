@@ -23,6 +23,8 @@ import { Label } from "@/components/ui/label";
 import { useNotify } from "@/hooks/useNotify";
 import VendorQRBadge from "@/components/VendorQRBadge";
 import VendorTestimonialsDisplay from "@/components/vendor/VendorTestimonialsDisplay";
+import { CampusGuaranteeBadge, CampusGuaranteeSheet } from "@/components/guarantee/CampusGuaranteeBadge";
+import VendorProximity from "@/components/vendor/VendorProximity";
 
 // ── Lightbox ──────────────────────────────────────────────────────────────────
 const Lightbox = ({ images, startIndex, onClose }: {
@@ -153,12 +155,14 @@ const VendorProfile = () => {
     window.scrollTo({ top: 0, behavior: "instant" });
 
     const fetchVendor = async () => {
-      if (!id) return;
-      const { data } = await supabase
-        .from("vendors")
-        .select(`*, schools(name, id), campus_locations(name), vendor_images(*)`)
-        .eq("id", id).single();
+      if (!id) { setIsLoading(false); return; }
+      try {
+        const { data, error } = await supabase
+          .from("vendors")
+          .select(`*, schools(name, id), campus_locations(name), vendor_images(*)`)
+        .eq("id", id).maybeSingle();
 
+      if (error) { console.error("Vendor fetch:", error); return; }
       if (data) {
         setVendor(data);
         setImages(data.vendor_images || []);
@@ -255,7 +259,11 @@ const VendorProfile = () => {
           setIsUserVerified(!!(profile as any)?.is_user_verified);
         }
       }
-      setIsLoading(false);
+      } catch (err) {
+        console.error("VendorProfile error:", err);
+      } finally {
+        setIsLoading(false);
+      }
     };
     fetchVendor();
   }, [id, user]);
@@ -531,6 +539,7 @@ const VendorProfile = () => {
                         <ShieldCheck className="h-3 w-3 mr-1" /> Verified
                       </Badge>
                     )}
+                    <CampusGuaranteeBadge />
                     {vendor.is_vendor_of_week && vendor.vendor_of_week_expires_at && new Date(vendor.vendor_of_week_expires_at) > new Date() && (
                       <Badge className="bg-accent/20 text-accent text-xs">🏆 Vendor of the Week</Badge>
                     )}
@@ -619,6 +628,16 @@ const VendorProfile = () => {
               </div>
 
               {vendor.description && <p className="text-muted-foreground mb-6">{vendor.description}</p>}
+
+              {/* ── Proximity & Navigation ── */}
+              {(vendor.location || vendor.address || vendor.city) && (
+                <div className="mb-6">
+                  <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-primary" /> Find This Vendor
+                  </h3>
+                  <VendorProximity vendor={vendor} />
+                </div>
+              )}
 
               {/* Ratings */}
               <Card className="border-border/50 mb-4">
