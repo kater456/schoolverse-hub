@@ -20,6 +20,7 @@ import {
 import { QRCodeSVG } from "qrcode.react";
 import VendorProductManager from "@/components/vendor/VendorProductManager";
 import VendorVideoManager from "@/components/vendor/VendorVideoManager";
+import VendorAdStudio from "@/components/vendor/VendorAdStudio";
 import ThemeToggle from "@/components/ThemeToggle";
 import { compressImage } from "@/lib/compressImage";
 import VendorControlCenter from "@/components/vendor/VendorControlCenter";
@@ -33,6 +34,7 @@ import { TrustScoreBreakdown } from "@/components/guarantee/TrustScore";
 import ExitPortfolio from "@/components/vendor/ExitPortfolio";
 import ProFeatureGate from "@/components/vendor/ProFeatureGate";
 import VendorLiveLocation from "@/components/vendor/VendorLiveLocation";
+import VendorLocationSettings from "@/components/vendor/VendorLocationSettings";
 import { resolvePlan } from "@/lib/pricing";
 
 const VendorDashboard = () => {
@@ -773,7 +775,6 @@ const VendorDashboard = () => {
             </TabsList>
 
             {/* Desktop content */}
-            <div className="flex-1 min-w-0">
 
           {/* Products */}
           <TabsContent value="products">
@@ -789,7 +790,10 @@ const VendorDashboard = () => {
               icon="🎬"
               onUpgradeSuccess={(v) => setVendor(v)}
             >
-              <VendorVideoManager vendorId={vendor.id} reelsEnabled={vendor.reels_enabled || false} vendor={vendor} />
+              <div className="space-y-6">
+                <VendorAdStudio vendor={vendor} />
+                <VendorVideoManager vendorId={vendor.id} reelsEnabled={vendor.reels_enabled || false} vendor={vendor} />
+              </div>
             </ProFeatureGate>
           </TabsContent>
 
@@ -1268,6 +1272,12 @@ const VendorDashboard = () => {
                   totalProducts: 0,
                   topCategory:   vendor.category,
                 }}
+              />
+
+              {/* ── Store Location ── */}
+              <VendorLocationSettings
+                vendor={vendor}
+                onUpdate={(v) => setVendor((prev: any) => ({ ...prev, ...v }))}
               />
 
               {/* Live Location */}
