@@ -22,14 +22,17 @@
  *   </ProFeatureGate>
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Crown, Loader2, CheckCircle2, ArrowRight,
+  Crown, Sparkles, Zap, Lock, Loader2, CheckCircle2,
+  ArrowRight, Star, ShieldCheck, BarChart3, Users, Film,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 
 // ─── What a Pro subscription unlocks ─────────────────────────────────────────
 const PRO_PERKS = [
@@ -61,10 +64,11 @@ function UpgradePanel({
   icon:             string;
   onUpgradeSuccess: (v: any) => void;
 }) {
+  const { user } = useAuth();
   const { toast } = useToast();
-  const [step,       setStep]       = useState<"cta" | "confirm" | "done">("cta");
-  const [manualRef,  setManualRef]  = useState("");
-  const [confirming, setConfirming] = useState(false);
+  const [step,          setStep]          = useState<"cta" | "pay" | "confirm" | "done">("cta");
+  const [manualRef,     setManualRef]     = useState("");
+  const [confirming,    setConfirming]    = useState(false);
 
   const openPaystack = () => {
     window.open(PAYSTACK_UPGRADE_LINK, "_blank", "noopener,noreferrer");
@@ -80,10 +84,10 @@ function UpgradePanel({
     try {
       const { data, error } = await supabase.functions.invoke("vendor-featured-payment", {
         body: {
-          vendor_id:         vendor.id,
-          payment_reference: manualRef.trim(),
-          payment_type:      "store_upgrade",
-          amount_kobo:       200000, // ₦2,000
+          vendor_id:           vendor.id,
+          payment_reference:   manualRef.trim(),
+          payment_type:        "store_upgrade",
+          amount_kobo:         200000, // ₦2,000
         },
       });
       if (error || data?.error) throw new Error(error?.message || data?.error);
@@ -98,7 +102,7 @@ function UpgradePanel({
       toast({ title: "🎉 Store upgraded!", description: "All Pro features are now unlocked." });
       setStep("done");
       if (updated) onUpgradeSuccess(updated);
-    } catch {
+    } catch (err: any) {
       // Fallback: mark as pending for admin review
       await supabase.from("vendors").update({
         is_store_upgraded:        true,
@@ -198,9 +202,7 @@ function UpgradePanel({
               onClick={confirmUpgrade}
               disabled={confirming || !manualRef.trim()}
             >
-              {confirming
-                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                : <CheckCircle2 className="h-3.5 w-3.5" />}
+              {confirming ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
               Confirm Upgrade
             </Button>
           </div>
@@ -246,10 +248,8 @@ export default function ProFeatureGate({
       </div>
 
       {/* Glass overlay */}
-      <div
-        className="absolute inset-0 flex items-start justify-center pt-6 px-4"
-        style={{ background: "linear-gradient(to bottom, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.97) 40%, rgba(255,255,255,1) 100%)" }}
-      >
+      <div className="absolute inset-0 flex items-start justify-center pt-6 px-4"
+        style={{ background: "linear-gradient(to bottom, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.97) 40%, rgba(255,255,255,1) 100%)" }}>
         <div className="w-full max-w-sm">
           <UpgradePanel
             vendor={vendor}
