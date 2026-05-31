@@ -25,6 +25,7 @@ import VendorQRBadge from "@/components/VendorQRBadge";
 import VendorTestimonialsDisplay from "@/components/vendor/VendorTestimonialsDisplay";
 import { CampusGuaranteeBadge, CampusGuaranteeSheet } from "@/components/guarantee/CampusGuaranteeBadge";
 import VendorProximity from "@/components/vendor/VendorProximity";
+import { TrustScoreBadge, computeTrustScore } from "@/components/guarantee/TrustScore";
 
 // ── Lightbox ──────────────────────────────────────────────────────────────────
 const Lightbox = ({ images, startIndex, onClose }: {
@@ -394,9 +395,8 @@ const VendorProfile = () => {
   const hasSocialLinks = vendor.is_verified && (vendor.social_instagram || vendor.social_tiktok || vendor.social_twitter);
 
   // ── Store design settings (upgraded stores only) ──────────────────────────
-  const isUpgraded    = vendor.is_store_upgraded &&
-    vendor.store_upgrade_expires_at &&
-    new Date(vendor.store_upgrade_expires_at) > new Date();
+  const isUpgraded    = vendor.is_store_upgraded === true &&
+    (!vendor.store_upgrade_expires_at || new Date(vendor.store_upgrade_expires_at) > new Date());
   const themeColor    = isUpgraded && vendor.store_theme_color  ? vendor.store_theme_color  : null;
   const accentColor   = isUpgraded && vendor.store_accent_color ? vendor.store_accent_color : null;
   const storeLayout   = isUpgraded && vendor.store_layout       ? vendor.store_layout       : "grid";
@@ -540,6 +540,7 @@ const VendorProfile = () => {
                       </Badge>
                     )}
                     <CampusGuaranteeBadge />
+                    <TrustScoreBadge score={computeTrustScore(vendor)} size="xs" />
                     {vendor.is_vendor_of_week && vendor.vendor_of_week_expires_at && new Date(vendor.vendor_of_week_expires_at) > new Date() && (
                       <Badge className="bg-accent/20 text-accent text-xs">🏆 Vendor of the Week</Badge>
                     )}
@@ -630,7 +631,7 @@ const VendorProfile = () => {
               {vendor.description && <p className="text-muted-foreground mb-6">{vendor.description}</p>}
 
               {/* ── Proximity & Navigation ── */}
-              {(vendor.location || vendor.address || vendor.city) && (
+              {(vendor.location || vendor.address || vendor.city || vendor.landmark) && (
                 <div className="mb-6">
                   <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
                     <MapPin className="h-4 w-4 text-primary" /> Find This Vendor
