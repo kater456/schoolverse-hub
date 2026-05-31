@@ -774,7 +774,8 @@ const VendorDashboard = () => {
               ))}
             </TabsList>
 
-            {/* Desktop content */}
+            {/* ═══ Desktop tab content wrapper ═══ */}
+            <div className="flex-1 min-w-0">
 
           {/* Products */}
           <TabsContent value="products">
@@ -1433,19 +1434,13 @@ const VendorDashboard = () => {
             </div>
           </TabsContent>
 
-            </div>{/* end desktop content flex-1 */}
-          </div>{/* end desktop flex row */}
+            </div>{/* ── end desktop flex-1 content ── */}
+          </div>{/* ── end hidden sm:flex row ── */}
 
-          {/* ═══ MOBILE: Full-width tab content (no sidebar) ═══ */}
-          <div className="sm:hidden">
-            {/* Mobile tab content renders natively — Radix TabsContent
-                is already in the DOM, we just let it show below the bottom nav.
-                The hidden desktop sidebar TabsTriggers still control state. */}
-          </div>
+          {/* ═══ MOBILE: sm:hidden wrapper keeps mobile content below bottom nav ═══ */}
+          <div className="sm:hidden" />
 
         </Tabs>
-
-        {/* ═══ MOBILE comment note ═══ */}
       </main>
 
       {/* ── Mobile bottom nav bar ── */}
