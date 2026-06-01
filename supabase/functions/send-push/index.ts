@@ -142,25 +142,44 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    // ── Authenticate caller ────────────────────────────────────────────────
+    const token = req.headers.get("Authorization")?.replace("Bearer ", "");
+    if (!token) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { data: userData, error: authErr } = await supabase.auth.getUser(token);
+    if (authErr || !userData?.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const callerId = userData.user.id;
+
     const {
       // Notification content
-      type,           // e.g. "profile_view", "new_enquiry" — maps to template
-      data,           // template variables e.g. { sender: "Chidi", preview: "Is this available?" }
-      title,          // optional custom override
-      body,           // optional custom override
-      url,            // deep link URL
-
+      type, data, title, body, url,
       // Targeting
-      user_id,        // send to a specific user
-      vendor_id,      // send to the owner of this vendor
-      school_id,      // filter by school
-      audience,       // "vendors" | "all"
-
+      user_id, vendor_id, school_id, audience,
       // Metadata
-      tag,            // notification grouping tag
-      sender_id,
-      sender_role,
+      tag, sender_id, sender_role,
     } = await req.json();
+
+    // ── Broadcast / cross-user targeting requires admin role ──────────────
+    const isBroadcast = audience === "vendors" || (!user_id && !vendor_id);
+    const isSelfPing  = user_id === callerId;
+    if (!isSelfPing) {
+      const { data: roleRow } = await supabase
+        .from("user_roles").select("role").eq("user_id", callerId);
+      const isAdmin = (roleRow || []).some((r: any) =>
+        ["admin","super_admin","sub_admin"].includes(r.role));
+      if (isBroadcast && !isAdmin) {
+        return new Response(JSON.stringify({ error: "Forbidden — admin only" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
     // ── Resolve professional notification copy ──────────────────────────────
     const resolved = resolveTemplate(type || "broadcast", data || {}, title, body);
