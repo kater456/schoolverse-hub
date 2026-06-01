@@ -17,10 +17,38 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // ── Authenticate caller ─────────────────────────────────────────────────
+    const token = req.headers.get("Authorization")?.replace("Bearer ", "");
+    if (!token) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { data: userData, error: authErr } = await supabase.auth.getUser(token);
+    if (authErr || !userData?.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { vendor_id, type, title, message } = await req.json();
     if (!vendor_id || !title) {
       return new Response(JSON.stringify({ error: "Missing vendor_id or title" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Allow only the vendor owner or an admin to trigger their own notification
+    const callerId = userData.user.id;
+    const { data: vendorCheck } = await supabase
+      .from("vendors").select("user_id").eq("id", vendor_id).single();
+    const { data: roleRow } = await supabase
+      .from("user_roles").select("role").eq("user_id", callerId);
+    const isAdmin = (roleRow || []).some((r: any) =>
+      ["admin","super_admin","sub_admin"].includes(r.role));
+    if (!isAdmin && vendorCheck?.user_id !== callerId) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 

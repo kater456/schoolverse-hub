@@ -17,7 +17,22 @@ Deno.serve(async (req) => {
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    const { vendor_id, reporter_id, reason, details, evidence_url } = await req.json();
+    // ── Authenticate caller ────────────────────────────────────────────────
+    const token = req.headers.get("Authorization")?.replace("Bearer ", "");
+    if (!token) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { data: userData, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !userData?.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const reporter_id = userData.user.id;
+
+    const { vendor_id, reason, details, evidence_url } = await req.json();
 
     if (!vendor_id || !reason) {
       return new Response(JSON.stringify({ error: "Missing vendor_id or reason" }), {
@@ -25,22 +40,34 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 1. Check if this user already reported this vendor (prevent spam)
-    if (reporter_id) {
-      const { data: existing } = await supabase
-        .from("vendor_reports")
-        .select("id")
-        .eq("vendor_id", vendor_id)
-        .eq("reporter_id", reporter_id)
-        .eq("status", "pending")
-        .limit(1);
+    // ── Rate limit: max 5 reports per reporter in 24h ──────────────────────
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { count: recentCount } = await supabase
+      .from("vendor_reports")
+      .select("id", { count: "exact", head: true })
+      .eq("reporter_id", reporter_id)
+      .gte("created_at", since);
+    if ((recentCount ?? 0) >= 5) {
+      return new Response(
+        JSON.stringify({ error: "Daily report limit reached. Try again tomorrow." }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
-      if (existing && existing.length > 0) {
-        return new Response(
-          JSON.stringify({ error: "You have already reported this vendor. Admins will review it shortly." }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
+    // 1. Check if this user already reported this vendor (prevent spam)
+    const { data: existing } = await supabase
+      .from("vendor_reports")
+      .select("id")
+      .eq("vendor_id", vendor_id)
+      .eq("reporter_id", reporter_id)
+      .eq("status", "pending")
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      return new Response(
+        JSON.stringify({ error: "You have already reported this vendor. Admins will review it shortly." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // 2. Insert the report

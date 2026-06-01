@@ -164,8 +164,8 @@ Deno.serve(async (req) => {
 
     const rawBody = await req.text();
 
-    const signature = req.headers.get("x-paystack-signature") ?? "";
-    if (signature && !verifySignature(rawBody, signature, PAYSTACK_SECRET_KEY)) {
+    const signature = req.headers.get("x-paystack-signature");
+    if (!signature || !verifySignature(rawBody, signature, PAYSTACK_SECRET_KEY)) {
       return new Response(JSON.stringify({ error: "Invalid signature" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

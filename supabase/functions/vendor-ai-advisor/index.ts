@@ -17,6 +17,21 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // ── Authenticate caller ────────────────────────────────────────────────
+    const token = req.headers.get("Authorization")?.replace("Bearer ", "");
+    if (!token) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { data: userData, error: authErr } = await supabase.auth.getUser(token);
+    if (authErr || !userData?.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const callerId = userData.user.id;
+
     const { vendor_id, messages, mode } = await req.json();
     // mode: "advisor" | "community_post"
 
@@ -44,6 +59,15 @@ Deno.serve(async (req) => {
     if (!vendor) {
       return new Response(JSON.stringify({ error: "Vendor not found" }), {
         status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ── Ownership check: only the vendor owner may use Market Mind ─────────
+    const { data: ownerRow } = await supabase
+      .from("vendors").select("user_id").eq("id", vendor_id).single();
+    if (!ownerRow || ownerRow.user_id !== callerId) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
