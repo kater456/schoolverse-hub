@@ -339,14 +339,14 @@ export default function ExitPortfolio({
   const fetchTestimonials = async () => {
     setLoading(true);
     try {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("vendor_testimonials")
         .select("id, comment, rating, created_at, buyer_name")
         .eq("vendor_id", vendor.id)
         .eq("is_approved", true)
         .order("rating", { ascending: false })
         .limit(10);
-      setTestimonials(data ?? []);
+      setTestimonials((data ?? []) as Testimonial[]);
     } catch (_) {}
     finally { setLoading(false); }
   };

@@ -63,13 +63,13 @@ export default function NearMeToggle({ onResults, onClear }: Props) {
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         try {
-          const { data, error } = await supabase.rpc("get_nearby_vendors", {
+          const { data, error } = await (supabase as any).rpc("get_nearby_vendors", {
             lat: pos.coords.latitude,
             lng: pos.coords.longitude,
             radius_km: 10,
           });
           if (error) throw error;
-          const results = (data as NearbyVendor[]) || [];
+          const results = (data as any as NearbyVendor[]) || [];
           onResults(results);
           setResultCount(results.length);
           setActive(true);

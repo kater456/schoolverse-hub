@@ -26,6 +26,7 @@ import VendorTestimonialsDisplay from "@/components/vendor/VendorTestimonialsDis
 import { CampusGuaranteeBadge, CampusGuaranteeSheet } from "@/components/guarantee/CampusGuaranteeBadge";
 import VendorProximity from "@/components/vendor/VendorProximity";
 import { TrustScoreBadge, computeTrustScore } from "@/components/guarantee/TrustScore";
+import ContactVendorButton from "@/components/ContactVendorButton";
 
 // ── Lightbox ──────────────────────────────────────────────────────────────────
 const Lightbox = ({ images, startIndex, onClose }: {
@@ -1192,6 +1193,53 @@ const VendorProfile = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ── Sticky mobile contact bar — always reachable ── */}
+      <div className="fixed bottom-0 inset-x-0 z-40 md:hidden border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 shadow-[0_-4px_12px_rgba(0,0,0,0.08)]">
+        <div className="flex items-center gap-2 p-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
+          {vendor.contact_number && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1"
+              onClick={() => trackContact("call")}
+              asChild
+            >
+              <a href={`tel:${vendor.contact_number}`}>
+                <Phone className="h-4 w-4 mr-1" /> Call
+              </a>
+            </Button>
+          )}
+          {vendor.messaging_enabled && vendor.contact_number && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 border-green-500/40 text-green-600 hover:bg-green-500/10"
+              onClick={() => trackContact("whatsapp")}
+              asChild
+            >
+              <a
+                href={`https://wa.me/${vendor.contact_number.replace(/\D/g, "")}?text=${encodeURIComponent(
+                  `Hi! I'm reaching out from Campus Market 🛍️. I'm interested in your ${vendor.business_name}.`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <MessageCircle className="h-4 w-4 mr-1" /> WhatsApp
+              </a>
+            </Button>
+          )}
+          <div className="flex-1">
+            <ContactVendorButton
+              vendorId={vendor.id}
+              vendorUserId={vendor.user_id}
+              variant="default"
+              className="w-full h-9 bg-accent text-accent-foreground hover:bg-accent/90"
+              label="Message"
+            />
+          </div>
+        </div>
+      </div>
 
       <Footer />
     </div>

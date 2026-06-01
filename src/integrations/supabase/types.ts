@@ -669,6 +669,7 @@ export type Database = {
           grade: string | null
           id: string
           is_active: boolean | null
+          is_user_verified: boolean
           last_name: string | null
           phone: string | null
           school_id: string | null
@@ -676,6 +677,7 @@ export type Database = {
           trial_started_at: string | null
           updated_at: string
           user_id: string
+          user_verified_at: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -684,6 +686,7 @@ export type Database = {
           grade?: string | null
           id?: string
           is_active?: boolean | null
+          is_user_verified?: boolean
           last_name?: string | null
           phone?: string | null
           school_id?: string | null
@@ -691,6 +694,7 @@ export type Database = {
           trial_started_at?: string | null
           updated_at?: string
           user_id: string
+          user_verified_at?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -699,6 +703,7 @@ export type Database = {
           grade?: string | null
           id?: string
           is_active?: boolean | null
+          is_user_verified?: boolean
           last_name?: string | null
           phone?: string | null
           school_id?: string | null
@@ -706,6 +711,7 @@ export type Database = {
           trial_started_at?: string | null
           updated_at?: string
           user_id?: string
+          user_verified_at?: string | null
         }
         Relationships: [
           {
@@ -1011,6 +1017,83 @@ export type Database = {
           },
         ]
       }
+      user_verifications: {
+        Row: {
+          id: string
+          id_document_url: string
+          payment_reference: string | null
+          reviewed_by: string | null
+          status: string
+          submitted_at: string
+          user_id: string
+          verified_at: string | null
+        }
+        Insert: {
+          id?: string
+          id_document_url: string
+          payment_reference?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_at?: string
+          user_id: string
+          verified_at?: string | null
+        }
+        Update: {
+          id?: string
+          id_document_url?: string
+          payment_reference?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_at?: string
+          user_id?: string
+          verified_at?: string | null
+        }
+        Relationships: []
+      }
+      vendor_ai_videos: {
+        Row: {
+          aspect_ratio: string
+          created_at: string
+          error_message: string | null
+          id: string
+          operation_name: string
+          prompt: string
+          status: string
+          vendor_id: string
+          video_url: string | null
+        }
+        Insert: {
+          aspect_ratio?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          operation_name: string
+          prompt: string
+          status?: string
+          vendor_id: string
+          video_url?: string | null
+        }
+        Update: {
+          aspect_ratio?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          operation_name?: string
+          prompt?: string
+          status?: string
+          vendor_id?: string
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_ai_videos_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vendor_applications: {
         Row: {
           business_name: string
@@ -1307,18 +1390,33 @@ export type Database = {
         Row: {
           is_online: boolean
           last_seen: string
+          live_location_label: string | null
+          live_location_lat: number | null
+          live_location_lng: number | null
+          live_location_on: boolean
+          location_updated_at: string | null
           user_id: string
           vendor_id: string | null
         }
         Insert: {
           is_online?: boolean
           last_seen?: string
+          live_location_label?: string | null
+          live_location_lat?: number | null
+          live_location_lng?: number | null
+          live_location_on?: boolean
+          location_updated_at?: string | null
           user_id: string
           vendor_id?: string | null
         }
         Update: {
           is_online?: boolean
           last_seen?: string
+          live_location_label?: string | null
+          live_location_lat?: number | null
+          live_location_lng?: number | null
+          live_location_on?: boolean
+          location_updated_at?: string | null
           user_id?: string
           vendor_id?: string | null
         }
@@ -1684,6 +1782,8 @@ export type Database = {
           store_upgrade_expires_at: string | null
           strike_count: number | null
           updated_at: string
+          upgrade_payment_ref: string | null
+          upgrade_payment_status: string | null
           user_id: string
           vendor_of_week_expires_at: string | null
           verification_applied_at: string | null
@@ -1733,6 +1833,8 @@ export type Database = {
           store_upgrade_expires_at?: string | null
           strike_count?: number | null
           updated_at?: string
+          upgrade_payment_ref?: string | null
+          upgrade_payment_status?: string | null
           user_id: string
           vendor_of_week_expires_at?: string | null
           verification_applied_at?: string | null
@@ -1782,6 +1884,8 @@ export type Database = {
           store_upgrade_expires_at?: string | null
           strike_count?: number | null
           updated_at?: string
+          upgrade_payment_ref?: string | null
+          upgrade_payment_status?: string | null
           user_id?: string
           vendor_of_week_expires_at?: string | null
           verification_applied_at?: string | null
