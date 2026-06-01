@@ -26,6 +26,7 @@ import VendorTestimonialsDisplay from "@/components/vendor/VendorTestimonialsDis
 import { CampusGuaranteeBadge, CampusGuaranteeSheet } from "@/components/guarantee/CampusGuaranteeBadge";
 import VendorProximity from "@/components/vendor/VendorProximity";
 import { TrustScoreBadge, computeTrustScore } from "@/components/guarantee/TrustScore";
+import ContactVendorButton from "@/components/ContactVendorButton";
 
 // ── Lightbox ──────────────────────────────────────────────────────────────────
 const Lightbox = ({ images, startIndex, onClose }: {
