@@ -354,7 +354,6 @@ const VendorProfile = () => {
       const { data, error } = await supabase.functions.invoke("report-vendor", {
         body: {
           vendor_id: id,
-          reporter_id: user!.id,
           reason: reportReason,
           details: reportDetails || null,
           evidence_url: reportEvidence || null,

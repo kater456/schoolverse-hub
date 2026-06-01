@@ -32,6 +32,22 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ── Authenticate caller & verify they own this vendor ─────────────────
+    const token = req.headers.get("Authorization")?.replace("Bearer ", "");
+    const { data: userData } = token ? await supabase.auth.getUser(token) : { data: { user: null } } as any;
+    if (!userData?.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { data: ownerRow } = await supabase
+      .from("vendors").select("user_id").eq("id", vendor_id).single();
+    if (!ownerRow || ownerRow.user_id !== userData.user.id) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { data: existing } = await supabase
       .from("vendor_store_upgrades")
       .select("id, ends_at")
