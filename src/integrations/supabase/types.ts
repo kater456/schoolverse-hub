@@ -2005,6 +2005,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_ad_metric: {
+        Args: { _ad_id: string; _metric: string }
+        Returns: undefined
+      }
       is_school_admin: {
         Args: { _school_id: string; _user_id: string }
         Returns: boolean
