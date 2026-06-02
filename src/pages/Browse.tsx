@@ -186,6 +186,8 @@ const Browse = () => {
             onLocationChange={setSelectedLocation}
             schools={schools}
             locations={locations}
+            activeSchoolIds={activeSchoolIds}
+            activeCategories={activeCategories}
           />
 
           {isLoading ? (
