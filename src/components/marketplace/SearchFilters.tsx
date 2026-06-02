@@ -16,6 +16,8 @@ interface SearchFiltersProps {
   onLocationChange: (value: string) => void;
   schools: School[];
   locations: CampusLocation[];
+  activeSchoolIds?: Set<string>;
+  activeCategories?: Set<string>;
 }
 
 const SearchFilters = ({
@@ -29,7 +31,12 @@ const SearchFilters = ({
   onLocationChange,
   schools,
   locations,
+  activeSchoolIds,
+  activeCategories,
 }: SearchFiltersProps) => {
+  const isSchoolActive = (id: string) => !activeSchoolIds || activeSchoolIds.has(id);
+  const isCategoryActive = (c: string) => !activeCategories || activeCategories.has(c);
+
   return (
     <div className="space-y-4">
       <div className="relative">
@@ -48,11 +55,19 @@ const SearchFilters = ({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Schools</SelectItem>
-            {schools.map((school) => (
-              <SelectItem key={school.id} value={school.id}>
-                {school.name}
-              </SelectItem>
-            ))}
+            {schools.map((school) => {
+              const active = isSchoolActive(school.id);
+              return (
+                <SelectItem
+                  key={school.id}
+                  value={school.id}
+                  disabled={!active}
+                  className={!active ? "opacity-40 cursor-not-allowed" : ""}
+                >
+                  {school.name}{!active ? " (No vendors yet)" : ""}
+                </SelectItem>
+              );
+            })}
           </SelectContent>
         </Select>
 
@@ -62,15 +77,21 @@ const SearchFilters = ({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Categories</SelectItem>
-            {CATEGORIES.map((cat) => (
-              <SelectItem key={cat} value={cat}>
-                {cat}
-              </SelectItem>
-            ))}
+            {CATEGORIES.map((cat) => {
+              const active = isCategoryActive(cat);
+              return (
+                <SelectItem
+                  key={cat}
+                  value={cat}
+                  disabled={!active}
+                  className={!active ? "opacity-40 cursor-not-allowed" : ""}
+                >
+                  {cat}{!active ? " (No vendors yet)" : ""}
+                </SelectItem>
+              );
+            })}
           </SelectContent>
         </Select>
-
-        {/* Location filter removed — users search by school only, vendor cards show small locations */}
       </div>
     </div>
   );
