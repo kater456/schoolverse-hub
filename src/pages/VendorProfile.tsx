@@ -609,14 +609,12 @@ const VendorProfile = () => {
               {vendor.description && <p className="text-muted-foreground mb-6">{vendor.description}</p>}
 
               {/* ── Proximity & Navigation ── */}
-              {(vendor.location || vendor.address || vendor.city || vendor.landmark) && (
-                <div className="mb-6">
-                  <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-primary" /> Find This Vendor
-                  </h3>
-                  <VendorProximity vendor={vendor} />
-                </div>
-              )}
+              <div className="mb-6">
+                <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-primary" /> Find This Vendor
+                </h3>
+                <VendorProximity vendor={vendor} />
+              </div>
 
               {/* Ratings */}
               <Card className="border-border/50 mb-4">
