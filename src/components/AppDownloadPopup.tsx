@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { X, Download, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -12,9 +12,11 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 const AppDownloadPopup = () => {
-  const [visible, setVisible] = useState(false);
+  const [showBanner, setShowBanner] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isIOS, setIsIOS] = useState(false);
+  const timeElapsed = useRef(false);
+  const scrolledEnough = useRef(false);
 
   useEffect(() => {
     const dismissed = sessionStorage.getItem("app-popup-dismissed");
@@ -26,30 +28,41 @@ const AppDownloadPopup = () => {
     const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent);
     setIsIOS(isIOSDevice);
 
-    if (isIOSDevice) {
-      const timer = setTimeout(() => setVisible(true), 2000);
-      return () => clearTimeout(timer);
-    }
+    const checkBothConditions = () => {
+      if (timeElapsed.current && scrolledEnough.current) {
+        setShowBanner(true);
+      }
+    };
+
+    const timer = window.setTimeout(() => {
+      timeElapsed.current = true;
+      checkBothConditions();
+    }, 30000);
+
+    const onScroll = () => {
+      if (window.scrollY >= 300) {
+        scrolledEnough.current = true;
+        checkBothConditions();
+        window.removeEventListener("scroll", onScroll);
+      }
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
 
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
-      setTimeout(() => setVisible(true), 2000);
     };
-
     window.addEventListener("beforeinstallprompt", handler);
 
-    // Show popup anyway after delay even without prompt event
-    const fallback = setTimeout(() => setVisible(true), 2000);
-
     return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("scroll", onScroll);
       window.removeEventListener("beforeinstallprompt", handler);
-      clearTimeout(fallback);
     };
   }, []);
 
   const dismiss = () => {
-    setVisible(false);
+    setShowBanner(false);
     sessionStorage.setItem("app-popup-dismissed", "true");
   };
 
@@ -57,20 +70,19 @@ const AppDownloadPopup = () => {
     if (deferredPrompt) {
       await deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === "accepted") {
-        dismiss();
-      }
+      if (outcome === "accepted") dismiss();
       setDeferredPrompt(null);
     }
   };
 
-  if (!visible) return null;
+  if (!showBanner) return null;
 
   return (
-    <div className="fixed top-4 right-4 z-[100] max-w-xs animate-slide-up">
-      <div className="bg-card border border-border rounded-xl shadow-xl p-4 relative">
+    <div className="fixed bottom-0 left-0 right-0 z-50 w-full p-3 animate-slide-up">
+      <div className="max-w-md mx-auto bg-card border border-border rounded-xl shadow-xl p-4 relative">
         <button
           onClick={dismiss}
+          aria-label="Dismiss"
           className="absolute top-2 right-2 p-1 rounded-full hover:bg-muted transition-colors"
         >
           <X className="h-4 w-4 text-muted-foreground" />
