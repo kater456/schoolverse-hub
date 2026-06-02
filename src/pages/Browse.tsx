@@ -20,6 +20,8 @@ const Browse = () => {
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get("category") || "all");
   const [selectedLocation, setSelectedLocation] = useState("all");
   const [votw,             setVotw]             = useState<any>(null);
+  const [activeSchoolIds,  setActiveSchoolIds]  = useState<Set<string>>(new Set());
+  const [activeCategories, setActiveCategories] = useState<Set<string>>(new Set());
 
   const { schools }    = useSchools();
   const { locations }  = useCampusLocations(selectedSchool !== "all" ? selectedSchool : undefined);
@@ -31,6 +33,20 @@ const Browse = () => {
   });
 
   useEffect(() => { setSelectedLocation("all"); }, [selectedSchool]);
+
+  // Compute which schools / categories actually have at least one active vendor
+  useEffect(() => {
+    (async () => {
+      const { data } = await (supabase as any)
+        .from("vendors")
+        .select("school_id, category")
+        .eq("is_approved", true)
+        .eq("is_active", true);
+      if (!data) return;
+      setActiveSchoolIds(new Set(data.map((v: any) => v.school_id).filter(Boolean)));
+      setActiveCategories(new Set(data.map((v: any) => v.category).filter(Boolean)));
+    })();
+  }, []);
 
   // Fetch vendor of the week
   useEffect(() => {
@@ -170,6 +186,8 @@ const Browse = () => {
             onLocationChange={setSelectedLocation}
             schools={schools}
             locations={locations}
+            activeSchoolIds={activeSchoolIds}
+            activeCategories={activeCategories}
           />
 
           {isLoading ? (

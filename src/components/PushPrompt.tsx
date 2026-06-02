@@ -1,40 +1,62 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { Bell, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ensurePushRegistered, isPushSupported } from "@/lib/push";
 import { useToast } from "@/hooks/use-toast";
 
-const DISMISS_KEY = "push_prompt_dismissed_at";
+const STORAGE_KEY = "notifPromptShown";
 
 const PushPrompt = () => {
   const { toast } = useToast();
+  const location = useLocation();
   const [show, setShow] = useState(false);
+  const routeCount = useRef(0);
+  const hasNavigatedEnough = useRef(false);
+  const alreadyShown = useRef(
+    typeof window !== "undefined" && localStorage.getItem(STORAGE_KEY) === "true",
+  );
 
+  // Eagerly ensure subscription if permission already granted
   useEffect(() => {
     if (!isPushSupported()) return;
-    if (Notification.permission === "granted") {
-      // Make sure subscription exists & is saved
-      ensurePushRegistered();
-      return;
-    }
-    if (Notification.permission === "denied") return;
-    const dismissed = localStorage.getItem(DISMISS_KEY);
-    if (dismissed && Date.now() - Number(dismissed) < 1000 * 60 * 60 * 24 * 7) return;
-    const t = setTimeout(() => setShow(true), 4000);
-    return () => clearTimeout(t);
+    if (Notification.permission === "granted") ensurePushRegistered();
   }, []);
+
+  // Count navigations; show prompt after the user has navigated at least twice
+  useEffect(() => {
+    if (alreadyShown.current) return;
+    if (!isPushSupported()) return;
+    if (Notification.permission !== "default") return;
+
+    routeCount.current += 1;
+    if (routeCount.current >= 2) {
+      hasNavigatedEnough.current = true;
+      if (!show) {
+        setShow(true);
+        localStorage.setItem(STORAGE_KEY, "true");
+        alreadyShown.current = true;
+      }
+    }
+  }, [location.pathname, show]);
 
   const enable = async () => {
     const ok = await ensurePushRegistered();
     setShow(false);
-    if (ok) toast({ title: "Notifications enabled 🔔", description: "You'll get alerts for new vendors, deals & updates." });
-    else toast({ title: "Notifications blocked", description: "You can enable them later from your browser settings.", variant: "destructive" });
+    if (ok)
+      toast({
+        title: "Notifications enabled 🔔",
+        description: "You'll get alerts for new vendors, deals & updates.",
+      });
+    else
+      toast({
+        title: "Notifications blocked",
+        description: "You can enable them later from your browser settings.",
+        variant: "destructive",
+      });
   };
 
-  const dismiss = () => {
-    localStorage.setItem(DISMISS_KEY, String(Date.now()));
-    setShow(false);
-  };
+  const dismiss = () => setShow(false);
 
   if (!show) return null;
   return (
@@ -49,7 +71,7 @@ const PushPrompt = () => {
             <Button size="sm" variant="ghost" onClick={dismiss}>Not now</Button>
           </div>
         </div>
-        <button onClick={dismiss} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+        <button onClick={dismiss} aria-label="Dismiss" className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
       </div>
     </div>
   );
