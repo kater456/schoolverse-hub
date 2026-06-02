@@ -165,7 +165,23 @@ export default function VendorProximity({ vendor }: { vendor: any }) {
     });
   };
 
-  if (!vendorCoords && !vendor.address && !vendor.city) return null;
+  const campusName = vendor.campus_locations?.name || vendor.campus_location_name;
+  const schoolName = vendor.schools?.name || vendor.school_name;
+
+  if (!vendorCoords && !vendor.address && !vendor.city && !vendor.landmark) {
+    return (
+      <div className="rounded-2xl border border-border/50 bg-muted/30 px-4 py-3 flex items-start gap-3">
+        <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+        <div className="text-xs text-muted-foreground">
+          {campusName || schoolName ? (
+            <>Based at <span className="font-semibold text-foreground">{campusName || schoolName}</span>. Message the vendor for the exact pickup spot.</>
+          ) : (
+            <>Vendor location not provided yet — message them for details.</>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   const status = distance !== null ? getStatus(distance) : null;
 
