@@ -153,7 +153,6 @@ const VendorProfile = () => {
   const [submittingReport, setSubmittingReport] = useState(false);
 
   useEffect(() => {
-    // Always scroll to top when opening a vendor profile
     window.scrollTo({ top: 0, behavior: "instant" });
 
     const fetchVendor = async () => {
@@ -162,31 +161,44 @@ const VendorProfile = () => {
         const { data, error } = await supabase
           .from("vendors")
           .select(`*, schools(name, id), campus_locations(name), vendor_images(*)`)
-        .eq("id", id).maybeSingle();
+          .eq("id", id).maybeSingle();
 
-      if (error) { console.error("Vendor fetch:", error); return; }
-      if (data) {
+        if (error) { console.error("Vendor fetch:", error); setIsLoading(false); return; }
+        if (!data) { setIsLoading(false); return; }
+
+        // Render the vendor immediately — secondary data loads in background
         setVendor(data);
         setImages(data.vendor_images || []);
         const primary = data.vendor_images?.find((img: any) => img.is_primary);
         setSelectedImage(primary?.image_url || data.vendor_images?.[0]?.image_url || null);
+        setIsLoading(false);
 
+        // Fire-and-forget: view tracking
         const viewKey = `vendor_viewed_${id}`;
         if (!sessionStorage.getItem(viewKey)) {
-          await supabase.from("vendor_views").insert({
-            vendor_id: id, viewer_id: user?.id || null, school_id: data.schools?.id || null,
-          } as any);
           sessionStorage.setItem(viewKey, "1");
-          // Fire professional notification to vendor (fire-and-forget)
-          notify.profileView({ vendorId: id, url: `/vendor/${id}` });
+          supabase.from("vendor_views").insert({
+            vendor_id: id, viewer_id: user?.id || null, school_id: data.schools?.id || null,
+          } as any).then(() => {
+            notify.profileView({ vendorId: id, url: `/vendor/${id}` });
+          });
         }
 
-        const [viewsRes, likesRes, userLike, commentsRes, ratingsRes] = await Promise.all([
+        // Run ALL secondary queries in parallel
+        const [
+          viewsRes, likesRes, userLike, commentsRes, ratingsRes,
+          txnRes, dealsRes, productsRes, presenceRes, profileRes,
+        ] = await Promise.all([
           supabase.from("vendor_views").select("id", { count: "exact", head: true }).eq("vendor_id", id),
           supabase.from("vendor_likes").select("id", { count: "exact", head: true }).eq("vendor_id", id),
           user ? supabase.from("vendor_likes").select("id").eq("vendor_id", id).eq("user_id", user.id) : Promise.resolve({ data: [] }),
           supabase.from("vendor_comments").select("*, profiles:user_id(first_name, last_name)").eq("vendor_id", id).order("created_at", { ascending: false }).limit(20),
           supabase.from("vendor_ratings").select("*").eq("vendor_id", id),
+          user ? supabase.from("transactions").select("id").eq("vendor_id", id).eq("user_id", user.id).eq("status", "completed").limit(1) : Promise.resolve({ data: [] }),
+          supabase.from("vendor_deals").select("*").eq("vendor_id", id).eq("is_active", true).gt("expires_at", new Date().toISOString()).order("expires_at", { ascending: true }),
+          (supabase as any).from("vendor_products").select("*").eq("vendor_id", id).eq("is_active", true).order("display_order", { ascending: true }),
+          (supabase as any).from("vendor_presence").select("is_online, last_seen, live_location_on, live_location_lat, live_location_lng, live_location_label").eq("vendor_id", id).maybeSingle(),
+          user ? supabase.from("profiles").select("is_user_verified").eq("user_id", user.id).maybeSingle() : Promise.resolve({ data: null }),
         ]);
 
         setViewCount(viewsRes.count || 0);
@@ -203,67 +215,33 @@ const VendorProfile = () => {
           allRatings.forEach((r: any) => { if (r.rating >= 1 && r.rating <= 5) dist[r.rating - 1]++; });
           setRatingDistribution(dist);
         }
-
         if (user) {
           const userR = allRatings.find((r: any) => r.user_id === user.id);
           if (userR) { setUserRating(userR.rating); setUserReview(userR.review || ""); setHasRated(true); }
-          const { data: txn } = await supabase.from("transactions").select("id")
-            .eq("vendor_id", id).eq("user_id", user.id).eq("status", "completed").limit(1);
-          setCanRate(!!txn && txn.length > 0);
+          setCanRate(!!(txnRes as any).data && (txnRes as any).data.length > 0);
         }
 
-        // Fetch active deals
-        const { data: dealsData } = await supabase
-          .from("vendor_deals")
-          .select("*")
-          .eq("vendor_id", id)
-          .eq("is_active", true)
-          .gt("expires_at", new Date().toISOString())
-          .order("expires_at", { ascending: true });
-        setActiveDeals(dealsData || []);
+        setActiveDeals(dealsRes.data || []);
+        setVendorProducts(productsRes.data || []);
 
-        // Fetch vendor products
-        const { data: productsData } = await (supabase as any)
-          .from("vendor_products")
-          .select("*")
-          .eq("vendor_id", id)
-          .eq("is_active", true)
-          .order("display_order", { ascending: true });
-        setVendorProducts(productsData || []);
-
-        // Fetch vendor online status
-        const { data: presence } = await (supabase as any)
-          .from("vendor_presence")
-          .select("is_online, last_seen, live_location_on, live_location_lat, live_location_lng, live_location_label")
-          .eq("vendor_id", id)
-          .maybeSingle();
+        const presence: any = (presenceRes as any).data;
         if (presence) {
           const lastSeen = new Date(presence.last_seen).getTime();
           const isRecentlyActive = Date.now() - lastSeen < 5 * 60 * 1000;
           setVendorOnline(presence.is_online && isRecentlyActive);
           if (presence.live_location_on) {
             setLiveLocation({
-              on:    true,
-              lat:   presence.live_location_lat   ?? null,
-              lng:   presence.live_location_lng   ?? null,
+              on: true,
+              lat: presence.live_location_lat ?? null,
+              lng: presence.live_location_lng ?? null,
               label: presence.live_location_label ?? null,
             });
           }
         }
 
-        // Check if the current viewer is a verified user
-        if (user) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("is_user_verified")
-            .eq("user_id", user.id)
-            .maybeSingle();
-          setIsUserVerified(!!(profile as any)?.is_user_verified);
-        }
-      }
+        setIsUserVerified(!!(profileRes as any)?.data?.is_user_verified);
       } catch (err) {
         console.error("VendorProfile error:", err);
-      } finally {
         setIsLoading(false);
       }
     };
