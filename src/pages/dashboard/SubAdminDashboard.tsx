@@ -440,6 +440,7 @@ const SubAdminDashboard = () => {
                 <div>
                   <h1 className="text-2xl font-bold">{school?.name || "Campus"} Dashboard</h1>
                   <p className="text-sm text-muted-foreground">{new Date().toLocaleDateString("en-NG", { weekday: "long", day: "numeric", month: "long" })}</p>
+                </div>
               </div>
 
               {getSchoolId() && (
