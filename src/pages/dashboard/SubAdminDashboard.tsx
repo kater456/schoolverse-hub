@@ -443,9 +443,8 @@ const SubAdminDashboard = () => {
               </div>
 
               {getSchoolId() && (
-                <SchoolBrandingPanel schoolId={getSchoolId()} compact onSaved={loadData} />
+                <SchoolBrandingPanel schoolId={getSchoolId()} compact onSaved={fetchData} />
               )}
-              </div>
 
               {/* KPIs */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
