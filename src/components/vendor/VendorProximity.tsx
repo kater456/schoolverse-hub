@@ -289,6 +289,19 @@ export default function VendorProximity({ vendor }: { vendor: any }) {
         </div>
       )}
 
+      {/* ── Free OpenStreetMap embed (no API key required) ── */}
+      {vendorCoords && (
+        <div className="rounded-2xl overflow-hidden border border-border/50">
+          <iframe
+            title="Vendor location map"
+            className="w-full h-56"
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+            src={`https://www.openstreetmap.org/export/embed.html?bbox=${vendorCoords.lng - 0.005}%2C${vendorCoords.lat - 0.003}%2C${vendorCoords.lng + 0.005}%2C${vendorCoords.lat + 0.003}&layer=mapnik&marker=${vendorCoords.lat}%2C${vendorCoords.lng}`}
+          />
+        </div>
+      )}
+
       {/* ── Navigation buttons ── */}
       {vendorCoords && (
         <div className="grid grid-cols-3 gap-2">
@@ -304,13 +317,13 @@ export default function VendorProximity({ vendor }: { vendor: any }) {
           </a>
 
           <a
-            href={`https://maps.apple.com/?daddr=${vendorCoords.lat},${vendorCoords.lng}`}
+            href={`https://www.openstreetmap.org/?mlat=${vendorCoords.lat}&mlon=${vendorCoords.lng}#map=17/${vendorCoords.lat}/${vendorCoords.lng}`}
             target="_blank"
             rel="noopener noreferrer"
           >
             <Button variant="outline" className="w-full h-11 flex-col gap-0.5 text-xs font-semibold p-2">
               <Navigation className="h-4 w-4 text-gray-600" />
-              <span className="text-[10px]">Apple Maps</span>
+              <span className="text-[10px]">Open Street Map</span>
             </Button>
           </a>
 
