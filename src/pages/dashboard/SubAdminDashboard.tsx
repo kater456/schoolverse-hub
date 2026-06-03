@@ -20,6 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import ThemeToggle from "@/components/ThemeToggle";
 import ManageVendorsSubAdmin from "@/pages/admin/ManageVendorsSubAdmin";
 import PushBroadcastPanel from "@/components/PushBroadcastPanel";
+import SchoolBrandingPanel from "@/components/admin/SchoolBrandingPanel";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, BarChart, Bar,
