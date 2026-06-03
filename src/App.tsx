@@ -78,12 +78,12 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <InstallPrompt />
-        <AppDownloadPopup />
-        <PromotionNotification />
-        <AdPopup />
-        <PushPrompt />
         <BrowserRouter>
+          <InstallPrompt />
+          <AppDownloadPopup />
+          <PromotionNotification />
+          <AdPopup />
+          <PushPrompt />
           <ScrollToTop />
           <PageTracker />
           <Suspense fallback={<PageLoader />}>
