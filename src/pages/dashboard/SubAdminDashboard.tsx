@@ -20,6 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import ThemeToggle from "@/components/ThemeToggle";
 import ManageVendorsSubAdmin from "@/pages/admin/ManageVendorsSubAdmin";
 import PushBroadcastPanel from "@/components/PushBroadcastPanel";
+import SchoolBrandingPanel from "@/components/admin/SchoolBrandingPanel";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, BarChart, Bar,
@@ -441,6 +442,10 @@ const SubAdminDashboard = () => {
                   <p className="text-sm text-muted-foreground">{new Date().toLocaleDateString("en-NG", { weekday: "long", day: "numeric", month: "long" })}</p>
                 </div>
               </div>
+
+              {getSchoolId() && (
+                <SchoolBrandingPanel schoolId={getSchoolId()} compact onSaved={fetchData} />
+              )}
 
               {/* KPIs */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
