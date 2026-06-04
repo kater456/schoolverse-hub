@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Phone, Star, ShieldCheck, Trophy, Play } from "lucide-react";
+import { MapPin, Phone, Star, ShieldCheck, Trophy, Play, MessageCircle } from "lucide-react";
 import type { Vendor } from "@/hooks/useVendors";
 import { TrustScoreBadge, computeTrustScore } from "@/components/guarantee/TrustScore";
 
@@ -182,9 +182,27 @@ const VendorCard = ({ vendor, index = 0 }: VendorCardProps) => {
             </div>
 
             {vendor.contact_number && (
-              <div className="flex items-center gap-1 mt-1.5 text-[10px] text-muted-foreground">
-                <Phone className="h-2.5 w-2.5" />
-                {vendor.contact_number}
+              <div className="flex items-center gap-1.5 mt-2">
+                <a
+                  href={`tel:${vendor.contact_number}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex-1 flex items-center justify-center gap-1 text-[10px] font-medium bg-muted hover:bg-muted/80 text-foreground rounded-md py-1.5 transition-colors"
+                  aria-label={`Call ${vendor.business_name}`}
+                >
+                  <Phone className="h-3 w-3" /> Call
+                </a>
+                {vendor.messaging_enabled && (
+                  <a
+                    href={`https://wa.me/${vendor.contact_number.replace(/\D/g, "")}?text=${encodeURIComponent(`Hi! I saw ${vendor.business_name} on Campus Market 🛍️ and I'd like to know more.`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex-1 flex items-center justify-center gap-1 text-[10px] font-medium bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 rounded-md py-1.5 transition-colors"
+                    aria-label={`WhatsApp ${vendor.business_name}`}
+                  >
+                    <MessageCircle className="h-3 w-3" /> WhatsApp
+                  </a>
+                )}
               </div>
             )}
           </div>
