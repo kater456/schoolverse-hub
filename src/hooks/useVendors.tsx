@@ -42,8 +42,7 @@ export const useVendors = (options?: UseVendorsOptions) => {
         *,
         schools!inner(name),
         campus_locations(name),
-        vendor_images(id, image_url, is_primary),
-        vendor_presence(live_location_on)
+        vendor_images(id, image_url, is_primary)
       `)
       .eq("is_approved", true)
       .eq("is_active", true)
@@ -68,7 +67,6 @@ export const useVendors = (options?: UseVendorsOptions) => {
             campus_location_name:  v.campus_locations?.name,
             images:                v.vendor_images || [],
             is_featured:           featuredData || false,
-            live_location_on:      v.vendor_presence?.[0]?.live_location_on ?? false,
           };
         })
       );
