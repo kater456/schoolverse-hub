@@ -243,13 +243,19 @@ const Index = () => {
                   <Link key={school.id} to={`/browse?school=${school.id}`}>
                     <Card className="hover-lift cursor-pointer text-center border-border/50">
                       <CardContent className="p-6">
-                        {school.logo_url ? (
-                          <img src={school.logo_url} alt={school.name} className="w-12 h-12 mx-auto mb-3 rounded-lg object-cover" />
-                        ) : (
-                          <div className="w-12 h-12 mx-auto mb-3 rounded-lg bg-primary/10 flex items-center justify-center">
-                            <GraduationCap className="h-6 w-6 text-primary" />
-                          </div>
-                        )}
+                        <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-white ring-2 ring-primary/20 shadow-md flex items-center justify-center overflow-hidden p-1.5">
+                          {school.logo_url ? (
+                            <img
+                              src={school.logo_url}
+                              alt={school.name}
+                              className="w-full h-full object-contain"
+                              loading="lazy"
+                              onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                            />
+                          ) : (
+                            <GraduationCap className="h-7 w-7 text-primary" />
+                          )}
+                        </div>
                         <span className="text-sm font-medium text-foreground block">{school.name}</span>
                         {school.address && <span className="text-xs text-muted-foreground mt-1 block">{school.address}</span>}
                       </CardContent>
