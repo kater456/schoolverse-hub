@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Phone, Star, ShieldCheck, Trophy, Play } from "lucide-react";
+import { MapPin, Phone, Star, ShieldCheck, Trophy, Play, MessageCircle } from "lucide-react";
 import type { Vendor } from "@/hooks/useVendors";
 import { TrustScoreBadge, computeTrustScore } from "@/components/guarantee/TrustScore";
 
