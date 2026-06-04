@@ -72,9 +72,9 @@ const ManageSchools = () => {
               <Card key={s.id} className="border-border/50 hover:border-accent/50 transition-colors group">
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-start gap-3">
-                    <div className="h-14 w-14 rounded-lg border border-border bg-muted/40 flex items-center justify-center overflow-hidden shrink-0">
+                    <div className="h-14 w-14 rounded-full border border-border bg-white shadow-sm flex items-center justify-center overflow-hidden shrink-0 p-1.5">
                       {s.logo_url ? (
-                        <img src={s.logo_url} alt={`${s.name} logo`} className="h-full w-full object-contain" loading="lazy" />
+                        <img src={s.logo_url} alt={`${s.name} logo`} className="h-full w-full object-contain" loading="lazy" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                       ) : (
                         <ImageIcon className="h-6 w-6 text-muted-foreground" />
                       )}
