@@ -156,24 +156,38 @@ const AIChatbox = () => {
           {/* Messages */}
           <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
             {messages.map((msg, i) => (
-              <div key={i} className={`flex gap-2 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}>
-                {/* Avatar */}
-                <div className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center mt-0.5 ${
-                  msg.role === "user" ? "bg-primary/10" : "bg-accent/20"
-                }`}>
-                  {msg.role === "user"
-                    ? <User className="h-3.5 w-3.5 text-primary" />
-                    : <Bot  className="h-3.5 w-3.5 text-accent" />}
+              <div key={i} className="space-y-1.5">
+                <div className={`flex gap-2 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}>
+                  <div className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center mt-0.5 ${
+                    msg.role === "user" ? "bg-primary/10" : "bg-accent/20"
+                  }`}>
+                    {msg.role === "user"
+                      ? <User className="h-3.5 w-3.5 text-primary" />
+                      : <Bot  className="h-3.5 w-3.5 text-accent" />}
+                  </div>
+                  <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap ${
+                    msg.role === "user"
+                      ? "bg-primary text-primary-foreground rounded-tr-sm"
+                      : "bg-muted text-foreground rounded-tl-sm"
+                  }`}>
+                    {msg.content}
+                  </div>
                 </div>
 
-                {/* Bubble */}
-                <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm leading-relaxed ${
-                  msg.role === "user"
-                    ? "bg-primary text-primary-foreground rounded-tr-sm"
-                    : "bg-muted text-foreground rounded-tl-sm"
-                }`}>
-                  {msg.content}
-                </div>
+                {/* Quick reply chips under assistant messages */}
+                {msg.role === "assistant" && msg.suggestions && msg.suggestions.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 pl-8 pt-0.5 animate-fade-in">
+                    {msg.suggestions.map((s) => (
+                      <button
+                        key={s}
+                        onClick={() => sendMessage(s)}
+                        className="text-[11px] text-accent bg-accent/10 hover:bg-accent/20 border border-accent/30 rounded-full px-2.5 py-1 transition-colors"
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
 
