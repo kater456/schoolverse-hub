@@ -156,6 +156,11 @@ const VendorProfile = () => {
   const [uploadingEvid,  setUploadingEvid]  = useState(false);
   const [submittingReport, setSubmittingReport] = useState(false);
 
+  // ── Action-bar sheet state ──
+  const [cartSheetOpen,   setCartSheetOpen]   = useState(false);
+  const [pickupSheetOpen, setPickupSheetOpen] = useState(false);
+  const [askSheetOpen,    setAskSheetOpen]    = useState(false);
+
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
 
