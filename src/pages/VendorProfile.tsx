@@ -434,6 +434,7 @@ const VendorProfile = () => {
 
       <main className="pt-20 pb-16 px-3 sm:px-4">
         <div className="w-full max-w-4xl mx-auto overflow-x-hidden">
+          <VendorEnhancements vendor={vendor} activeDeal={activeDeals[0]} />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 
             {/* ── Image Gallery ── */}
