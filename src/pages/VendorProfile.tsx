@@ -30,7 +30,7 @@ import ContactVendorButton from "@/components/ContactVendorButton";
 import VendorEnhancements, {
   QuickCartSheet, SchedulePickupSheet, QuickQuestionSheet, useFollow,
 } from "@/components/vendor/VendorEnhancements";
-import { Heart as HeartIcon, ShoppingCart, CalendarClock, HelpCircle } from "lucide-react";
+import { ShoppingCart, CalendarClock, HelpCircle } from "lucide-react";
 
 // ── Lightbox ──────────────────────────────────────────────────────────────────
 const Lightbox = ({ images, startIndex, onClose }: {
