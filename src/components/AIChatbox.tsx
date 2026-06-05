@@ -22,6 +22,7 @@ const SUGGESTED_QUESTIONS = [
 
 const AIChatbox = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [isOpen, setIsOpen]           = useState(false);
   const [messages, setMessages]       = useState<Message[]>([]);
   const [input, setInput]             = useState("");
@@ -51,7 +52,8 @@ const AIChatbox = () => {
       setHasGreeted(true);
       setMessages([{
         role: "assistant",
-        content: `Hey! 👋 I'm your Campus Market assistant. I can help you find vendors, products, and services on your campus — or answer any general questions you have. What are you looking for?`,
+        content: `Hey! 👋 I'm your Campus Market assistant. Ask me about vendors, promos, products, or how to sell on your campus.`,
+        suggestions: ["Browse vendors", "View today's promos", "How to sell on Campus Market?"],
       }]);
       setTimeout(() => inputRef.current?.focus(), 100);
     }
@@ -65,9 +67,29 @@ const AIChatbox = () => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
 
+  // Detect [CONNECT:vendor_id] token; strip from displayed text
+  const parseReply = (raw: string): { text: string; connectVendorId?: string } => {
+    const m = raw.match(/\[CONNECT:([a-f0-9-]+)\]/i);
+    if (m) return { text: raw.replace(m[0], "").trim(), connectVendorId: m[1] };
+    return { text: raw };
+  };
+
   const sendMessage = async (text?: string) => {
     const content = (text || input).trim();
     if (!content || isLoading) return;
+
+    // Quick navigation shortcuts
+    if (/^browse vendors$/i.test(content)) { setIsOpen(false); navigate("/browse"); return; }
+    if (/^view (today's )?promos$/i.test(content)) { setIsOpen(false); navigate("/browse?filter=deals"); return; }
+    if (/^how to sell/i.test(content)) {
+      setMessages((p) => [...p, { role: "user", content }, {
+        role: "assistant",
+        content: "Easy! Tap **Sign Up** → choose **Vendor** → submit your business info and ID. Once approved, you can list products, post reels, and start selling. 🚀",
+        suggestions: ["Sign me up", "What does it cost?", "Browse vendors"],
+      }]);
+      return;
+    }
+    if (/^sign me up$/i.test(content)) { setIsOpen(false); navigate("/signup"); return; }
 
     const userMessage: Message = { role: "user", content };
     const updatedMessages = [...messages, userMessage];
@@ -78,15 +100,21 @@ const AIChatbox = () => {
 
     try {
       const { data, error } = await supabase.functions.invoke("ai-chat", {
-        body: {
-          messages: updatedMessages,
-          school_id: schoolId,
-        },
+        body: { messages: updatedMessages, school_id: schoolId },
       });
 
       if (error || !data?.reply) throw new Error(error?.message || "No response");
 
-      setMessages((prev) => [...prev, { role: "assistant", content: data.reply }]);
+      const { text, connectVendorId } = parseReply(data.reply);
+      setMessages((prev) => [...prev, {
+        role: "assistant",
+        content: text,
+        suggestions: data.suggestions || [],
+      }]);
+
+      if (connectVendorId) {
+        setTimeout(() => { setIsOpen(false); navigate(`/vendor/${connectVendorId}`); }, 800);
+      }
     } catch (err: any) {
       setMessages((prev) => [...prev, {
         role: "assistant",
@@ -98,8 +126,6 @@ const AIChatbox = () => {
     }
   };
 
-  // Don't render for logged-out users
-  if (!user) return null;
 
   return (
     <>
