@@ -804,6 +804,63 @@ export type Database = {
           },
         ]
       }
+      reel_likes: {
+        Row: {
+          created_at: string
+          id: string
+          reel_id: string
+          session_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          reel_id: string
+          session_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          reel_id?: string
+          session_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      scheduled_pickups: {
+        Row: {
+          created_at: string
+          id: string
+          note: string | null
+          pickup_at: string
+          status: string
+          updated_at: string
+          user_id: string
+          vendor_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          pickup_at: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          vendor_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          pickup_at?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          vendor_id?: string
+        }
+        Relationships: []
+      }
       schools: {
         Row: {
           address: string | null
@@ -1288,6 +1345,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      vendor_followers: {
+        Row: {
+          created_at: string
+          id: string
+          user_id: string
+          vendor_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          user_id: string
+          vendor_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          user_id?: string
+          vendor_id?: string
+        }
+        Relationships: []
       }
       vendor_images: {
         Row: {
