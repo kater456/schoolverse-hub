@@ -27,6 +27,10 @@ import { CampusGuaranteeBadge, CampusGuaranteeSheet } from "@/components/guarant
 import VendorProximity from "@/components/vendor/VendorProximity";
 import { TrustScoreBadge, computeTrustScore } from "@/components/guarantee/TrustScore";
 import ContactVendorButton from "@/components/ContactVendorButton";
+import VendorEnhancements, {
+  QuickCartSheet, SchedulePickupSheet, QuickQuestionSheet, useFollow,
+} from "@/components/vendor/VendorEnhancements";
+import { Heart as HeartIcon, ShoppingCart, CalendarClock, HelpCircle } from "lucide-react";
 
 // ── Lightbox ──────────────────────────────────────────────────────────────────
 const Lightbox = ({ images, startIndex, onClose }: {
