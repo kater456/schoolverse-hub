@@ -1200,4 +1200,54 @@ const VendorProfile = () => {
   );
 };
 
+/* ── Sticky bottom action bar (mobile) ── */
+const VendorStickyBar = ({
+  vendor, onCart, onPickup, onAsk, onShare, trackContact,
+}: {
+  vendor: any;
+  onCart: () => void;
+  onPickup: () => void;
+  onAsk: () => void;
+  onShare: () => void;
+  trackContact: (type: string) => void;
+}) => {
+  const { following, toggle: toggleFollow } = useFollow(vendor.id);
+  return (
+    <div className="fixed bottom-0 inset-x-0 z-40 md:hidden border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 shadow-[0_-4px_12px_rgba(0,0,0,0.08)]">
+      <div className="flex items-center gap-1 px-2 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] overflow-x-auto">
+        <div className="flex-1 min-w-[110px]">
+          <ContactVendorButton
+            vendorId={vendor.id}
+            vendorUserId={vendor.user_id}
+            variant="default"
+            className="w-full h-9 bg-accent text-accent-foreground hover:bg-accent/90 text-xs"
+            label="💬 Message"
+          />
+        </div>
+        <Button
+          variant="outline" size="sm"
+          className={`h-9 px-2 ${following ? "border-red-500/40 text-red-500" : ""}`}
+          onClick={toggleFollow}
+          title={following ? "Unfollow" : "Follow"}
+        >
+          <Heart className={`h-4 w-4 ${following ? "fill-red-500" : ""}`} />
+        </Button>
+        <Button variant="outline" size="sm" className="h-9 px-2" onClick={onCart} title="Quick cart">
+          <ShoppingCart className="h-4 w-4" />
+        </Button>
+        <Button variant="outline" size="sm" className="h-9 px-2" onClick={onPickup} title="Schedule pickup">
+          <CalendarClock className="h-4 w-4" />
+        </Button>
+        <Button variant="outline" size="sm" className="h-9 px-2" onClick={onAsk} title="Quick question">
+          <HelpCircle className="h-4 w-4" />
+        </Button>
+        <Button variant="outline" size="sm" className="h-9 px-2" onClick={onShare} title="Share">
+          <Share2 className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+};
+
 export default VendorProfile;
+
