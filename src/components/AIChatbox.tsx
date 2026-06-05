@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +10,7 @@ import { MessageCircle, X, Send, Loader2, Bot, User, Sparkles } from "lucide-rea
 interface Message {
   role: "user" | "assistant";
   content: string;
+  suggestions?: string[];
 }
 
 const SUGGESTED_QUESTIONS = [
@@ -20,6 +22,7 @@ const SUGGESTED_QUESTIONS = [
 
 const AIChatbox = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [isOpen, setIsOpen]           = useState(false);
   const [messages, setMessages]       = useState<Message[]>([]);
   const [input, setInput]             = useState("");
@@ -49,7 +52,8 @@ const AIChatbox = () => {
       setHasGreeted(true);
       setMessages([{
         role: "assistant",
-        content: `Hey! 👋 I'm your Campus Market assistant. I can help you find vendors, products, and services on your campus — or answer any general questions you have. What are you looking for?`,
+        content: `Hey! 👋 I'm your Campus Market assistant. Ask me about vendors, promos, products, or how to sell on your campus.`,
+        suggestions: ["Browse vendors", "View today's promos", "How to sell on Campus Market?"],
       }]);
       setTimeout(() => inputRef.current?.focus(), 100);
     }
@@ -63,9 +67,29 @@ const AIChatbox = () => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
 
+  // Detect [CONNECT:vendor_id] token; strip from displayed text
+  const parseReply = (raw: string): { text: string; connectVendorId?: string } => {
+    const m = raw.match(/\[CONNECT:([a-f0-9-]+)\]/i);
+    if (m) return { text: raw.replace(m[0], "").trim(), connectVendorId: m[1] };
+    return { text: raw };
+  };
+
   const sendMessage = async (text?: string) => {
     const content = (text || input).trim();
     if (!content || isLoading) return;
+
+    // Quick navigation shortcuts
+    if (/^browse vendors$/i.test(content)) { setIsOpen(false); navigate("/browse"); return; }
+    if (/^view (today's )?promos$/i.test(content)) { setIsOpen(false); navigate("/browse?filter=deals"); return; }
+    if (/^how to sell/i.test(content)) {
+      setMessages((p) => [...p, { role: "user", content }, {
+        role: "assistant",
+        content: "Easy! Tap **Sign Up** → choose **Vendor** → submit your business info and ID. Once approved, you can list products, post reels, and start selling. 🚀",
+        suggestions: ["Sign me up", "What does it cost?", "Browse vendors"],
+      }]);
+      return;
+    }
+    if (/^sign me up$/i.test(content)) { setIsOpen(false); navigate("/signup"); return; }
 
     const userMessage: Message = { role: "user", content };
     const updatedMessages = [...messages, userMessage];
@@ -76,15 +100,21 @@ const AIChatbox = () => {
 
     try {
       const { data, error } = await supabase.functions.invoke("ai-chat", {
-        body: {
-          messages: updatedMessages,
-          school_id: schoolId,
-        },
+        body: { messages: updatedMessages, school_id: schoolId },
       });
 
       if (error || !data?.reply) throw new Error(error?.message || "No response");
 
-      setMessages((prev) => [...prev, { role: "assistant", content: data.reply }]);
+      const { text, connectVendorId } = parseReply(data.reply);
+      setMessages((prev) => [...prev, {
+        role: "assistant",
+        content: text,
+        suggestions: data.suggestions || [],
+      }]);
+
+      if (connectVendorId) {
+        setTimeout(() => { setIsOpen(false); navigate(`/vendor/${connectVendorId}`); }, 800);
+      }
     } catch (err: any) {
       setMessages((prev) => [...prev, {
         role: "assistant",
@@ -96,8 +126,6 @@ const AIChatbox = () => {
     }
   };
 
-  // Don't render for logged-out users
-  if (!user) return null;
 
   return (
     <>
@@ -128,24 +156,38 @@ const AIChatbox = () => {
           {/* Messages */}
           <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
             {messages.map((msg, i) => (
-              <div key={i} className={`flex gap-2 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}>
-                {/* Avatar */}
-                <div className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center mt-0.5 ${
-                  msg.role === "user" ? "bg-primary/10" : "bg-accent/20"
-                }`}>
-                  {msg.role === "user"
-                    ? <User className="h-3.5 w-3.5 text-primary" />
-                    : <Bot  className="h-3.5 w-3.5 text-accent" />}
+              <div key={i} className="space-y-1.5">
+                <div className={`flex gap-2 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}>
+                  <div className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center mt-0.5 ${
+                    msg.role === "user" ? "bg-primary/10" : "bg-accent/20"
+                  }`}>
+                    {msg.role === "user"
+                      ? <User className="h-3.5 w-3.5 text-primary" />
+                      : <Bot  className="h-3.5 w-3.5 text-accent" />}
+                  </div>
+                  <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap ${
+                    msg.role === "user"
+                      ? "bg-primary text-primary-foreground rounded-tr-sm"
+                      : "bg-muted text-foreground rounded-tl-sm"
+                  }`}>
+                    {msg.content}
+                  </div>
                 </div>
 
-                {/* Bubble */}
-                <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm leading-relaxed ${
-                  msg.role === "user"
-                    ? "bg-primary text-primary-foreground rounded-tr-sm"
-                    : "bg-muted text-foreground rounded-tl-sm"
-                }`}>
-                  {msg.content}
-                </div>
+                {/* Quick reply chips under assistant messages */}
+                {msg.role === "assistant" && msg.suggestions && msg.suggestions.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 pl-8 pt-0.5 animate-fade-in">
+                    {msg.suggestions.map((s) => (
+                      <button
+                        key={s}
+                        onClick={() => sendMessage(s)}
+                        className="text-[11px] text-accent bg-accent/10 hover:bg-accent/20 border border-accent/30 rounded-full px-2.5 py-1 transition-colors"
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
 

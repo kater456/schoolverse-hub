@@ -27,6 +27,10 @@ import { CampusGuaranteeBadge, CampusGuaranteeSheet } from "@/components/guarant
 import VendorProximity from "@/components/vendor/VendorProximity";
 import { TrustScoreBadge, computeTrustScore } from "@/components/guarantee/TrustScore";
 import ContactVendorButton from "@/components/ContactVendorButton";
+import VendorEnhancements, {
+  QuickCartSheet, SchedulePickupSheet, QuickQuestionSheet, useFollow,
+} from "@/components/vendor/VendorEnhancements";
+import { ShoppingCart, CalendarClock, HelpCircle } from "lucide-react";
 
 // ── Lightbox ──────────────────────────────────────────────────────────────────
 const Lightbox = ({ images, startIndex, onClose }: {
@@ -151,6 +155,11 @@ const VendorProfile = () => {
   const [reportEvidence, setReportEvidence] = useState<string | null>(null);
   const [uploadingEvid,  setUploadingEvid]  = useState(false);
   const [submittingReport, setSubmittingReport] = useState(false);
+
+  // ── Action-bar sheet state ──
+  const [cartSheetOpen,   setCartSheetOpen]   = useState(false);
+  const [pickupSheetOpen, setPickupSheetOpen] = useState(false);
+  const [askSheetOpen,    setAskSheetOpen]    = useState(false);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
@@ -430,6 +439,7 @@ const VendorProfile = () => {
 
       <main className="pt-20 pb-16 px-3 sm:px-4">
         <div className="w-full max-w-4xl mx-auto overflow-x-hidden">
+          <VendorEnhancements vendor={vendor} activeDeal={activeDeals[0]} />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 
             {/* ── Image Gallery ── */}
@@ -1169,56 +1179,75 @@ const VendorProfile = () => {
         </DialogContent>
       </Dialog>
 
-      {/* ── Sticky mobile contact bar — always reachable ── */}
-      <div className="fixed bottom-0 inset-x-0 z-40 md:hidden border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 shadow-[0_-4px_12px_rgba(0,0,0,0.08)]">
-        <div className="flex items-center gap-2 p-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
-          {vendor.contact_number && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex-1"
-              onClick={() => trackContact("call")}
-              asChild
-            >
-              <a href={`tel:${vendor.contact_number}`}>
-                <Phone className="h-4 w-4 mr-1" /> Call
-              </a>
-            </Button>
-          )}
-          {vendor.messaging_enabled && vendor.contact_number && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex-1 border-green-500/40 text-green-600 hover:bg-green-500/10"
-              onClick={() => trackContact("whatsapp")}
-              asChild
-            >
-              <a
-                href={`https://wa.me/${vendor.contact_number.replace(/\D/g, "")}?text=${encodeURIComponent(
-                  `Hi! I'm reaching out from Campus Market 🛍️. I'm interested in your ${vendor.business_name}.`
-                )}`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <MessageCircle className="h-4 w-4 mr-1" /> WhatsApp
-              </a>
-            </Button>
-          )}
-          <div className="flex-1">
-            <ContactVendorButton
-              vendorId={vendor.id}
-              vendorUserId={vendor.user_id}
-              variant="default"
-              className="w-full h-9 bg-accent text-accent-foreground hover:bg-accent/90"
-              label="Message"
-            />
-          </div>
-        </div>
-      </div>
+      {/* ── Sticky mobile action bar (Message · Follow · Cart · Pickup · Ask) ── */}
+      <VendorStickyBar
+        vendor={vendor}
+        onCart={() => setCartSheetOpen(true)}
+        onPickup={() => setPickupSheetOpen(true)}
+        onAsk={() => setAskSheetOpen(true)}
+        onShare={() => setShareOpen(true)}
+        trackContact={trackContact}
+      />
+
+      {/* ── Sheets ── */}
+      <QuickCartSheet open={cartSheetOpen} onOpenChange={setCartSheetOpen} vendorId={vendor.id} vendorName={vendor.business_name} />
+      <SchedulePickupSheet open={pickupSheetOpen} onOpenChange={setPickupSheetOpen} vendorId={vendor.id} />
+      <QuickQuestionSheet open={askSheetOpen} onOpenChange={setAskSheetOpen} vendorId={vendor.id} vendorUserId={vendor.user_id} />
+
 
       <Footer />
     </div>
   );
 };
 
+/* ── Sticky bottom action bar (mobile) ── */
+const VendorStickyBar = ({
+  vendor, onCart, onPickup, onAsk, onShare, trackContact,
+}: {
+  vendor: any;
+  onCart: () => void;
+  onPickup: () => void;
+  onAsk: () => void;
+  onShare: () => void;
+  trackContact: (type: string) => void;
+}) => {
+  const { following, toggle: toggleFollow } = useFollow(vendor.id);
+  return (
+    <div className="fixed bottom-0 inset-x-0 z-40 md:hidden border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 shadow-[0_-4px_12px_rgba(0,0,0,0.08)]">
+      <div className="flex items-center gap-1 px-2 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] overflow-x-auto">
+        <div className="flex-1 min-w-[110px]">
+          <ContactVendorButton
+            vendorId={vendor.id}
+            vendorUserId={vendor.user_id}
+            variant="default"
+            className="w-full h-9 bg-accent text-accent-foreground hover:bg-accent/90 text-xs"
+            label="💬 Message"
+          />
+        </div>
+        <Button
+          variant="outline" size="sm"
+          className={`h-9 px-2 ${following ? "border-red-500/40 text-red-500" : ""}`}
+          onClick={toggleFollow}
+          title={following ? "Unfollow" : "Follow"}
+        >
+          <Heart className={`h-4 w-4 ${following ? "fill-red-500" : ""}`} />
+        </Button>
+        <Button variant="outline" size="sm" className="h-9 px-2" onClick={onCart} title="Quick cart">
+          <ShoppingCart className="h-4 w-4" />
+        </Button>
+        <Button variant="outline" size="sm" className="h-9 px-2" onClick={onPickup} title="Schedule pickup">
+          <CalendarClock className="h-4 w-4" />
+        </Button>
+        <Button variant="outline" size="sm" className="h-9 px-2" onClick={onAsk} title="Quick question">
+          <HelpCircle className="h-4 w-4" />
+        </Button>
+        <Button variant="outline" size="sm" className="h-9 px-2" onClick={onShare} title="Share">
+          <Share2 className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+};
+
 export default VendorProfile;
+

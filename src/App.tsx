@@ -11,6 +11,8 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import PromotionNotification from "@/components/PromotionNotification";
 import PageTracker from "@/components/PageTracker";
 import ScrollToTop from "@/components/ScrollToTop";
+import ScrollManager from "@/components/ScrollManager";
+import PromoToastListener from "@/components/PromoToastListener";
 import AdPopup from "@/components/AdPopup";
 import PushPrompt from "@/components/PushPrompt";
 import { Loader2 } from "lucide-react";
@@ -79,6 +81,8 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <ScrollManager />
+          <PromoToastListener />
           <InstallPrompt />
           <AppDownloadPopup />
           <PromotionNotification />

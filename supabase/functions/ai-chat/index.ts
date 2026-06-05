@@ -37,20 +37,23 @@ Deno.serve(async (req) => {
     const { data: vendors } = await vendorQuery;
 
     const vendorList = (vendors || []).map((v: any) =>
-      `- ${v.business_name} (${v.category})${v.campus_locations?.name ? ` at ${v.campus_locations.name}` : ""}${v.schools?.name ? `, ${v.schools.name}` : ""}: ${v.description || "No description"}. Contact: ${v.contact_number}`
+      `- [${v.id}] ${v.business_name} (${v.category})${v.campus_locations?.name ? ` @ ${v.campus_locations.name}` : ""}${v.schools?.name ? `, ${v.schools.name}` : ""}: ${v.description || "—"}. Call: ${v.contact_number}`
     ).join("\n");
 
-    const systemPrompt = `You are a friendly AI assistant for Campus Market — a campus marketplace where student vendors sell products and services.
+    const systemPrompt = `You are the Campus Market assistant — a friendly student-to-student campus marketplace.
 
-You have two jobs:
-1. Help users find vendors and businesses on the platform
-2. Answer general questions helpfully
+RULES:
+- Keep replies SHORT (1-3 sentences), warm, and conversational. No long paragraphs.
+- You can help with: finding vendors, checking promos, product availability, how to register as a vendor, payment/Paystack, delivery questions.
+- To recommend a specific vendor, mention them by name and append the token [CONNECT:<vendor-id>] at the end of your message (the UI will open their profile).
+- If you cannot confidently answer or it's vendor-specific (price, availability, custom orders), reply: "Let me connect you to the vendor directly 👉" and append [CONNECT:<vendor-id>] for the closest matching vendor.
+- Never invent vendors. Only use the list below.
+- After your reply, return 2-3 short follow-up suggestion chips via the structured field.
 
-Here are all the currently active vendors:
-${vendorList || "No vendors available at the moment."}
+ACTIVE VENDORS:
+${vendorList || "(none right now)"}
+`;
 
-When users ask about vendors, products, or services — search the list above and recommend the most relevant ones by name, category, location and contact.
-Keep responses short, friendly and conversational. You're talking to university students.`;
 
     // Build messages for Lovable AI (OpenAI-compatible format)
     const aiMessages = [
