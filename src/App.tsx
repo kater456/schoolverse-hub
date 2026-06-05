@@ -16,6 +16,7 @@ import PromoToastListener from "@/components/PromoToastListener";
 import AdPopup from "@/components/AdPopup";
 import PushPrompt from "@/components/PushPrompt";
 import { Loader2 } from "lucide-react";
+import { Analytics } from "@vercel/analytics/react";
 
 // ── Lazy-loaded pages (only downloaded when visited) ─────────────────────────
 const Index              = lazy(() => import("./pages/Index"));
@@ -80,6 +81,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        <Analytics />
         <BrowserRouter>
           <ScrollManager />
           <PromoToastListener />
