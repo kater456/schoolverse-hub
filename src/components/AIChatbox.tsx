@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +10,7 @@ import { MessageCircle, X, Send, Loader2, Bot, User, Sparkles } from "lucide-rea
 interface Message {
   role: "user" | "assistant";
   content: string;
+  suggestions?: string[];
 }
 
 const SUGGESTED_QUESTIONS = [
