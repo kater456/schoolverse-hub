@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -22,25 +22,41 @@ export const useSchools = () => {
   const [schools, setSchools] = useState<School[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const mountedRef = useRef(true);
 
-  const fetchSchools = async () => {
+  const fetchSchools = useCallback(async () => {
     setIsLoading(true);
-    const { data, error } = await supabase
-      .from("schools")
-      .select("*")
-      .order("created_at", { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from("schools")
+        .select("*")
+        .order("created_at", { ascending: false });
 
-    if (error) {
+      if (!mountedRef.current) return;
+
+      if (error) {
+        // Ignore intentional abort errors (component unmounted or re-render)
+        if (error.message?.includes("aborted")) return;
+        toast({
+          title: "Error fetching schools",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        setSchools(data as School[]);
+      }
+    } catch (err: any) {
+      if (!mountedRef.current) return;
+      if (err?.name === "AbortError" || err?.message?.includes("aborted")) return;
       toast({
         title: "Error fetching schools",
-        description: error.message,
+        description: "Something went wrong. Please try again.",
         variant: "destructive",
       });
-    } else {
-      setSchools(data as School[]);
+    } finally {
+      if (mountedRef.current) setIsLoading(false);
     }
-    setIsLoading(false);
-  };
+  }, [toast]);
 
   const createSchool = async (school: { name: string } & Partial<School>) => {
     const { data, error } = await supabase
@@ -145,8 +161,12 @@ export const useSchools = () => {
   };
 
   useEffect(() => {
+    mountedRef.current = true;
     fetchSchools();
-  }, []);
+    return () => {
+      mountedRef.current = false;
+    };
+  }, [fetchSchools]);
 
   return {
     schools,
