@@ -23,7 +23,7 @@ const Index              = lazy(() => import("./pages/Index"));
 const Help               = lazy(() => import("./pages/Help"));
 const Browse             = lazy(() => import("./pages/Browse"));
 const VendorProfile      = lazy(() => import("./pages/VendorProfile"));
-const StorePage          = lazy(() => import("./pages/StorePage"));
+const StorePage          = VendorProfile;
 const VendorRegistration = lazy(() => import("./pages/VendorRegistration"));
 const Reels              = lazy(() => import("./pages/Reels"));
 const NotFound           = lazy(() => import("./pages/NotFound"));

@@ -70,6 +70,27 @@ const PushBroadcastPanel = ({ scope = "super_admin" }: Props) => {
     }
   };
 
+  const sendTest = async () => {
+    setSending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-push", {
+        body: { mode: "test", sender_id: user?.id, sender_role: userRole?.role },
+      });
+      if (error) throw error;
+      toast({
+        title: data?.sent ? "Test sent 🔔" : "No device subscribed yet",
+        description: data?.sent
+          ? `Delivered to ${data.sent} of your device(s).`
+          : "Enable notifications on this device first, then try again.",
+        variant: data?.sent ? "default" : "destructive",
+      });
+    } catch (e: any) {
+      toast({ title: "Test failed", description: e.message, variant: "destructive" });
+    } finally {
+      setSending(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <Card>
@@ -118,10 +139,15 @@ const PushBroadcastPanel = ({ scope = "super_admin" }: Props) => {
               <Input value={url} onChange={e => setUrl(e.target.value)} placeholder="/" />
             </div>
           </div>
-          <Button onClick={send} disabled={sending} className="w-full sm:w-auto">
-            {sending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
-            Send Notification
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={send} disabled={sending} className="w-full sm:w-auto">
+              {sending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
+              Send Notification
+            </Button>
+            <Button onClick={sendTest} disabled={sending} variant="outline" className="w-full sm:w-auto">
+              <Bell className="h-4 w-4 mr-2" /> Send test to myself
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
