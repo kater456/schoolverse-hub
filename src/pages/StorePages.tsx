@@ -91,60 +91,70 @@ const StorePage = () => {
 
     const load = async () => {
       try {
-        const [vendorRes, productsRes, viewsRes, likesRes, ratingsRes, presenceRes] =
-          await Promise.all([
-            supabase
-              .from("vendors")
-              .select("*, schools(name, id), campus_locations(name)")
-              .eq("id", vendorId)
-              .maybeSingle(),
-            (supabase as any)
-              .from("vendor_products")
-              .select("*")
-              .eq("vendor_id", vendorId)
-              .eq("is_active", true)
-              .order("display_order", { ascending: true }),
-            supabase
-              .from("vendor_views")
-              .select("id", { count: "exact", head: true })
-              .eq("vendor_id", vendorId),
-            supabase
-              .from("vendor_likes")
-              .select("id", { count: "exact", head: true })
-              .eq("vendor_id", vendorId),
-            supabase.from("vendor_ratings").select("rating").eq("vendor_id", vendorId),
-            (supabase as any)
-              .from("vendor_presence")
-              .select("is_online, last_seen")
-              .eq("vendor_id", vendorId)
-              .maybeSingle(),
-          ]);
+        // ── Critical: vendor + products ───────────────────────────────────
+        const [vendorRes, productsRes] = await Promise.all([
+          supabase
+            .from("vendors")
+            .select("*, schools(name, id), campus_locations(name)")
+            .eq("id", vendorId)
+            .maybeSingle(),
+          (supabase as any)
+            .from("vendor_products")
+            .select("*")
+            .eq("vendor_id", vendorId)
+            .eq("is_active", true)
+            .order("display_order", { ascending: true }),
+        ]);
 
         if (vendorRes.data) setVendor(vendorRes.data);
         setProducts(productsRes.data || []);
-
-        const ratings: any[] = ratingsRes.data || [];
-        const avgRating =
-          ratings.length > 0
-            ? ratings.reduce((s, r) => s + r.rating, 0) / ratings.length
-            : 0;
-        setStats({
-          views: viewsRes.count || 0,
-          likes: likesRes.count || 0,
-          avgRating,
-          totalRatings: ratings.length,
-        });
-
-        const presence = presenceRes.data;
-        if (presence) {
-          const isRecent =
-            Date.now() - new Date(presence.last_seen).getTime() < 5 * 60 * 1000;
-          setVendorOnline(presence.is_online && isRecent);
-        }
       } catch (err) {
-        console.error("StorePage load error:", err);
+        console.error("StorePage critical load error:", err);
       } finally {
         setIsLoading(false);
+      }
+
+      // ── Optional: stats + presence (failures are silent) ─────────────
+      try {
+        const [viewsRes, likesRes, ratingsRes, presenceRes] = await Promise.allSettled([
+          supabase
+            .from("vendor_views")
+            .select("id", { count: "exact", head: true })
+            .eq("vendor_id", vendorId),
+          supabase
+            .from("vendor_likes")
+            .select("id", { count: "exact", head: true })
+            .eq("vendor_id", vendorId),
+          supabase.from("vendor_ratings").select("rating").eq("vendor_id", vendorId),
+          (supabase as any)
+            .from("vendor_presence")
+            .select("is_online, last_seen")
+            .eq("vendor_id", vendorId)
+            .maybeSingle(),
+        ]);
+
+        const views = viewsRes.status === "fulfilled" ? (viewsRes.value as any).count || 0 : 0;
+        const likes = likesRes.status === "fulfilled" ? (likesRes.value as any).count || 0 : 0;
+        const ratings: any[] =
+          ratingsRes.status === "fulfilled" ? (ratingsRes.value as any).data || [] : [];
+        const avgRating =
+          ratings.length > 0
+            ? ratings.reduce((s: number, r: any) => s + r.rating, 0) / ratings.length
+            : 0;
+
+        setStats({ views, likes, avgRating, totalRatings: ratings.length });
+
+        if (presenceRes.status === "fulfilled") {
+          const presence = (presenceRes.value as any).data;
+          if (presence) {
+            const isRecent =
+              Date.now() - new Date(presence.last_seen).getTime() < 5 * 60 * 1000;
+            setVendorOnline(presence.is_online && isRecent);
+          }
+        }
+      } catch (err) {
+        // Stats failing is non-critical — page still works fine
+        console.warn("StorePage stats load error (non-critical):", err);
       }
     };
 
