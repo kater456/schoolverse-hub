@@ -157,14 +157,28 @@ Deno.serve(async (req) => {
     }
     const callerId = userData.user.id;
 
-    const {
+    const reqBody = await req.json();
+    let {
       // Notification content
       type, data, title, body, url,
       // Targeting
       user_id, vendor_id, school_id, audience,
       // Metadata
       tag, sender_id, sender_role,
-    } = await req.json();
+      // Special: send a test push to the caller's own devices
+      mode,
+    } = reqBody;
+
+    // ── Test mode: caller -> caller's own subscriptions ───────────────────
+    if (mode === "test") {
+      user_id = callerId;
+      vendor_id = undefined;
+      school_id = undefined;
+      audience = undefined;
+      title = title || "Test notification 🔔";
+      body  = body  || "If you see this, push is wired correctly on this device.";
+      type  = type  || "broadcast";
+    }
 
     // ── Broadcast / cross-user targeting requires admin role ──────────────
     const isBroadcast = audience === "vendors" || (!user_id && !vendor_id);
