@@ -68,6 +68,8 @@ const PushBroadcastPanel = ({ scope = "super_admin" }: Props) => {
     } finally {
       setSending(false);
     }
+  };
+
   const sendTest = async () => {
     setSending(true);
     try {
