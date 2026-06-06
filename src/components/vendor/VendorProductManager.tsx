@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Edit2, Trash2, Package, Loader2, Image as ImageIcon, DollarSign } from "lucide-react";
+import { Plus, Edit2, Trash2, Package, Loader2, Image as ImageIcon, DollarSign, ExternalLink } from "lucide-react";
 import { compressImage } from "@/lib/compressImage";
 
 interface VendorProductManagerProps {
@@ -190,9 +190,18 @@ const VendorProductManager = ({ vendorId, schoolId }: VendorProductManagerProps)
           <CardTitle className="text-base flex items-center gap-2">
             <DollarSign className="h-4 w-4" /> Products & Pricing
           </CardTitle>
-          <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={openAdd}>
-            <Plus className="h-4 w-4 mr-1" /> Add Product
-          </Button>
+          <div className="flex gap-2">
+            {products.length > 0 && (
+              <Button size="sm" variant="outline" className="text-xs gap-1.5" asChild>
+                <a href={`/store/${vendorId}`} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="h-3.5 w-3.5" /> View Store
+                </a>
+              </Button>
+            )}
+            <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={openAdd}>
+              <Plus className="h-4 w-4 mr-1" /> Add Product
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {products.length === 0 ? (
