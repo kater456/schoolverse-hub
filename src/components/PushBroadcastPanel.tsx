@@ -68,6 +68,25 @@ const PushBroadcastPanel = ({ scope = "super_admin" }: Props) => {
     } finally {
       setSending(false);
     }
+  const sendTest = async () => {
+    setSending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-push", {
+        body: { mode: "test", sender_id: user?.id, sender_role: userRole?.role },
+      });
+      if (error) throw error;
+      toast({
+        title: data?.sent ? "Test sent 🔔" : "No device subscribed yet",
+        description: data?.sent
+          ? `Delivered to ${data.sent} of your device(s).`
+          : "Enable notifications on this device first, then try again.",
+        variant: data?.sent ? "default" : "destructive",
+      });
+    } catch (e: any) {
+      toast({ title: "Test failed", description: e.message, variant: "destructive" });
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
