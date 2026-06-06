@@ -139,10 +139,15 @@ const PushBroadcastPanel = ({ scope = "super_admin" }: Props) => {
               <Input value={url} onChange={e => setUrl(e.target.value)} placeholder="/" />
             </div>
           </div>
-          <Button onClick={send} disabled={sending} className="w-full sm:w-auto">
-            {sending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
-            Send Notification
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={send} disabled={sending} className="w-full sm:w-auto">
+              {sending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
+              Send Notification
+            </Button>
+            <Button onClick={sendTest} disabled={sending} variant="outline" className="w-full sm:w-auto">
+              <Bell className="h-4 w-4 mr-2" /> Send test to myself
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
