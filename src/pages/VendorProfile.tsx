@@ -15,7 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   MapPin, Phone, MessageCircle, Heart, MessageSquare, Eye, Navigation,
   Send, Loader2, Star, ShieldCheck, Instagram, Twitter, Music2,
-  ZoomIn, X, ChevronLeft, ChevronRight, Flag, Upload, AlertTriangle, Share2, Copy, Check,
+  ZoomIn, X, ChevronLeft, ChevronRight, Flag, Upload, AlertTriangle, Share2, Copy, Check, Store,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -761,6 +761,33 @@ const VendorProfile = () => {
                 </Card>
               )}
 
+              {/* Browse Store CTA — shown when vendor has products */}
+              {vendorProducts.length > 0 && (
+                <div
+                  className="rounded-xl border border-border/50 bg-gradient-to-r from-accent/5 to-transparent p-3 mb-4 flex items-center gap-3"
+                  style={themeColor ? { borderColor: `${themeColor}30`, background: `linear-gradient(90deg, ${themeColor}10, transparent)` } : {}}
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground leading-tight">
+                      {vendor.business_name}'s Store
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {vendorProducts.length} product{vendorProducts.length !== 1 ? "s" : ""} available
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    className="shrink-0 h-8 px-3 text-xs gap-1.5 font-semibold"
+                    style={themeColor ? { background: themeColor, borderColor: themeColor, color: "#fff" } as React.CSSProperties : {}}
+                    asChild
+                  >
+                    <a href={`/store/${id}`}>
+                      <Store className="h-3.5 w-3.5" /> Browse Store
+                    </a>
+                  </Button>
+                </div>
+              )}
+
               {/* Vendor Products — respects store layout and display view */}
               {vendorProducts.length > 0 && (
                 <Card
@@ -1250,4 +1277,3 @@ const VendorStickyBar = ({
 };
 
 export default VendorProfile;
-
