@@ -26,6 +26,7 @@ const VendorProfile      = lazy(() => import("./pages/VendorProfile"));
 const StorePage          = lazy(() => import("./pages/StorePage"));
 const AcademicsHub       = lazy(() => import("./pages/academics/AcademicsHub"));
 const BIC1CBT            = lazy(() => import("./pages/academics/BIC1CBT"));
+const AdminAcademicsPage = lazy(() => import("./pages/admin/AdminAcademicsPage"));
 const VendorRegistration = lazy(() => import("./pages/VendorRegistration"));
 const Reels              = lazy(() => import("./pages/Reels"));
 const NotFound           = lazy(() => import("./pages/NotFound"));
@@ -146,6 +147,9 @@ const App = () => (
               } />
               <Route path="/admin/sub-admins" element={
                 <ProtectedRoute allowedRoles={["super_admin"]}><ManageSubAdmins /></ProtectedRoute>
+              } />
+              <Route path="/admin/academics" element={
+                <ProtectedRoute allowedRoles={["super_admin", "admin"]}><AdminAcademicsPage /></ProtectedRoute>
               } />
               <Route path="/admin/notifications" element={
                 <ProtectedRoute allowedRoles={["super_admin"]}><AdminNotifications /></ProtectedRoute>
