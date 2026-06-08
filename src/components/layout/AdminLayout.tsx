@@ -10,7 +10,7 @@ import {
   ShoppingBag, BarChart3, UserCog, Megaphone, MessageCircle,
   ExternalLink, Clock, ShieldCheck, Menu, X, Bell, ChevronRight,
   Search, Command, Zap, Globe, TrendingUp, CreditCard, Settings,
-  ChevronDown, ChevronUp, Eye,
+  ChevronDown, ChevronUp, Eye, BookOpen,
 } from "lucide-react";
 
 // ── Nav structure with sections ───────────────────────────────────────────────
@@ -37,6 +37,7 @@ const NAV_SECTIONS = [
       { href: "/admin/schools",    label: "Schools",         icon: GraduationCap,  badge: null,       shortcut: null  },
       { href: "/admin/locations",  label: "Campus Locations",icon: MapPin,         badge: null,       shortcut: null  },
       { href: "/admin/sub-admins", label: "Sub-Admins",      icon: UserCog,        badge: null,       shortcut: null  },
+      { href: "/admin/academics",  label: "Academics",       icon: BookOpen,       badge: null,       shortcut: null  },
     ],
   },
 ];
@@ -44,7 +45,7 @@ const NAV_SECTIONS = [
 // Flat list for command palette
 const ALL_NAV = NAV_SECTIONS.flatMap((s) => s.items);
 
-// ── Command Palette ───────────────────────────────────────────────────────────
+// ── Command Palette ──────────────────────────────────────────────────────────
 const CommandPalette = ({
   open, onClose, pendingCount, flaggedCount,
 }: { open: boolean; onClose: () => void; pendingCount: number; flaggedCount: number }) => {
