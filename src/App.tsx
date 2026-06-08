@@ -105,7 +105,7 @@ const App = () => (
               <Route path="/vendor/:id/:slug" element={<VendorProfile />} />
               <Route path="/store/:vendorId"        element={<StorePage />} />
               <Route path="/store/:vendorId/:slug"  element={<StorePage />} />
-              <Route path="/academics"              element={<BIC1CBT />} />
+              <Route path="/academics"              element={<AcademicsHub />} />
               <Route path="/academics/bic1"         element={<BIC1CBT />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />
               <Route path="/reels"   element={<Reels />} />
