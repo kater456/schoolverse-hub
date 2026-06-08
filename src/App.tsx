@@ -23,7 +23,9 @@ const Index              = lazy(() => import("./pages/Index"));
 const Help               = lazy(() => import("./pages/Help"));
 const Browse             = lazy(() => import("./pages/Browse"));
 const VendorProfile      = lazy(() => import("./pages/VendorProfile"));
-const StorePage          = VendorProfile;
+const StorePage          = lazy(() => import("./pages/StorePage"));
+const AcademicsHub       = lazy(() => import("./pages/academics/AcademicsHub"));
+const BIC1CBT            = lazy(() => import("./pages/academics/BIC1CBT"));
 const VendorRegistration = lazy(() => import("./pages/VendorRegistration"));
 const Reels              = lazy(() => import("./pages/Reels"));
 const NotFound           = lazy(() => import("./pages/NotFound"));
@@ -102,6 +104,8 @@ const App = () => (
               <Route path="/vendor/:id/:slug" element={<VendorProfile />} />
               <Route path="/store/:vendorId"        element={<StorePage />} />
               <Route path="/store/:vendorId/:slug"  element={<StorePage />} />
+              <Route path="/academics"              element={<AcademicsHub />} />
+              <Route path="/academics/bic1"         element={<BIC1CBT />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />
               <Route path="/reels"   element={<Reels />} />
               <Route path="/register-vendor" element={
