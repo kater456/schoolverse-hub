@@ -19,8 +19,10 @@ self.addEventListener("activate", (event) =>
         const workboxCacheNames = cacheNames.filter(isWorkboxCacheForThisRegistration);
         await Promise.allSettled(workboxCacheNames.map((name) => caches.delete(name)));
         await self.clients.claim();
-        const windowClients = await self.clients.matchAll({ type: "window" });
-        await Promise.allSettled(windowClients.map((client) => client.navigate(client.url)));
+        // NOTE: Do NOT call client.navigate() here.
+        // On iOS Safari, calling client.navigate() from a service worker
+        // causes a permanent blank white screen. The SW unregistration below
+        // is sufficient — the next user-initiated navigation will work correctly.
       } finally {
         await self.registration.unregister();
       }
