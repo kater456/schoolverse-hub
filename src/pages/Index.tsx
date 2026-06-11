@@ -48,9 +48,19 @@ const Index = () => {
   const [checkingVendor,   setCheckingVendor]   = useState(false);
 
   // Show splash once per session
-  const [showSplash, setShowSplash] = useState(() => !sessionStorage.getItem("splash_shown"));
+  const [showSplash, setShowSplash] = useState(() => {
+    try {
+      return !sessionStorage.getItem("splash_shown");
+    } catch {
+      return true;
+    }
+  });
   const handleSplashEnter = () => {
-    sessionStorage.setItem("splash_shown", "1");
+    try {
+      sessionStorage.setItem("splash_shown", "1");
+    } catch (e) {
+      console.warn("sessionStorage failed", e);
+    }
     setShowSplash(false);
   };
 

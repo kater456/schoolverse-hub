@@ -97,7 +97,11 @@ export async function detectCurrency(): Promise<Currency> {
 
   inflight = (async (): Promise<Currency> => {
     try {
-      const res = await fetch("https://ipapi.co/json/", { signal: AbortSignal.timeout(3500) });
+      // AbortSignal.timeout is Safari 16+, Chrome 103+
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 3500);
+      const res = await fetch("https://ipapi.co/json/", { signal: controller.signal });
+      clearTimeout(timer);
       if (!res.ok) throw new Error("ip lookup failed");
       const data = await res.json();
       const cc = (data.country_code || data.country || "NG").toUpperCase();

@@ -101,7 +101,7 @@ export function computeTrustScore(v: TrustScoreInput): TrustScoreResult {
   });
 
   // 15 — Pro plan active
-  const proActive   = (v.is_store_upgraded === true) && (!v.store_upgrade_expires_at || new Date(v.store_upgrade_expires_at) > new Date());
+  const proActive   = (v.is_store_upgraded === true) && (!v.store_upgrade_expires_at || new Date(v.store_upgrade_expires_at.replace(" ", "T")) > new Date());
   const proPts      = proActive ? 15 : 0;
   breakdown.push({
     label:  "Pro Vendor",

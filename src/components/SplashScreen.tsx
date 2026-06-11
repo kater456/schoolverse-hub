@@ -80,13 +80,13 @@ const SplashScreen = ({ onEnter }: { onEnter: () => void }) => {
       <div style={{
         position: "absolute", width: 400, height: 400,
         borderRadius: "50%",
-        background: `radial-gradient(circle, ${AMBER}22 0%, transparent 70%)`,
+        background: `radial-gradient(circle, hsla(38, 92%, 50%, 0.14) 0%, transparent 70%)`,
         top: "-10%", right: "-5%", pointerEvents: "none",
       }} />
       <div style={{
         position: "absolute", width: 300, height: 300,
         borderRadius: "50%",
-        background: `radial-gradient(circle, ${NAVY_LIGHT}33 0%, transparent 70%)`,
+        background: `radial-gradient(circle, hsla(215, 50%, 40%, 0.2) 0%, transparent 70%)`,
         bottom: "-5%", left: "-5%", pointerEvents: "none",
       }} />
 
@@ -118,7 +118,7 @@ const SplashScreen = ({ onEnter }: { onEnter: () => void }) => {
           background: `linear-gradient(135deg, ${AMBER} 0%, ${AMBER_DARK} 100%)`,
           display: "flex", alignItems: "center", justifyContent: "center",
           fontSize: 42, margin: "0 auto 1.25rem",
-          boxShadow: `0 0 50px ${AMBER}55, 0 0 100px ${AMBER}22`,
+          boxShadow: `0 0 50px hsla(38, 92%, 50%, 0.35), 0 0 100px hsla(38, 92%, 50%, 0.14)`,
           animation: "cmPulse 2.5s ease-in-out infinite",
         }}>
           🛍️
@@ -194,7 +194,7 @@ const SplashScreen = ({ onEnter }: { onEnter: () => void }) => {
             animation: entering ? "none" : "cmBtnPulse 2.2s ease-in-out infinite",
             letterSpacing: "0.3px",
             transition: "all 0.3s ease",
-            boxShadow: entering ? "none" : `0 8px 30px ${AMBER}55`,
+            boxShadow: entering ? "none" : `0 8px 30px hsla(38, 92%, 50%, 0.35)`,
           }}
         >
           {entering ? "Loading… ✨" : "Enter Marketplace →"}
@@ -225,8 +225,8 @@ const SplashScreen = ({ onEnter }: { onEnter: () => void }) => {
           75%  { margin-left: -38px; }
         }
         @keyframes cmPulse {
-          0%, 100% { transform: scale(1);    box-shadow: 0 0 50px ${AMBER}55; }
-          50%       { transform: scale(1.07); box-shadow: 0 0 80px ${AMBER}88; }
+          0%, 100% { transform: scale(1);    box-shadow: 0 0 50px hsla(38, 92%, 50%, 0.35); }
+          50%       { transform: scale(1.07); box-shadow: 0 0 80px hsla(38, 92%, 50%, 0.55); }
         }
         @keyframes cmBtnPulse {
           0%, 100% { transform: scale(1); }

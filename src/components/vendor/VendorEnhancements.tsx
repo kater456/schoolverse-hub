@@ -16,12 +16,18 @@ import {
    Session id for anonymous reel likes
    ────────────────────────────────────────────────────────────── */
 const getSessionId = () => {
-  let id = localStorage.getItem("cm_session_id");
-  if (!id) {
-    id = crypto.randomUUID();
-    localStorage.setItem("cm_session_id", id);
+  try {
+    let id = localStorage.getItem("cm_session_id");
+    if (!id) {
+      id = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      localStorage.setItem("cm_session_id", id);
+    }
+    return id;
+  } catch {
+    return "anonymous";
   }
-  return id;
 };
 
 /* ──────────────────────────────────────────────────────────────

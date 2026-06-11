@@ -19,8 +19,10 @@ const AppDownloadPopup = () => {
   const scrolledEnough = useRef(false);
 
   useEffect(() => {
-    const dismissed = sessionStorage.getItem("app-popup-dismissed");
-    if (dismissed) return;
+    try {
+      const dismissed = sessionStorage.getItem("app-popup-dismissed");
+      if (dismissed) return;
+    } catch { /* ignore */ }
 
     const isStandalone = window.matchMedia("(display-mode: standalone)").matches;
     if (isStandalone) return;
@@ -63,7 +65,9 @@ const AppDownloadPopup = () => {
 
   const dismiss = () => {
     setShowBanner(false);
-    sessionStorage.setItem("app-popup-dismissed", "true");
+    try {
+      sessionStorage.setItem("app-popup-dismissed", "true");
+    } catch { /* ignore */ }
   };
 
   const handleInstall = async () => {

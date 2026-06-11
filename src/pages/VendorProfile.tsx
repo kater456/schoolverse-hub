@@ -184,8 +184,15 @@ const VendorProfile = () => {
 
         // Fire-and-forget: view tracking
         const viewKey = `vendor_viewed_${id}`;
-        if (!sessionStorage.getItem(viewKey)) {
-          sessionStorage.setItem(viewKey, "1");
+        let alreadyViewed = false;
+        try {
+          alreadyViewed = !!sessionStorage.getItem(viewKey);
+        } catch { /* ignore */ }
+
+        if (!alreadyViewed) {
+          try {
+            sessionStorage.setItem(viewKey, "1");
+          } catch { /* ignore */ }
           supabase.from("vendor_views").insert({
             vendor_id: id, viewer_id: user?.id || null, school_id: data.schools?.id || null,
           } as any).then(() => {
