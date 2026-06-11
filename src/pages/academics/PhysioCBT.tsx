@@ -1,4 +1,3 @@
-cat << 'ENDOFFILE' > /home/claude/PhysioCBT.tsx
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -577,10 +576,3 @@ End ONLY with: "🏆 Campus Market app is all about success — insure your busi
     </div>
   );
 }
-ENDOFFILE
-echo "done"
-Output
-
-done
-Done
-
