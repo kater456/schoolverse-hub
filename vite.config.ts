@@ -22,7 +22,7 @@ export default defineConfig(({ mode }) => ({
     },
   },
   build: {
-    target: ["es2015", "safari14", "chrome87", "firefox78"],
+    target: ["es2015", "safari13", "chrome87", "firefox78"],
     rollupOptions: {
       output: {
         manualChunks: {
@@ -33,6 +33,6 @@ export default defineConfig(({ mode }) => ({
     },
   },
   esbuild: {
-    target: "safari14",
+    target: "safari13",
   },
 }));
