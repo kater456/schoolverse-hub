@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useMarketplaceTracker } from "@/hooks/useMarketplaceTracker";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { Badge } from "@/components/ui/badge";
@@ -107,6 +108,7 @@ const Lightbox = ({ images, startIndex, onClose }: {
 const VendorProfile = () => {
   const { id } = useParams<{ id: string }>();
   const { user }    = useAuth();
+  const { trackEvent } = useMarketplaceTracker();
   const { notify }  = useNotify();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -191,6 +193,7 @@ const VendorProfile = () => {
           } as any).then(() => {
             notify.profileView({ vendorId: id, url: `/vendor/${id}` });
           });
+          trackEvent(id, 'view', 'profile');
         }
 
         // Run ALL secondary queries in parallel
@@ -364,6 +367,12 @@ const VendorProfile = () => {
     await supabase.from("vendor_contacts").insert({
       vendor_id: id!, contact_type: type, school_id: vendor?.schools?.id || null,
     } as any);
+
+    if (type === 'whatsapp') {
+      trackEvent(id!, 'click', 'whatsapp');
+    } else if (type === 'call') {
+      trackEvent(id!, 'click', 'call');
+    }
   };
 
   if (isLoading) return (
@@ -780,6 +789,7 @@ const VendorProfile = () => {
                     className="shrink-0 h-8 px-3 text-xs gap-1.5 font-semibold"
                     style={themeColor ? { background: themeColor, borderColor: themeColor, color: "#fff" } as React.CSSProperties : {}}
                     asChild
+                    onClick={() => trackEvent(id!, 'click', 'browse_store')}
                   >
                     <a href={`/store/${id}`}>
                       <Store className="h-3.5 w-3.5" /> Browse Store
