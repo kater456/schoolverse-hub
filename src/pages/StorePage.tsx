@@ -110,7 +110,10 @@ const StorePage = () => {
 
         if (vendorRes.data) {
           setVendor(vendorRes.data);
-          trackEvent(vendorId, 'view', 'store');
+          trackEvent(vendorId, 'view', 'store', {
+            campusName: vendorRes.data.campus_locations?.name,
+            vendorCategory: vendorRes.data.category
+          });
         }
         setProducts(productsRes.data || []);
       } catch (err) {
@@ -579,7 +582,10 @@ const StorePage = () => {
       </main>
 
       {/* ── Floating CTA (mobile) ── */}
-      <div className="fixed bottom-4 inset-x-4 z-40 md:hidden" onClick={() => trackEvent(vendor.id, 'click', 'contact_vendor_floating')}>
+      <div className="fixed bottom-4 inset-x-4 z-40 md:hidden" onClick={() => trackEvent(vendor.id, 'click', 'contact_vendor_floating', {
+        campusName: vendor?.campus_locations?.name,
+        vendorCategory: vendor?.category
+      })}>
         <ContactVendorButton
           vendorId={vendor.id}
           vendorUserId={vendor.user_id}
@@ -596,7 +602,10 @@ const StorePage = () => {
             <p className="text-sm font-semibold">{vendor.business_name}</p>
             <p className="text-xs text-muted-foreground">{products.length} products available</p>
           </div>
-          <div onClick={() => trackEvent(vendor.id, 'click', 'contact_vendor_bar')}>
+          <div onClick={() => trackEvent(vendor.id, 'click', 'contact_vendor_bar', {
+            campusName: vendor?.campus_locations?.name,
+            vendorCategory: vendor?.category
+          })}>
             <ContactVendorButton
               vendorId={vendor.id}
               vendorUserId={vendor.user_id}
@@ -679,7 +688,10 @@ const ProductCard = ({
           <span className="text-sm font-bold" style={{ color: priceColor }}>
             ₦{Number(product.price).toLocaleString()}
           </span>
-          <div onClick={() => trackEvent(vendor.id, 'click', 'buy_list')}>
+          <div onClick={() => trackEvent(vendor.id, 'click', 'buy_list', {
+            campusName: vendor?.campus_locations?.name,
+            vendorCategory: vendor?.category
+          })}>
             <ContactVendorButton
               vendorId={vendor.id}
               vendorUserId={vendor.user_id}
@@ -716,7 +728,10 @@ const ProductCard = ({
         )}
 
         {/* Hover overlay */}
-        <div className="overlay absolute inset-0 bg-black/55 flex items-end p-2" onClick={() => trackEvent(vendor.id, 'click', 'buy_grid')}>
+        <div className="overlay absolute inset-0 bg-black/55 flex items-end p-2" onClick={() => trackEvent(vendor.id, 'click', 'buy_grid', {
+          campusName: vendor?.campus_locations?.name,
+          vendorCategory: vendor?.category
+        })}>
           <ContactVendorButton
             vendorId={vendor.id}
             vendorUserId={vendor.user_id}

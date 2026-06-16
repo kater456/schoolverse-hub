@@ -193,7 +193,10 @@ const VendorProfile = () => {
           } as any).then(() => {
             notify.profileView({ vendorId: id, url: `/vendor/${id}` });
           });
-          trackEvent(id, 'view', 'profile');
+          trackEvent(id, 'view', 'profile', {
+            campusName: data.campus_locations?.name,
+            vendorCategory: data.category
+          });
         }
 
         // Run ALL secondary queries in parallel
@@ -369,9 +372,15 @@ const VendorProfile = () => {
     } as any);
 
     if (type === 'whatsapp') {
-      trackEvent(id!, 'click', 'whatsapp');
+      trackEvent(id!, 'click', 'whatsapp', {
+        campusName: vendor?.campus_locations?.name,
+        vendorCategory: vendor?.category
+      });
     } else if (type === 'call') {
-      trackEvent(id!, 'click', 'call');
+      trackEvent(id!, 'click', 'call', {
+        campusName: vendor?.campus_locations?.name,
+        vendorCategory: vendor?.category
+      });
     }
   };
 
@@ -701,6 +710,10 @@ const VendorProfile = () => {
                     <div className="space-y-2">
                       {vendor.social_instagram && (
                         <a href={vendor.social_instagram} target="_blank" rel="noopener noreferrer"
+                          onClick={() => trackEvent(id!, 'click', 'instagram', {
+                            campusName: vendor?.campus_locations?.name,
+                            vendorCategory: vendor?.category
+                          })}
                           className="flex items-center gap-2.5 text-sm text-muted-foreground hover:text-foreground transition-colors group">
                           <div className="w-7 h-7 rounded-lg bg-pink-500/10 flex items-center justify-center group-hover:bg-pink-500/20">
                             <Instagram className="h-4 w-4 text-pink-500" />
@@ -789,7 +802,10 @@ const VendorProfile = () => {
                     className="shrink-0 h-8 px-3 text-xs gap-1.5 font-semibold"
                     style={themeColor ? { background: themeColor, borderColor: themeColor, color: "#fff" } as React.CSSProperties : {}}
                     asChild
-                    onClick={() => trackEvent(id!, 'click', 'browse_store')}
+                    onClick={() => trackEvent(id!, 'click', 'browse_store', {
+                      campusName: vendor?.campus_locations?.name,
+                      vendorCategory: vendor?.category
+                    })}
                   >
                     <a href={`/store/${id}`}>
                       <Store className="h-3.5 w-3.5" /> Browse Store
