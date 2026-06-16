@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useMarketplaceTracker } from "@/hooks/useMarketplaceTracker";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { Badge } from "@/components/ui/badge";
@@ -57,6 +58,7 @@ const STYLE = `
 const StorePage = () => {
   const { vendorId } = useParams<{ vendorId: string }>();
   const { user } = useAuth();
+  const { trackEvent } = useMarketplaceTracker();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -106,7 +108,13 @@ const StorePage = () => {
             .order("display_order", { ascending: true }),
         ]);
 
-        if (vendorRes.data) setVendor(vendorRes.data);
+        if (vendorRes.data) {
+          setVendor(vendorRes.data);
+          trackEvent(vendorId, 'view', 'store', {
+            campusName: vendorRes.data.campus_locations?.name,
+            vendorCategory: vendorRes.data.category
+          });
+        }
         setProducts(productsRes.data || []);
       } catch (err) {
         console.error("StorePage critical load error:", err);
@@ -574,7 +582,10 @@ const StorePage = () => {
       </main>
 
       {/* ── Floating CTA (mobile) ── */}
-      <div className="fixed bottom-4 inset-x-4 z-40 md:hidden">
+      <div className="fixed bottom-4 inset-x-4 z-40 md:hidden" onClick={() => trackEvent(vendor.id, 'click', 'contact_vendor_floating', {
+        campusName: vendor?.campus_locations?.name,
+        vendorCategory: vendor?.category
+      })}>
         <ContactVendorButton
           vendorId={vendor.id}
           vendorUserId={vendor.user_id}
@@ -591,13 +602,18 @@ const StorePage = () => {
             <p className="text-sm font-semibold">{vendor.business_name}</p>
             <p className="text-xs text-muted-foreground">{products.length} products available</p>
           </div>
-          <ContactVendorButton
-            vendorId={vendor.id}
-            vendorUserId={vendor.user_id}
-            variant="default"
-            className="h-9 px-5 text-sm font-semibold shrink-0"
-            label="💬 Message Vendor"
-          />
+          <div onClick={() => trackEvent(vendor.id, 'click', 'contact_vendor_bar', {
+            campusName: vendor?.campus_locations?.name,
+            vendorCategory: vendor?.category
+          })}>
+            <ContactVendorButton
+              vendorId={vendor.id}
+              vendorUserId={vendor.user_id}
+              variant="default"
+              className="h-9 px-5 text-sm font-semibold shrink-0"
+              label="💬 Message Vendor"
+            />
+          </div>
         </div>
       </div>
 
@@ -622,6 +638,7 @@ const ProductCard = ({
   index: number;
   viewMode: "grid" | "list";
 }) => {
+  const { trackEvent } = useMarketplaceTracker();
   const priceColor = accentColor || themeColor || undefined;
   const delay = `${Math.min(index * 50, 400)}ms`;
 
@@ -671,13 +688,18 @@ const ProductCard = ({
           <span className="text-sm font-bold" style={{ color: priceColor }}>
             ₦{Number(product.price).toLocaleString()}
           </span>
-          <ContactVendorButton
-            vendorId={vendor.id}
-            vendorUserId={vendor.user_id}
-            variant="outline"
-            className="h-7 text-xs px-2.5 rounded-lg"
-            label="Buy"
-          />
+          <div onClick={() => trackEvent(vendor.id, 'click', 'buy_list', {
+            campusName: vendor?.campus_locations?.name,
+            vendorCategory: vendor?.category
+          })}>
+            <ContactVendorButton
+              vendorId={vendor.id}
+              vendorUserId={vendor.user_id}
+              variant="outline"
+              className="h-7 text-xs px-2.5 rounded-lg"
+              label="Buy"
+            />
+          </div>
         </div>
       </div>
     );
@@ -706,7 +728,10 @@ const ProductCard = ({
         )}
 
         {/* Hover overlay */}
-        <div className="overlay absolute inset-0 bg-black/55 flex items-end p-2">
+        <div className="overlay absolute inset-0 bg-black/55 flex items-end p-2" onClick={() => trackEvent(vendor.id, 'click', 'buy_grid', {
+          campusName: vendor?.campus_locations?.name,
+          vendorCategory: vendor?.category
+        })}>
           <ContactVendorButton
             vendorId={vendor.id}
             vendorUserId={vendor.user_id}

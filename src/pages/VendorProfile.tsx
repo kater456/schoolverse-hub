@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useMarketplaceTracker } from "@/hooks/useMarketplaceTracker";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { Badge } from "@/components/ui/badge";
@@ -107,6 +108,7 @@ const Lightbox = ({ images, startIndex, onClose }: {
 const VendorProfile = () => {
   const { id } = useParams<{ id: string }>();
   const { user }    = useAuth();
+  const { trackEvent } = useMarketplaceTracker();
   const { notify }  = useNotify();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -190,6 +192,10 @@ const VendorProfile = () => {
             vendor_id: id, viewer_id: user?.id || null, school_id: data.schools?.id || null,
           } as any).then(() => {
             notify.profileView({ vendorId: id, url: `/vendor/${id}` });
+          });
+          trackEvent(id, 'view', 'profile', {
+            campusName: data.campus_locations?.name,
+            vendorCategory: data.category
           });
         }
 
@@ -364,6 +370,18 @@ const VendorProfile = () => {
     await supabase.from("vendor_contacts").insert({
       vendor_id: id!, contact_type: type, school_id: vendor?.schools?.id || null,
     } as any);
+
+    if (type === 'whatsapp') {
+      trackEvent(id!, 'click', 'whatsapp', {
+        campusName: vendor?.campus_locations?.name,
+        vendorCategory: vendor?.category
+      });
+    } else if (type === 'call') {
+      trackEvent(id!, 'click', 'call', {
+        campusName: vendor?.campus_locations?.name,
+        vendorCategory: vendor?.category
+      });
+    }
   };
 
   if (isLoading) return (
@@ -692,6 +710,10 @@ const VendorProfile = () => {
                     <div className="space-y-2">
                       {vendor.social_instagram && (
                         <a href={vendor.social_instagram} target="_blank" rel="noopener noreferrer"
+                          onClick={() => trackEvent(id!, 'click', 'instagram', {
+                            campusName: vendor?.campus_locations?.name,
+                            vendorCategory: vendor?.category
+                          })}
                           className="flex items-center gap-2.5 text-sm text-muted-foreground hover:text-foreground transition-colors group">
                           <div className="w-7 h-7 rounded-lg bg-pink-500/10 flex items-center justify-center group-hover:bg-pink-500/20">
                             <Instagram className="h-4 w-4 text-pink-500" />
@@ -780,6 +802,10 @@ const VendorProfile = () => {
                     className="shrink-0 h-8 px-3 text-xs gap-1.5 font-semibold"
                     style={themeColor ? { background: themeColor, borderColor: themeColor, color: "#fff" } as React.CSSProperties : {}}
                     asChild
+                    onClick={() => trackEvent(id!, 'click', 'browse_store', {
+                      campusName: vendor?.campus_locations?.name,
+                      vendorCategory: vendor?.category
+                    })}
                   >
                     <a href={`/store/${id}`}>
                       <Store className="h-3.5 w-3.5" /> Browse Store
