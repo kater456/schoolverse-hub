@@ -14,6 +14,7 @@ const VerifyEmail = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const email = location.state?.email || "your email";
+  const wantsVendor = location.state?.wantsVendor || false;
 
   const handleOtpChange = (index: number, value: string) => {
     if (value.length > 1) return;
@@ -51,13 +52,26 @@ const VerifyEmail = () => {
         return;
       }
 
-      // Sign out so user must login fresh
-      await supabase.auth.signOut();
+      // If they want vendor, we keep them logged in and go to registration
+      // If not, we sign out and go to login as per existing behavior
+      if (!wantsVendor) {
+        await supabase.auth.signOut();
+      }
+
       setIsVerified(true);
-      toast({ title: "Email verified!", description: "Your email has been verified. Please proceed to login." });
+      toast({
+        title: "Email verified!",
+        description: wantsVendor
+          ? "Redirecting you to vendor registration..."
+          : "Your email has been verified. Please proceed to login."
+      });
 
       setTimeout(() => {
-        navigate("/login", { state: { verified: true } });
+        if (wantsVendor) {
+          navigate("/register-vendor");
+        } else {
+          navigate("/login", { state: { verified: true } });
+        }
       }, 2500);
     } catch (err: any) {
       setIsLoading(false);
@@ -129,9 +143,41 @@ const VerifyEmail = () => {
             A verification code has been sent to{" "}
             <span className="font-medium text-foreground">{email}</span>
           </p>
-          <p className="text-sm text-primary font-medium">
+          <p className="text-sm text-primary font-medium mb-4">
             📧 Please check your email inbox (and spam folder) for the 6-digit code, then enter it below.
           </p>
+
+          <div className="flex flex-wrap justify-center gap-2 mb-2">
+            {(() => {
+              const domain = email.split('@')[1]?.toLowerCase();
+              const providers = [
+                { name: "Gmail", url: "https://mail.google.com/mail/u/0/#search/from%3Acampusmarketapp", match: "gmail.com" },
+                { name: "Outlook", url: "https://outlook.live.com/mail/0/inbox", match: "outlook.com" },
+                { name: "Yahoo", url: "https://mail.yahoo.com", match: "yahoo.com" }
+              ];
+
+              // Sort matching provider to the front
+              const sorted = [...providers].sort((a, b) => {
+                if (domain === a.match) return -1;
+                if (domain === b.match) return 1;
+                return 0;
+              });
+
+              return sorted.map(p => (
+                <Button
+                  key={p.name}
+                  variant={domain === p.match ? "default" : "outline"}
+                  size="sm"
+                  asChild
+                  className="h-8 text-xs"
+                >
+                  <a href={p.url} target="_blank" rel="noopener noreferrer">
+                    Open {p.name}
+                  </a>
+                </Button>
+              ));
+            })()}
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">

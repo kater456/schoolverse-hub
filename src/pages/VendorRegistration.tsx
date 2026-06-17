@@ -93,10 +93,21 @@ const VendorRegistration = () => {
     resolver: zodResolver(vendorSchema),
     defaultValues: {
       business_name: "", category: "", description: "", contact_number: "",
-      school_id: "", academic_level: "", department: "", campus_location_id: "", country: "Nigeria", full_name: "",
+      school_id: "", academic_level: "", department: "", campus_location_id: "", country: "Nigeria",
+      full_name: user?.user_metadata?.first_name && user?.user_metadata?.last_name
+        ? `${user.user_metadata.first_name} ${user.user_metadata.last_name}`
+        : "",
       residential_location: "", personal_contact: "",
     },
   });
+
+  // Re-sync full_name if user loads after mount
+  useEffect(() => {
+    if (user?.user_metadata?.first_name && !form.getValues("full_name")) {
+      const name = `${user.user_metadata.first_name} ${user.user_metadata.last_name || ""}`.trim();
+      form.setValue("full_name", name);
+    }
+  }, [user, form]);
 
   const watchSchool    = form.watch("school_id");
   const watchCountry   = form.watch("country");
@@ -274,7 +285,7 @@ const VendorRegistration = () => {
     );
   }
 
-  if (hasExistingApplication) {
+  if (hasExistingApplication && !user) {
     return (
       <div className="min-h-screen bg-background"><Navbar />
         <main className="pt-20 pb-16 px-4">

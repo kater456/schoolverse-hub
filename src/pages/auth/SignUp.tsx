@@ -20,6 +20,7 @@ const GoogleIcon = () => (
 const SignUp = () => {
   const [formData, setFormData] = useState({
     firstName: "", lastName: "", email: "", password: "", confirmPassword: "",
+    wantsVendor: false,
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -67,7 +68,11 @@ const SignUp = () => {
         password: formData.password,
         options: {
           emailRedirectTo: window.location.origin,
-          data: { first_name: formData.firstName, last_name: formData.lastName },
+          data: {
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            wants_vendor: formData.wantsVendor,
+          },
         },
       });
 
@@ -88,7 +93,7 @@ const SignUp = () => {
         title: "Verification code sent!",
         description: "A 6-digit code has been sent to your email. Please check your inbox.",
       });
-      navigate("/verify-email", { state: { email: formData.email } });
+      navigate("/verify-email", { state: { email: formData.email, wantsVendor: formData.wantsVendor } });
     } catch (err: any) {
       setIsLoading(false);
       toast({ title: "Sign up failed", description: err.message || "An unexpected error occurred.", variant: "destructive" });
@@ -173,6 +178,24 @@ const SignUp = () => {
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
                   {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
+              </div>
+            </div>
+
+            <div className="flex items-start space-x-3 pt-2">
+              <input
+                id="wantsVendor"
+                type="checkbox"
+                checked={formData.wantsVendor}
+                onChange={(e) => setFormData({ ...formData, wantsVendor: e.target.checked })}
+                className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+              />
+              <div className="grid gap-1.5 leading-none">
+                <label htmlFor="wantsVendor" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                  I also want to sell on Campus Market
+                </label>
+                <p className="text-xs text-muted-foreground">
+                  You'll complete a quick vendor application after verifying your email.
+                </p>
               </div>
             </div>
 
