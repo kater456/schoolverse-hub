@@ -27,6 +27,8 @@ const vendorSchema = z.object({
   description: z.string().max(500).optional(),
   contact_number: z.string().min(5, "Contact number is required").max(20),
   school_id: z.string().min(1, "School is required"),
+  academic_level: z.string().min(1, "Level is required"),
+  department: z.string().min(2, "Department is required").max(100),
   campus_location_id: z.string().optional(),
   country: z.string().min(1, "Country is required"),
   full_name: z.string().min(2, "Full name is required").max(100),
@@ -91,7 +93,7 @@ const VendorRegistration = () => {
     resolver: zodResolver(vendorSchema),
     defaultValues: {
       business_name: "", category: "", description: "", contact_number: "",
-      school_id: "", campus_location_id: "", country: "Nigeria", full_name: "",
+      school_id: "", academic_level: "", department: "", campus_location_id: "", country: "Nigeria", full_name: "",
       residential_location: "", personal_contact: "",
     },
   });
@@ -198,6 +200,8 @@ const VendorRegistration = () => {
           description: data.description || null,
           contact_number: data.contact_number,
           school_id: data.school_id,
+          academic_level: data.academic_level,
+          department: data.department,
           campus_location_id: data.campus_location_id || null,
           country: data.country,
           is_approved: false,
@@ -347,6 +351,26 @@ const VendorRegistration = () => {
                           <SelectItem value="Ghana">🇬🇭 Ghana</SelectItem>
                         </SelectContent>
                       </Select><FormMessage />
+                    </FormItem>
+                  )} />
+
+                  <FormField control={form.control} name="academic_level" render={({ field }) => (
+                    <FormItem><FormLabel>Academic Level</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl><SelectTrigger><SelectValue placeholder="Select level" /></SelectTrigger></FormControl>
+                        <SelectContent>
+                          {["100L", "200L", "300L", "400L", "500L", "600L", "Graduate/Alumni"].map((lvl) => (
+                            <SelectItem key={lvl} value={lvl}>{lvl}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select><FormMessage />
+                    </FormItem>
+                  )} />
+
+                  <FormField control={form.control} name="department" render={({ field }) => (
+                    <FormItem><FormLabel>Department</FormLabel>
+                      <FormControl><Input placeholder="e.g. Medicine, Computer Science" {...field} /></FormControl>
+                      <FormMessage />
                     </FormItem>
                   )} />
 

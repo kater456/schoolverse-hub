@@ -1818,6 +1818,7 @@ export type Database = {
       }
       vendors: {
         Row: {
+          academic_level: string | null
           accepts_orders: boolean | null
           banner_url: string | null
           brand_name: string | null
@@ -1828,6 +1829,7 @@ export type Database = {
           country: string | null
           created_at: string
           delivery_available: boolean | null
+          department: string | null
           description: string | null
           id: string
           is_active: boolean | null
@@ -1869,6 +1871,7 @@ export type Database = {
           whatsapp_orders: boolean | null
         }
         Insert: {
+          academic_level?: string | null
           accepts_orders?: boolean | null
           banner_url?: string | null
           brand_name?: string | null
@@ -1879,6 +1882,7 @@ export type Database = {
           country?: string | null
           created_at?: string
           delivery_available?: boolean | null
+          department?: string | null
           description?: string | null
           id?: string
           is_active?: boolean | null
@@ -1920,6 +1924,7 @@ export type Database = {
           whatsapp_orders?: boolean | null
         }
         Update: {
+          academic_level?: string | null
           accepts_orders?: boolean | null
           banner_url?: string | null
           brand_name?: string | null
@@ -1930,6 +1935,7 @@ export type Database = {
           country?: string | null
           created_at?: string
           delivery_available?: boolean | null
+          department?: string | null
           description?: string | null
           id?: string
           is_active?: boolean | null

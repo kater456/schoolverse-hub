@@ -557,6 +557,9 @@ const VendorProfile = () => {
               <div className="flex flex-wrap gap-2 mb-4">
                 <Badge variant="secondary">{vendor.category}</Badge>
                 {vendor.schools?.name && <Badge variant="outline">🎓 {vendor.schools.name}</Badge>}
+                {vendor.academic_level && vendor.department && (
+                  <Badge variant="outline">📚 {vendor.academic_level} {vendor.department}</Badge>
+                )}
                 {vendor.campus_locations?.name && (
                   <Badge variant="outline"><MapPin className="h-3 w-3 mr-1" />{vendor.campus_locations.name}</Badge>
                 )}
