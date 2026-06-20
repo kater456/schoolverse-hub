@@ -560,6 +560,9 @@ const VendorProfile = () => {
                 {vendor.campus_locations?.name && (
                   <Badge variant="outline"><MapPin className="h-3 w-3 mr-1" />{vendor.campus_locations.name}</Badge>
                 )}
+                {vendor.show_academic_info && vendor.academic_level && vendor.department && (
+                  <Badge variant="outline">📚 {vendor.academic_level} {vendor.department}</Badge>
+                )}
 
                 {/* ── Live location (verified users only) ── */}
                 {liveLocation?.on && (

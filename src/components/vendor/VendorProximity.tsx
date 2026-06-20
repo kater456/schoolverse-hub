@@ -256,89 +256,17 @@ export default function VendorProximity({ vendor }: { vendor: any }) {
         </div>
       )}
 
-      {/* ── Location info box ── */}
-      {(vendor.address || vendor.city || vendor.landmark) && (
-        <div className="rounded-2xl border border-border/50 bg-background divide-y divide-border/40 overflow-hidden">
-          {vendor.address && (
-            <div className="flex items-start gap-3 px-4 py-3">
-              <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5">Address</p>
-                <p className="text-sm text-foreground">{vendor.address}</p>
-              </div>
-            </div>
-          )}
-          {vendor.city && (
-            <div className="flex items-start gap-3 px-4 py-3">
-              <span className="text-sm mt-0.5">🏙️</span>
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5">City / Area</p>
-                <p className="text-sm text-foreground">{vendor.city}</p>
-              </div>
-            </div>
-          )}
-          {vendor.landmark && (
-            <div className="flex items-start gap-3 px-4 py-3">
-              <span className="text-sm mt-0.5">🗺️</span>
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5">Landmark</p>
-                <p className="text-sm text-foreground">{vendor.landmark}</p>
-              </div>
-            </div>
+      {/* ── Generic Find This Vendor Card ── */}
+      <div className="rounded-2xl border border-border/50 bg-muted/30 px-4 py-3 flex items-start gap-3">
+        <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+        <div className="text-xs text-muted-foreground">
+          {campusName || schoolName ? (
+            <>Based at <span className="font-semibold text-foreground">{campusName || schoolName}</span>. Message the vendor for the exact pickup spot.</>
+          ) : (
+            <>Vendor location not provided yet — message them for details.</>
           )}
         </div>
-      )}
-
-      {/* ── Free OpenStreetMap embed (no API key required) ── */}
-      {vendorCoords && (
-        <div className="rounded-2xl overflow-hidden border border-border/50">
-          <iframe
-            title="Vendor location map"
-            className="w-full h-56"
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-            src={`https://www.openstreetmap.org/export/embed.html?bbox=${vendorCoords.lng - 0.005}%2C${vendorCoords.lat - 0.003}%2C${vendorCoords.lng + 0.005}%2C${vendorCoords.lat + 0.003}&layer=mapnik&marker=${vendorCoords.lat}%2C${vendorCoords.lng}`}
-          />
-        </div>
-      )}
-
-      {/* ── Navigation buttons ── */}
-      {vendorCoords && (
-        <div className="grid grid-cols-3 gap-2">
-          <a
-            href={`https://www.google.com/maps/dir/?api=1&destination=${vendorCoords.lat},${vendorCoords.lng}`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Button variant="outline" className="w-full h-11 flex-col gap-0.5 text-xs font-semibold p-2">
-              <Map className="h-4 w-4 text-blue-500" />
-              <span className="text-[10px]">Google Maps</span>
-            </Button>
-          </a>
-
-          <a
-            href={`https://www.openstreetmap.org/?mlat=${vendorCoords.lat}&mlon=${vendorCoords.lng}#map=17/${vendorCoords.lat}/${vendorCoords.lng}`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Button variant="outline" className="w-full h-11 flex-col gap-0.5 text-xs font-semibold p-2">
-              <Navigation className="h-4 w-4 text-gray-600" />
-              <span className="text-[10px]">Open Street Map</span>
-            </Button>
-          </a>
-
-          <Button
-            variant="outline"
-            className="h-11 flex-col gap-0.5 text-xs font-semibold p-2"
-            onClick={copyAddress}
-          >
-            {copied
-              ? <Check className="h-4 w-4 text-green-500" />
-              : <Copy className="h-4 w-4 text-muted-foreground" />}
-            <span className="text-[10px]">{copied ? "Copied!" : "Copy Address"}</span>
-          </Button>
-        </div>
-      )}
+      </div>
     </div>
   );
 }

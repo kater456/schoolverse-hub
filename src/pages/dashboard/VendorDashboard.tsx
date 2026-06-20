@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Switch } from "@/components/ui/switch";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -1405,6 +1406,33 @@ const VendorDashboard = () => {
                   <div className="flex justify-between py-1.5 border-b border-border/30">
                     <span className="text-muted-foreground">Country</span>
                     <span className="font-medium text-foreground">{vendor.country || "—"}</span>
+                  </div>
+                  <div className="flex justify-between py-1.5 border-b border-border/30">
+                    <span className="text-muted-foreground">Level & Department</span>
+                    <span className="font-medium text-foreground">
+                      {vendor.academic_level} {vendor.department}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-border/30">
+                    <div className="space-y-0.5">
+                      <Label className="text-sm font-medium">Show my level & department on my public profile</Label>
+                      <p className="text-[10px] text-muted-foreground">
+                        Off by default for your privacy. Turning this on lets buyers see you're a verified {vendor.academic_level} {vendor.department} student.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={vendor.show_academic_info}
+                      onCheckedChange={async (checked) => {
+                        const { error } = await supabase
+                          .from("vendors")
+                          .update({ show_academic_info: checked } as any)
+                          .eq("id", vendor.id);
+                        if (!error) {
+                          setVendor((v: any) => ({ ...v, show_academic_info: checked }));
+                          toast({ title: checked ? "Academic info is now public" : "Academic info hidden" });
+                        }
+                      }}
+                    />
                   </div>
                   <div className="flex justify-between py-1.5 border-b border-border/30">
                     <span className="text-muted-foreground">Payment</span>
