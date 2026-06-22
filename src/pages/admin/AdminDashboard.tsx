@@ -14,6 +14,7 @@ import {
   Check, X, AlertTriangle, ArrowRight, BarChart3, Building2, MapPin,
   Megaphone, ShieldCheck, Zap, Globe, Trophy, Crown, Eye,
   ChevronRight, RefreshCw, CircleCheck, CircleX, Loader2, Bell,
+  MousePointer2, MessageCircle, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -93,7 +94,14 @@ const AdminDashboard = () => {
     totalSchools: 0, revenue: 0, featuredListings: 0,
     totalViews: 0, totalContacts: 0, storeUpgrades: 0,
     votwNominations: 0,
+    totalWhatsapp: 0,
+    topViewed: [] as any[],
+    topWhatsapp: [] as any[],
+    fastestGrowing: [] as any[],
   });
+
+  // UI state
+  const [showEngagement, setShowEngagement] = useState(false);
 
   // Charts
   const [userGrowth,       setUserGrowth]       = useState<any[]>([]);
@@ -118,12 +126,7 @@ const AdminDashboard = () => {
   });
 
   const fetchAll = useCallback(async () => {
-    const [
-      vendors, pending, pendingList, featured, profiles,
-      activityLog, platformSettings, messages, flagged,
-      schools, views, contacts, storeUpgrades, votwNoms,
-      featuredRevenue, vendorsByMonth,
-    ] = await Promise.all([
+    const results = await Promise.all([
       supabase.from("vendors").select("id, category, created_at"),
       supabase.from("vendors").select("id", { count: "exact", head: true }).eq("is_approved", false).eq("is_active", true),
       supabase.from("vendors").select("id, business_name, category, created_at, country, schools(name)").eq("is_approved", false).eq("is_active", true).order("created_at", { ascending: false }).limit(6),
@@ -140,7 +143,48 @@ const AdminDashboard = () => {
       (supabase as any).from("votw_nominations").select("*, vendors(business_name, category, id)").eq("status", "pending").order("created_at", { ascending: false }).limit(5),
       supabase.from("featured_listings").select("amount, created_at").eq("payment_status", "confirmed"),
       supabase.from("vendors").select("created_at").order("created_at", { ascending: true }),
+      supabase.from('vendor_analytics' as any)
+        .select('*, vendors(business_name)')
+        .gte('occurred_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()),
     ]);
+
+    const [
+      vendors, pending, pendingList, featured, profiles,
+      activityLog, platformSettings, messages, flagged,
+      schools, views, contacts, storeUpgrades, votwNoms,
+      featuredRevenue, vendorsByMonth, vendorAnalytics,
+    ] = results;
+
+    // Process analytics
+    const events = vendorAnalytics.data || [];
+    const now = new Date();
+    const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+    const vendorStatsMap = new Map<string, { views: number, whatsapp: number, thisWeek: number, lastWeek: number, name: string }>();
+
+    events.forEach((ev: any) => {
+      const vid = ev.vendor_id;
+      if (!vendorStatsMap.has(vid)) {
+        vendorStatsMap.set(vid, { views: 0, whatsapp: 0, thisWeek: 0, lastWeek: 0, name: ev.vendors?.business_name || 'Unknown' });
+      }
+      const s = vendorStatsMap.get(vid)!;
+      if (ev.event_type === 'profile_view') s.views++;
+      if (ev.event_type === 'whatsapp_click') s.whatsapp++;
+
+      const occurred = new Date(ev.occurred_at);
+      if (ev.event_type === 'profile_view') {
+        if (occurred >= lastWeek) s.thisWeek++;
+        else if (occurred >= twoWeeksAgo) s.lastWeek++;
+      }
+    });
+
+    const vendorStatsList = Array.from(vendorStatsMap.values());
+    const topViewed = [...vendorStatsList].sort((a, b) => b.views - a.views).slice(0, 5);
+    const topWhatsapp = [...vendorStatsList].sort((a, b) => b.whatsapp - a.whatsapp).slice(0, 5);
+    const fastestGrowing = vendorStatsList
+      .filter(s => s.lastWeek > 0 && (s.thisWeek - s.lastWeek) / s.lastWeek > 0.5)
+      .sort((a, b) => ((b.thisWeek - b.lastWeek) / b.lastWeek) - ((a.thisWeek - a.lastWeek) / a.lastWeek));
 
     const revenue = featured.data?.reduce((s: number, f: any) => s + Number(f.amount), 0) || 0;
 
@@ -154,10 +198,14 @@ const AdminDashboard = () => {
       totalSchools:     schools.count   || 0,
       revenue,
       featuredListings: featured.count  || 0,
-      totalViews:       views.count     || 0,
-      totalContacts:    contacts.count  || 0,
+      totalViews:       events.filter((e: any) => e.event_type === 'profile_view').length,
+      totalContacts:    events.filter((e: any) => e.event_type === 'contact_request').length,
+      totalWhatsapp:    events.filter((e: any) => e.event_type === 'whatsapp_click').length,
       storeUpgrades:    (storeUpgrades as any).count || 0,
       votwNominations:  votwNoms.data?.length || 0,
+      topViewed,
+      topWhatsapp,
+      fastestGrowing,
     });
 
     setPendingVendors((pendingList.data || []) as any[]);
@@ -577,6 +625,114 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* ── Vendor Engagement Section ── */}
+      <Card className="border-border/50 mb-6 overflow-hidden shadow-sm">
+        <button
+          onClick={() => setShowEngagement(!showEngagement)}
+          className="w-full flex items-center justify-between p-4 hover:bg-muted/30 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5 text-indigo-500" />
+            <h2 className="text-base font-bold">Vendor Engagement Insights</h2>
+          </div>
+          {showEngagement ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        </button>
+
+        {showEngagement && (
+          <CardContent className="pt-0 pb-6">
+            <div className="grid md:grid-cols-3 gap-6">
+              {/* Overall Analytics */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Last 30 Days</h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center p-3 rounded-lg bg-indigo-50/50 border border-indigo-100">
+                    <div className="flex items-center gap-2">
+                      <Eye className="h-4 w-4 text-indigo-600" />
+                      <span className="text-sm">Profile Views</span>
+                    </div>
+                    <span className="font-bold">{stats.totalViews.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 rounded-lg bg-emerald-50/50 border border-emerald-100">
+                    <div className="flex items-center gap-2">
+                      <MessageCircle className="h-4 w-4 text-emerald-600" />
+                      <span className="text-sm">WhatsApp Clicks</span>
+                    </div>
+                    <span className="font-bold">{stats.totalWhatsapp.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 rounded-lg bg-blue-50/50 border border-blue-100">
+                    <div className="flex items-center gap-2">
+                      <MousePointer2 className="h-4 w-4 text-blue-600" />
+                      <span className="text-sm">Contact Requests</span>
+                    </div>
+                    <span className="font-bold">{stats.totalContacts.toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Top Lists */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Top Performers</h3>
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-xs font-medium mb-2 flex items-center gap-1">
+                      <Eye className="h-3 w-3" /> Most Viewed
+                    </p>
+                    <div className="space-y-1">
+                      {stats.topViewed.map((v, i) => (
+                        <div key={i} className="flex justify-between text-xs">
+                          <span className="truncate max-w-[150px]">{v.name}</span>
+                          <span className="font-semibold text-muted-foreground">{v.views}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium mb-2 flex items-center gap-1">
+                      <MessageCircle className="h-3 w-3" /> Most WhatsApp
+                    </p>
+                    <div className="space-y-1">
+                      {stats.topWhatsapp.map((v, i) => (
+                        <div key={i} className="flex justify-between text-xs">
+                          <span className="truncate max-w-[150px]">{v.name}</span>
+                          <span className="font-semibold text-muted-foreground">{v.whatsapp}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Growth */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Trending This Week</h3>
+                {stats.fastestGrowing.length === 0 ? (
+                  <p className="text-xs text-muted-foreground italic">No vendors with &gt;50% growth this week.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {stats.fastestGrowing.map((v, i) => {
+                      const pct = Math.round(((v.thisWeek - v.lastWeek) / v.lastWeek) * 100);
+                      return (
+                        <div key={i} className="p-2 rounded-lg border border-border/40 bg-muted/20">
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs font-medium truncate">{v.name}</span>
+                            <Badge className="bg-emerald-500/10 text-emerald-600 text-[10px] font-bold">
+                              +{pct}%
+                            </Badge>
+                          </div>
+                          <p className="text-[10px] text-muted-foreground mt-1">
+                            {v.thisWeek} views vs {v.lastWeek} last week
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        )}
+      </Card>
 
       {/* ── Bottom row: Categories + Activity ── */}
       <div className="grid lg:grid-cols-2 gap-5">

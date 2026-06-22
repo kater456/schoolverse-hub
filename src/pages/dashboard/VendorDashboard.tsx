@@ -36,6 +36,7 @@ import ExitPortfolio from "@/components/vendor/ExitPortfolio";
 import ProFeatureGate from "@/components/vendor/ProFeatureGate";
 import VendorLiveLocation from "@/components/vendor/VendorLiveLocation";
 import VendorLocationSettings from "@/components/vendor/VendorLocationSettings";
+import AnalyticsTab from "@/components/vendor/AnalyticsTab";
 import { resolvePlan } from "@/lib/pricing";
 
 const VendorDashboard = () => {
@@ -65,6 +66,7 @@ const VendorDashboard = () => {
   const [uploadingId,     setUploadingId]     = useState(false);
   const [payingVerif,     setPayingVerif]     = useState(false);
   const [payingUpgrade,   setPayingUpgrade]   = useState(false);
+  const [selectedChannels, setSelectedChannels] = useState<string[]>([]);
 
   const fetchVendorData = async () => {
     if (!user) return;
@@ -377,6 +379,22 @@ const VendorDashboard = () => {
     });
     handler.openIframe();
   };
+  const submitOnboardingSurvey = async () => {
+    if (!vendor || selectedChannels.length === 0) return;
+    const { error } = await supabase
+      .from("vendors")
+      .update({
+        has_completed_onboarding_survey: true,
+        customer_acquisition_channels: selectedChannels,
+      } as any)
+      .eq("id", vendor.id);
+
+    if (!error) {
+      setVendor({ ...vendor, has_completed_onboarding_survey: true, customer_acquisition_channels: selectedChannels });
+      toast({ title: "Thank you!", description: "Your feedback helps us grow." });
+    }
+  };
+
   const markDelivered = async (txnId: string) => {
     const { error } = await supabase.from("transactions").update({ vendor_marked_delivered: true } as any).eq("id", txnId);
     if (!error) {
@@ -511,6 +529,54 @@ const VendorDashboard = () => {
       </header>
 
       <main className="p-4 sm:p-6 max-w-6xl mx-auto space-y-5">
+
+        {/* ── Onboarding Survey ── */}
+        {vendor && !vendor.has_completed_onboarding_survey && (
+          <Card className="border-accent/40 bg-accent/5 overflow-hidden">
+            <CardContent className="p-5">
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center shrink-0">
+                  <Sparkles className="h-5 w-5 text-accent" />
+                </div>
+                <div className="space-y-3 flex-1">
+                  <div>
+                    <h3 className="font-bold text-sm">Help us grow! 🚀</h3>
+                    <p className="text-xs text-muted-foreground">How do your current customers usually find you? (Select all that apply)</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {["Physical location", "Instagram/Socials", "WhatsApp Status", "Word of Mouth", "Campus Posters", "Other"].map((option) => (
+                      <button
+                        key={option}
+                        onClick={() => {
+                          setSelectedChannels(prev =>
+                            prev.includes(option) ? prev.filter(o => o !== option) : [...prev, option]
+                          );
+                        }}
+                        className={`text-[10px] h-7 px-3 rounded-full border transition-colors ${
+                          selectedChannels.includes(option)
+                            ? "bg-accent text-accent-foreground border-accent"
+                            : "bg-background text-muted-foreground border-border hover:border-accent/50"
+                        }`}
+                      >
+                        {selectedChannels.includes(option) && "✓ "}
+                        {option}
+                      </button>
+                    ))}
+                  </div>
+                  {selectedChannels.length > 0 && (
+                    <Button
+                      size="sm"
+                      className="h-8 text-xs bg-accent text-accent-foreground hover:bg-accent/90"
+                      onClick={submitOnboardingSurvey}
+                    >
+                      Complete Survey
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* ── Hero business card ── */}
         <div className="relative rounded-2xl overflow-hidden border border-border/50">
@@ -716,6 +782,7 @@ const VendorDashboard = () => {
               <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/50 px-2 pt-1 pb-1.5">Store</p>
               {[
                 { v: "products",  icon: Package,      label: "Products"  },
+                { v: "engagement",icon: BarChart3,    label: "Analytics" },
                 { v: "reels",     icon: Film,         label: "Reels & Videos" },
                 { v: "orders",    icon: ShoppingBag,  label: "Orders"    },
                 { v: "deals",     icon: Flame,        label: "Deals"     },
@@ -781,6 +848,11 @@ const VendorDashboard = () => {
           {/* Products */}
           <TabsContent value="products">
             <VendorProductManager vendorId={vendor.id} schoolId={vendor.school_id} />
+          </TabsContent>
+
+          {/* Analytics */}
+          <TabsContent value="engagement">
+            <AnalyticsTab vendorId={vendor.id} />
           </TabsContent>
 
           {/* Reels */}
@@ -1477,9 +1549,9 @@ const VendorDashboard = () => {
         <div className="flex items-center justify-around px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))]">
           {[
             { v: "products",   icon: Package,     label: "Products" },
+            { v: "engagement", icon: BarChart3,    label: "Analytics" },
             { v: "reels",      icon: Film,        label: "Reels"    },
             { v: "orders",     icon: ShoppingBag, label: "Orders"   },
-            { v: "profile",    icon: User,        label: "Profile"  },
             { v: "more-menu",  icon: Settings,    label: "More"     },
           ].map(({ v, icon: Icon, label }) => (
             <button
@@ -1520,7 +1592,7 @@ const VendorDashboard = () => {
           <div className="grid grid-cols-3 gap-3">
             {[
               { v: "deals",        icon: Flame,        label: "Deals",    color: "bg-orange-50 text-orange-600" },
-              { v: "engagement",   icon: BarChart3,    label: "Insights", color: "bg-blue-50 text-blue-600"   },
+              { v: "profile",      icon: User,         label: "Profile",  color: "bg-blue-50 text-blue-600"    },
               { v: "store",        icon: Crown,        label: "Store",    color: "bg-amber-50 text-amber-600"  },
               { v: "testimonials", icon: MessageSquare,label: "Reviews",  color: "bg-pink-50 text-pink-600"   },
               { v: "verify",       icon: ShieldCheck,  label: vendor.is_verified ? "Verified ✅" : "Verify", color: "bg-green-50 text-green-600" },

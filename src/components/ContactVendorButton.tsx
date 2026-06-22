@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { MessageCircle, Loader2 } from "lucide-react";
+import { trackVendorEvent } from "@/hooks/useVendorAnalytics";
 
 interface Props {
   vendorId: string;
@@ -27,6 +28,7 @@ const ContactVendorButton = ({
   const [loading, setLoading] = useState(false);
 
   const handleContact = async () => {
+    trackVendorEvent(vendorId, 'contact_request');
     if (!user) {
       toast({ title: "Sign in to message vendors", variant: "destructive" });
       navigate("/login");

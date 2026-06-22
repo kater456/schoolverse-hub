@@ -22,6 +22,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { useNotify } from "@/hooks/useNotify";
+import { trackVendorEvent } from "@/hooks/useVendorAnalytics";
 import VendorQRBadge from "@/components/VendorQRBadge";
 import VendorTestimonialsDisplay from "@/components/vendor/VendorTestimonialsDisplay";
 import { CampusGuaranteeBadge, CampusGuaranteeSheet } from "@/components/guarantee/CampusGuaranteeBadge";
@@ -162,6 +163,12 @@ const VendorProfile = () => {
   const [cartSheetOpen,   setCartSheetOpen]   = useState(false);
   const [pickupSheetOpen, setPickupSheetOpen] = useState(false);
   const [askSheetOpen,    setAskSheetOpen]    = useState(false);
+
+  useEffect(() => {
+    if (vendor?.id) {
+      trackVendorEvent(vendor.id, 'profile_view');
+    }
+  }, [vendor?.id]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
@@ -372,11 +379,13 @@ const VendorProfile = () => {
     } as any);
 
     if (type === 'whatsapp') {
+      trackVendorEvent(id!, 'whatsapp_click');
       trackEvent(id!, 'click', 'whatsapp', {
         campusName: vendor?.campus_locations?.name,
         vendorCategory: vendor?.category
       });
     } else if (type === 'call') {
+      trackVendorEvent(id!, 'call_click');
       trackEvent(id!, 'click', 'call', {
         campusName: vendor?.campus_locations?.name,
         vendorCategory: vendor?.category
@@ -1041,7 +1050,10 @@ const VendorProfile = () => {
                   variant="outline"
                   size="sm"
                   className="text-xs gap-1.5 text-muted-foreground hover:text-foreground"
-                  onClick={() => setShareOpen(true)}
+                  onClick={() => {
+                    setShareOpen(true);
+                    trackVendorEvent(vendor.id, 'share_click');
+                  }}
                 >
                   <Share2 className="h-3.5 w-3.5" /> Share Business
                 </Button>
@@ -1110,6 +1122,7 @@ const VendorProfile = () => {
             const copyLink = () => {
               navigator.clipboard.writeText(url);
               setCopied(true);
+              trackVendorEvent(vendor.id, 'share_click');
               setTimeout(() => setCopied(false), 2000);
             };
 
@@ -1153,7 +1166,11 @@ const VendorProfile = () => {
 
                 {typeof navigator.share === "function" && (
                   <Button className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
-                    onClick={() => { navigator.share({ title: vendor.business_name, text, url }); setShareOpen(false); }}>
+                    onClick={() => {
+                      navigator.share({ title: vendor.business_name, text, url });
+                      trackVendorEvent(vendor.id, 'share_click');
+                      setShareOpen(false);
+                    }}>
                     <Share2 className="h-4 w-4 mr-2" /> Share via...
                   </Button>
                 )}

@@ -11,11 +11,12 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import ContactVendorButton from "@/components/ContactVendorButton";
+import { trackVendorEvent } from "@/hooks/useVendorAnalytics";
 import { TrustScoreBadge, computeTrustScore } from "@/components/guarantee/TrustScore";
 import {
   Search, ShieldCheck, MapPin, Package, ArrowLeft, Share2,
   Loader2, ShoppingBag, Grid3X3, LayoutList, X, Check,
-  Store, Star, Eye, Heart,
+  Star, Eye, Heart, Phone, MessageCircle,
 } from "lucide-react";
 
 interface Product {
@@ -76,6 +77,27 @@ const StorePage = () => {
   const [stickyVisible, setStickyVisible] = useState(false);
 
   const heroRef = useRef<HTMLDivElement>(null);
+
+  const trackContact = async (type: string) => {
+    if (!vendorId || !vendor) return;
+    await supabase.from("vendor_contacts").insert({
+      vendor_id: vendorId, contact_type: type, school_id: vendor.schools?.id || null,
+    } as any);
+
+    if (type === 'whatsapp') {
+      trackVendorEvent(vendorId, 'whatsapp_click');
+      trackEvent(vendorId, 'click', 'whatsapp', {
+        campusName: vendor.campus_locations?.name,
+        vendorCategory: vendor.category
+      });
+    } else if (type === 'call') {
+      trackVendorEvent(vendorId, 'call_click');
+      trackEvent(vendorId, 'click', 'call', {
+        campusName: vendor.campus_locations?.name,
+        vendorCategory: vendor.category
+      });
+    }
+  };
 
   // Sticky header appears once hero scrolls out
   useEffect(() => {
@@ -188,6 +210,9 @@ const StorePage = () => {
   const shareStore = () => {
     navigator.clipboard.writeText(window.location.href);
     setCopied(true);
+    if (vendorId) {
+      trackVendorEvent(vendorId, 'share_click');
+    }
     setTimeout(() => setCopied(false), 2000);
     toast({ title: "Store link copied! 🔗" });
   };
@@ -585,17 +610,38 @@ const StorePage = () => {
       </main>
 
       {/* ── Floating CTA (mobile) ── */}
-      <div className="fixed bottom-4 inset-x-4 z-40 md:hidden" onClick={() => trackEvent(vendor.id, 'click', 'contact_vendor_floating', {
-        campusName: vendor?.campus_locations?.name,
-        vendorCategory: vendor?.category
-      })}>
+      <div className="fixed bottom-4 inset-x-4 z-40 md:hidden flex gap-2">
         <ContactVendorButton
           vendorId={vendor.id}
           vendorUserId={vendor.user_id}
           variant="default"
-          className="w-full h-12 shadow-2xl text-sm font-semibold rounded-2xl"
-          label={`💬 Message ${vendor.business_name}`}
+          className="flex-1 h-12 shadow-2xl text-sm font-semibold rounded-2xl"
+          label="💬 Message"
         />
+        {vendor.contact_number && (
+          <Button
+            variant="outline"
+            className="h-12 w-12 rounded-2xl bg-background shadow-2xl p-0 border-border"
+            onClick={() => {
+              trackContact('call');
+              window.location.href = `tel:${vendor.contact_number}`;
+            }}
+          >
+            <Phone className="h-5 w-5 text-primary" />
+          </Button>
+        )}
+        {vendor.messaging_enabled && vendor.contact_number && (
+          <Button
+            variant="outline"
+            className="h-12 w-12 rounded-2xl bg-background shadow-2xl p-0 border-border"
+            onClick={() => {
+              trackContact('whatsapp');
+              window.open(`https://wa.me/${vendor.contact_number.replace(/\D/g, "")}?text=${encodeURIComponent(`Hi! I'm reaching out from your store on Campus Market 🛍️. I'm interested in your products.`)}`, "_blank");
+            }}
+          >
+            <MessageCircle className="h-5 w-5 text-green-500" />
+          </Button>
+        )}
       </div>
 
       {/* Desktop contact bar */}
@@ -605,10 +651,7 @@ const StorePage = () => {
             <p className="text-sm font-semibold">{vendor.business_name}</p>
             <p className="text-xs text-muted-foreground">{products.length} products available</p>
           </div>
-          <div onClick={() => trackEvent(vendor.id, 'click', 'contact_vendor_bar', {
-            campusName: vendor?.campus_locations?.name,
-            vendorCategory: vendor?.category
-          })}>
+          <div className="flex items-center gap-2">
             <ContactVendorButton
               vendorId={vendor.id}
               vendorUserId={vendor.user_id}
@@ -616,6 +659,32 @@ const StorePage = () => {
               className="h-9 px-5 text-sm font-semibold shrink-0"
               label="💬 Message Vendor"
             />
+            {vendor.contact_number && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 px-3 text-xs gap-1.5"
+                onClick={() => {
+                  trackContact('call');
+                  window.location.href = `tel:${vendor.contact_number}`;
+                }}
+              >
+                <Phone className="h-3.5 w-3.5" /> Call
+              </Button>
+            )}
+            {vendor.messaging_enabled && vendor.contact_number && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 px-3 text-xs gap-1.5"
+                onClick={() => {
+                  trackContact('whatsapp');
+                  window.open(`https://wa.me/${vendor.contact_number.replace(/\D/g, "")}?text=${encodeURIComponent(`Hi! I'm reaching out from your store on Campus Market 🛍️. I'm interested in your products.`)}`, "_blank");
+                }}
+              >
+                <MessageCircle className="h-3.5 w-3.5 text-green-500" /> WhatsApp
+              </Button>
+            )}
           </div>
         </div>
       </div>
