@@ -15,9 +15,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
+import { Checkbox } from "@/components/ui/checkbox";
 import { CATEGORIES } from "@/lib/constants";
-import { Loader2, Upload, FileCheck, ShieldCheck, CheckCircle2, CreditCard, PenLine } from "lucide-react";
+import { Loader2, Upload, FileCheck, ShieldCheck, CheckCircle2, CreditCard, PenLine, Store, ArrowRight } from "lucide-react";
 import { resolvePlan } from "@/lib/pricing";
 import { compressImage } from "@/lib/compressImage";
 
@@ -33,7 +34,11 @@ const vendorSchema = z.object({
   country: z.string().min(1, "Country is required"),
   full_name: z.string().min(2, "Full name is required").max(100),
   residential_location: z.string().min(2, "Residential location is required").max(200),
+  address: z.string().min(2, "Street address is required").max(200).optional().or(z.literal("")),
+  city: z.string().min(2, "City/Area is required").max(100).optional().or(z.literal("")),
+  landmark: z.string().min(2, "Landmark is required").max(100).optional().or(z.literal("")),
   personal_contact: z.string().min(5, "Personal contact is required").max(20),
+  promotion_agreement: z.boolean().refine(val => val === true, "You must agree to the promotion responsibility"),
 });
 
 type VendorFormData = z.infer<typeof vendorSchema>;
@@ -46,6 +51,7 @@ const VendorRegistration = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  const [showIntro, setShowIntro] = useState(!user);
   const [isSubmitting, setIsSubmitting]                     = useState(false);
   const [hasExistingApplication, setHasExistingApplication] = useState(false);
   const [isCheckingExisting, setIsCheckingExisting]         = useState(true);
@@ -97,7 +103,10 @@ const VendorRegistration = () => {
       full_name: user?.user_metadata?.first_name && user?.user_metadata?.last_name
         ? `${user.user_metadata.first_name} ${user.user_metadata.last_name}`
         : "",
-      residential_location: "", personal_contact: "",
+      residential_location: "",
+      address: "", city: "", landmark: "",
+      personal_contact: "",
+      promotion_agreement: false,
     },
   });
 
@@ -229,9 +238,15 @@ const VendorRegistration = () => {
       if (idDocument) idDocumentUrl = await uploadFile(idDocument, `${user.id}/id-document-${Date.now()}`);
 
       const { error: privateError } = await supabase.from("vendor_private_details").insert({
-        vendor_id: vendor.id, full_name: data.full_name,
-        vendor_photo_url: vendorPhotoUrl, residential_location: data.residential_location,
-        personal_contact: data.personal_contact, id_document_url: idDocumentUrl,
+        vendor_id: vendor.id,
+        full_name: data.full_name,
+        vendor_photo_url: vendorPhotoUrl,
+        residential_location: data.residential_location,
+        address: data.address || null,
+        city: data.city || null,
+        landmark: data.landmark || null,
+        personal_contact: data.personal_contact,
+        id_document_url: idDocumentUrl,
       } as any);
       if (privateError) throw privateError;
 
@@ -274,6 +289,59 @@ const VendorRegistration = () => {
     );
   }
 
+  if (showIntro) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main className="pt-32 pb-16 px-4">
+          <div className="container mx-auto max-w-2xl text-center">
+            <div className="w-20 h-20 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Store className="h-10 w-10 text-accent" />
+            </div>
+            <h1 className="text-3xl md:text-4xl font-bold mb-4">Start Selling on Campus</h1>
+            <p className="text-muted-foreground text-lg mb-8">
+              Join hundreds of student entrepreneurs. Reach your campus community and grow your business today.
+            </p>
+
+            <div className="grid gap-6 text-left mb-10">
+              <div className="flex gap-4">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Professional Profile</h3>
+                  <p className="text-sm text-muted-foreground">Get a dedicated store page with your products and contact info.</p>
+                </div>
+              </div>
+              <div className="flex gap-4">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Direct Customer Contact</h3>
+                  <p className="text-sm text-muted-foreground">Receive orders and inquiries directly via WhatsApp or calls.</p>
+                </div>
+              </div>
+              <div className="flex gap-4">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Campus Trust</h3>
+                  <p className="text-sm text-muted-foreground">Build credibility within your school with a verified student badge.</p>
+                </div>
+              </div>
+            </div>
+
+            <Button size="lg" className="w-full sm:w-auto px-12 h-12 text-base font-semibold" onClick={() => setShowIntro(false)}>
+              Get Started Now <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   if (paymentPending) {
     return (
       <div className="min-h-screen bg-background"><Navbar />
@@ -285,7 +353,7 @@ const VendorRegistration = () => {
     );
   }
 
-  if (hasExistingApplication && !user) {
+  if (hasExistingApplication) {
     return (
       <div className="min-h-screen bg-background"><Navbar />
         <main className="pt-20 pb-16 px-4">
@@ -545,8 +613,30 @@ const VendorRegistration = () => {
                   </div>
 
                   <FormField control={form.control} name="residential_location" render={({ field }) => (
-                    <FormItem><FormLabel>Where You Stay</FormLabel>
+                    <FormItem><FormLabel>Hostel/Residence (Campus)</FormLabel>
                       <FormControl><Input placeholder="e.g. Hilltop Hostel, Room 24" {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormField control={form.control} name="address" render={({ field }) => (
+                      <FormItem><FormLabel>Street Address</FormLabel>
+                        <FormControl><Input placeholder="e.g. 12 University Road" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="city" render={({ field }) => (
+                      <FormItem><FormLabel>City/Area</FormLabel>
+                        <FormControl><Input placeholder="e.g. Nsukka" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                  </div>
+
+                  <FormField control={form.control} name="landmark" render={({ field }) => (
+                    <FormItem><FormLabel>Landmark</FormLabel>
+                      <FormControl><Input placeholder="e.g. Near the main gate" {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
@@ -557,6 +647,32 @@ const VendorRegistration = () => {
                       <FormMessage />
                     </FormItem>
                   )} />
+                </CardContent>
+              </Card>
+
+              {/* ── Agreement ── */}
+              <Card className="border-accent/30 bg-accent/5">
+                <CardContent className="pt-6">
+                  <FormField
+                    control={form.control}
+                    name="promotion_agreement"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel className="text-sm font-medium leading-relaxed">
+                            I understand that Campus Market provides visibility for my business, and I am responsible for actively promoting my products and directing customers to my Campus Market profile.
+                          </FormLabel>
+                          <FormMessage />
+                        </div>
+                      </FormItem>
+                    )}
+                  />
                 </CardContent>
               </Card>
 

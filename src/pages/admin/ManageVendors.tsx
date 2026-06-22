@@ -660,6 +660,11 @@ const ManageVendors = () => {
                         ? `✅ Until ${new Date(detailVendor.store_upgrade_expires_at).toLocaleDateString()}`
                         : "❌ No"],
                       ["Registered",       new Date(detailVendor.created_at).toLocaleDateString()],
+                      ["Academic Level",   detailVendor.academic_level || "—"],
+                      ["Department",       detailVendor.department || "—"],
+                      ["Street Address",   pd?.address || "—"],
+                      ["City/Area",        pd?.city || "—"],
+                      ["Landmark",         pd?.landmark || "—"],
                     ].map(([label, value]) => (
                       <p key={label}><strong className="text-foreground">{label}:</strong> {value}</p>
                     ))}

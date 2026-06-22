@@ -69,9 +69,10 @@ const ManageVendorsSubAdmin = () => {
       country, is_approved, is_active, is_verified, is_suspended,
       reels_enabled, payment_status, payment_reference, promoted_until, created_at,
       is_store_upgraded, store_upgrade_expires_at, ai_video_enabled,
+      academic_level, department,
       schools(name),
       campus_locations(name),
-      vendor_private_details(full_name, vendor_photo_url, residential_location, personal_contact),
+      vendor_private_details(full_name, vendor_photo_url, residential_location, personal_contact, address, city, landmark),
       vendor_images(image_url, is_primary, display_order)
     `).order("created_at", { ascending: false });
 
@@ -675,6 +676,11 @@ const ManageVendorsSubAdmin = () => {
                     ["Verified",         detailVendor.is_verified ? "✅ Yes" : "❌ No"],
                     ["Reels Enabled",    detailVendor.reels_enabled ? "✅ Yes" : "❌ No"],
                     ["Registered",       new Date(detailVendor.created_at).toLocaleDateString()],
+                    ["Academic Level",   detailVendor.academic_level || "—"],
+                    ["Department",       detailVendor.department || "—"],
+                    ["Street Address",   pd?.address || "—"],
+                    ["City/Area",        pd?.city || "—"],
+                    ["Landmark",         pd?.landmark || "—"],
                   ].map(([label, value]) => (
                     <p key={label}><strong className="text-foreground">{label}:</strong> {value}</p>
                   ))}

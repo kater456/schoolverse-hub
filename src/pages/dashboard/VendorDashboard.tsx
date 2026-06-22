@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Link } from "react-router-dom";
@@ -40,6 +41,7 @@ import { resolvePlan } from "@/lib/pricing";
 const VendorDashboard = () => {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState("products");
   const [vendor, setVendor] = useState<any>(null);
   const [stats, setStats] = useState({ views: 0, likes: 0, comments: 0, contacts: 0 });
   const [liveViews, setLiveViews] = useState(0);
@@ -707,7 +709,7 @@ const VendorDashboard = () => {
         )}
 
         {/* ── Main Dashboard Layout ── */}
-        <Tabs defaultValue="products" className="space-y-0">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-0">
 
           {/* ═══ DESKTOP: Left sidebar navigation ═══ */}
           <div className="hidden sm:flex gap-6 items-start">
@@ -1418,6 +1420,31 @@ const VendorDashboard = () => {
                       {vendor.is_verified ? "✅ Verified" : "Not Verified"}
                     </Badge>
                   </div>
+
+                  {/* Academic Visibility Toggle */}
+                  <div className="pt-3 border-t border-border/30">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-sm font-medium">Show level & dept on profile</Label>
+                        <p className="text-[10px] text-muted-foreground">
+                          Lets buyers see you're a verified {vendor.academic_level || "student"} {vendor.department || ""}.
+                        </p>
+                      </div>
+                      <Switch
+                        checked={vendor.show_academic_info}
+                        onCheckedChange={async (checked) => {
+                          const { error } = await supabase
+                            .from("vendors")
+                            .update({ show_academic_info: checked } as any)
+                            .eq("id", vendor.id);
+                          if (!error) {
+                            setVendor({ ...vendor, show_academic_info: checked });
+                            toast({ title: checked ? "Academic info public ✅" : "Academic info hidden 🔒" });
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -1444,7 +1471,7 @@ const VendorDashboard = () => {
       </main>
 
       {/* ── Mobile bottom nav bar ── */}
-      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-xl border-t border-border/60 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
+      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-xl border-t border-border/60 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] touch-manipulation">
         {/* Notch-safe padding */}
         <div className="flex items-center justify-around px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))]">
           {[
@@ -1462,22 +1489,27 @@ const VendorDashboard = () => {
                   const el = document.getElementById("mobile-more-menu");
                   if (el) el.style.display = el.style.display === "none" ? "block" : "none";
                 } else {
-                  // Trigger the hidden desktop tab
-                  const t = document.querySelector(`[value="${v}"]`) as HTMLElement;
-                  if (t) t.click();
-                  // Close more menu
+                  setActiveTab(v);
                   const el = document.getElementById("mobile-more-menu");
                   if (el) el.style.display = "none";
-                  // Scroll to top of content
                   window.scrollTo({ top: 0, behavior: "smooth" });
                 }
               }}
-              className="flex flex-col items-center gap-1 min-w-[52px] py-1 group"
+              onTouchEnd={(e) => {
+                if (v !== "more-menu") {
+                  e.preventDefault();
+                  setActiveTab(v);
+                  const el = document.getElementById("mobile-more-menu");
+                  if (el) el.style.display = "none";
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }
+              }}
+              className="flex flex-col items-center gap-1 min-w-[52px] py-1 group touch-manipulation"
             >
               <div className="w-8 h-8 rounded-xl flex items-center justify-center transition-all group-active:scale-90">
-                <Icon className="h-5 w-5 text-muted-foreground group-active:text-primary transition-colors" />
+                <Icon className={`h-5 w-5 transition-colors ${activeTab === v ? "text-primary" : "text-muted-foreground group-active:text-primary"}`} />
               </div>
-              <span className="text-[9px] font-medium text-muted-foreground leading-none">{label}</span>
+              <span className={`text-[9px] font-medium leading-none ${activeTab === v ? "text-primary" : "text-muted-foreground"}`}>{label}</span>
             </button>
           ))}
         </div>
@@ -1509,13 +1541,19 @@ const VendorDashboard = () => {
               <button
                 key={`more-${v}`}
                 onClick={() => {
-                  const t = document.querySelector(`[value="${v}"]`) as HTMLElement;
-                  if (t) t.click();
+                  setActiveTab(v);
                   const el = document.getElementById("mobile-more-menu");
                   if (el) el.style.display = "none";
                   window.scrollTo({ top: 0, behavior: "smooth" });
                 }}
-                className={`flex flex-col items-center gap-2 p-3 rounded-2xl ${color} active:scale-95 transition-transform`}
+                onTouchEnd={(e) => {
+                  e.preventDefault();
+                  setActiveTab(v);
+                  const el = document.getElementById("mobile-more-menu");
+                  if (el) el.style.display = "none";
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                className={`flex flex-col items-center gap-2 p-3 rounded-2xl ${color} active:scale-95 transition-transform touch-manipulation ${activeTab === v ? "ring-2 ring-primary ring-inset" : ""}`}
               >
                 <Icon className="h-5 w-5" />
                 <span className="text-[10px] font-semibold leading-tight text-center">{label}</span>

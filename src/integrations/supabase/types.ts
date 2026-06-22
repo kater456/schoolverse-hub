@@ -1510,30 +1510,42 @@ export type Database = {
       }
       vendor_private_details: {
         Row: {
+          address: string | null
+          city: string | null
           created_at: string
           full_name: string
           id: string
           id_document_url: string | null
+          landmark: string | null
+          location: string | null
           personal_contact: string | null
           residential_location: string | null
           vendor_id: string
           vendor_photo_url: string | null
         }
         Insert: {
+          address?: string | null
+          city?: string | null
           created_at?: string
           full_name: string
           id?: string
           id_document_url?: string | null
+          landmark?: string | null
+          location?: string | null
           personal_contact?: string | null
           residential_location?: string | null
           vendor_id: string
           vendor_photo_url?: string | null
         }
         Update: {
+          address?: string | null
+          city?: string | null
           created_at?: string
           full_name?: string
           id?: string
           id_document_url?: string | null
+          landmark?: string | null
+          location?: string | null
           personal_contact?: string | null
           residential_location?: string | null
           vendor_id?: string

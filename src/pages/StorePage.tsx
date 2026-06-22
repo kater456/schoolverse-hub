@@ -394,7 +394,7 @@ const StorePage = () => {
               {vendor.schools?.name && (
                 <Badge variant="outline">🎓 {vendor.schools.name}</Badge>
               )}
-              {vendor.academic_level && vendor.department && (
+              {vendor.show_academic_info && vendor.academic_level && vendor.department && (
                 <Badge variant="outline">📚 {vendor.academic_level} {vendor.department}</Badge>
               )}
               {vendor.campus_locations?.name && (

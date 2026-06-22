@@ -1,0 +1,1 @@
+User requested a mandatory checkbox in VendorRegistration.tsx with the label: 'I understand that Campus Market provides visibility for my business, and I am responsible for actively promoting my products and directing customers to my Campus Market profile.'
