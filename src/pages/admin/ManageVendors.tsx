@@ -654,6 +654,8 @@ const ManageVendors = () => {
                       ["Signup Email",     detailVendor._signup_email || "—"],
                       ["School",           detailVendor.schools?.name || "—"],
                       ["Campus Location",  detailVendor.campus_locations?.name || "—"],
+                      ["Academic Level",   detailVendor.academic_level || "—"],
+                      ["Department",       detailVendor.department || "—"],
                       ["Verified",         detailVendor.is_verified ? "✅ Yes" : "❌ No"],
                       ["Reels Enabled",    detailVendor.reels_enabled ? "✅ Yes" : "❌ No"],
                       ["Store Upgraded",   detailVendor.is_store_upgraded && detailVendor.store_upgrade_expires_at && new Date(detailVendor.store_upgrade_expires_at) > new Date()
@@ -671,15 +673,16 @@ const ManageVendors = () => {
               </div>
 
               {/* ── Private info ── */}
-              {pd ? (
+              {pd || detailVendor.address ? (
                 <div>
                   <h4 className="font-semibold mb-2 text-destructive pb-1 border-b border-border/50">🔒 Private Information (Super Admin Only)</h4>
                   <div className="space-y-2 bg-destructive/5 rounded-lg p-3 text-muted-foreground">
-                    <p><strong className="text-foreground">Full Name:</strong> {pd.full_name}</p>
-                    <p><strong className="text-foreground">Residential Location:</strong> {pd.residential_location}</p>
-                    <p><strong className="text-foreground">Personal Contact:</strong> {pd.personal_contact}</p>
+                    {pd && <p><strong className="text-foreground">Full Name:</strong> {pd.full_name}</p>}
+                    <p><strong className="text-foreground">Business Address:</strong> {detailVendor.address || "—"}</p>
+                    {pd && <p><strong className="text-foreground">Residential Location:</strong> {pd.residential_location}</p>}
+                    {pd && <p><strong className="text-foreground">Personal Contact:</strong> {pd.personal_contact}</p>}
 
-                    {pd.vendor_photo_url && (
+                    {pd?.vendor_photo_url && (
                       <div className="mt-2">
                         <p className="text-xs font-medium text-foreground mb-1">Vendor Photo</p>
                         <img src={pd.vendor_photo_url} alt="Vendor" className="w-24 h-24 rounded-lg object-cover border border-border" />
