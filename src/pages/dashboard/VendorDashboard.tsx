@@ -42,6 +42,7 @@ const VendorDashboard = () => {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
   const [vendor, setVendor] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState("products");
   const [stats, setStats] = useState({ views: 0, likes: 0, comments: 0, contacts: 0 });
   const [liveViews, setLiveViews] = useState(0);
   const [viewsTrend, setViewsTrend] = useState(0); // views in last 24h
@@ -287,14 +288,18 @@ const VendorDashboard = () => {
       return;
     }
     if (!(window as any).PaystackPop) {
-      if (!document.querySelector('script[src="https://js.paystack.co/v1/inline.js"]')) {
-        const s = document.createElement("script");
-        s.src = "https://js.paystack.co/v1/inline.js";
-        s.async = true;
-        document.body.appendChild(s);
-      }
-      toast({ title: "Loading payment…", description: "Please tap the button again in a moment." });
-      return;
+      await new Promise<void>((resolve) => {
+        if (document.querySelector('script[src="https://js.paystack.co/v1/inline.js"]')) {
+          const existing = document.querySelector('script[src="https://js.paystack.co/v1/inline.js"]') as HTMLScriptElement;
+          existing.addEventListener("load", () => resolve(), { once: true });
+        } else {
+          const s = document.createElement("script");
+          s.src = "https://js.paystack.co/v1/inline.js";
+          s.async = true;
+          s.onload = () => resolve();
+          document.body.appendChild(s);
+        }
+      });
     }
     const plan = await resolvePlan("verification");
     const PaystackPop = (window as any).PaystackPop;
@@ -331,14 +336,19 @@ const VendorDashboard = () => {
   };
   const initiateUpgradePayment = async () => {
     if (!(window as any).PaystackPop) {
-      if (!document.querySelector('script[src="https://js.paystack.co/v1/inline.js"]')) {
-        const s = document.createElement("script");
-        s.src = "https://js.paystack.co/v1/inline.js";
-        s.async = true;
-        document.body.appendChild(s);
-      }
-      toast({ title: "Loading payment…", description: "Please tap again in a moment." });
-      return;
+      await new Promise<void>((resolve) => {
+        if (document.querySelector('script[src="https://js.paystack.co/v1/inline.js"]')) {
+          // Script tag exists but not loaded yet — wait for it
+          const existing = document.querySelector('script[src="https://js.paystack.co/v1/inline.js"]') as HTMLScriptElement;
+          existing.addEventListener("load", () => resolve(), { once: true });
+        } else {
+          const s = document.createElement("script");
+          s.src = "https://js.paystack.co/v1/inline.js";
+          s.async = true;
+          s.onload = () => resolve();
+          document.body.appendChild(s);
+        }
+      });
     }
     if (!user?.email) {
       toast({ title: "Please sign in first", variant: "destructive" });
@@ -600,17 +610,10 @@ const VendorDashboard = () => {
               <div
                 className="relative rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-background p-5 overflow-hidden cursor-pointer group"
                 onClick={() => {
-                  // Click the verify tab
-                  const tab = document.querySelector('[value="verify"]') as HTMLElement;
-                  if (tab) tab.click();
-                  // Then scroll to the ID upload area
+                  setActiveTab("verify");
                   setTimeout(() => {
                     const uploadArea = document.getElementById("id-upload-area");
-                    if (uploadArea) {
-                      uploadArea.scrollIntoView({ behavior: "smooth", block: "center" });
-                    } else {
-                      document.querySelector('[data-tab="verify"]')?.scrollIntoView({ behavior: "smooth", block: "start" });
-                    }
+                    if (uploadArea) uploadArea.scrollIntoView({ behavior: "smooth", block: "center" });
                   }, 150);
                 }}
               >
@@ -691,7 +694,7 @@ const VendorDashboard = () => {
                   ].map(({ icon, label, sub, tab }) => (
                     <button
                       key={label}
-                      onClick={() => { const t = document.querySelector(`[value="${tab}"]`) as HTMLElement; t?.click(); }}
+                      onClick={() => setActiveTab(tab)}
                       className="group flex items-center gap-2 sm:flex-col sm:items-center p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all text-left sm:text-center"
                     >
                       <span className="text-2xl sm:text-3xl sm:mb-1">{icon}</span>
@@ -708,7 +711,7 @@ const VendorDashboard = () => {
         )}
 
         {/* ── Main Dashboard Layout ── */}
-        <Tabs defaultValue="products" className="space-y-0">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-0">
 
           {/* ═══ DESKTOP: Left sidebar navigation ═══ */}
           <div className="hidden sm:flex gap-6 items-start">
@@ -1485,27 +1488,24 @@ const VendorDashboard = () => {
             <button
               key={v}
               id={`mobile-nav-${v}`}
+              style={{ touchAction: "manipulation" }}
               onClick={() => {
                 if (v === "more-menu") {
                   const el = document.getElementById("mobile-more-menu");
                   if (el) el.style.display = el.style.display === "none" ? "block" : "none";
                 } else {
-                  // Trigger the hidden desktop tab
-                  const t = document.querySelector(`[value="${v}"]`) as HTMLElement;
-                  if (t) t.click();
-                  // Close more menu
+                  setActiveTab(v);
                   const el = document.getElementById("mobile-more-menu");
                   if (el) el.style.display = "none";
-                  // Scroll to top of content
                   window.scrollTo({ top: 0, behavior: "smooth" });
                 }
               }}
               className="flex flex-col items-center gap-1 min-w-[52px] py-1 group"
             >
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center transition-all group-active:scale-90">
-                <Icon className="h-5 w-5 text-muted-foreground group-active:text-primary transition-colors" />
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all group-active:scale-90 ${activeTab === v ? "bg-primary/10" : ""}`}>
+                <Icon className={`h-5 w-5 transition-colors ${activeTab === v ? "text-primary" : "text-muted-foreground"}`} />
               </div>
-              <span className="text-[9px] font-medium text-muted-foreground leading-none">{label}</span>
+              <span className={`text-[9px] font-medium leading-none ${activeTab === v ? "text-primary" : "text-muted-foreground"}`}>{label}</span>
             </button>
           ))}
         </div>
@@ -1536,9 +1536,9 @@ const VendorDashboard = () => {
             ].map(({ v, icon: Icon, label, color }) => (
               <button
                 key={`more-${v}`}
+                style={{ touchAction: "manipulation" }}
                 onClick={() => {
-                  const t = document.querySelector(`[value="${v}"]`) as HTMLElement;
-                  if (t) t.click();
+                  setActiveTab(v);
                   const el = document.getElementById("mobile-more-menu");
                   if (el) el.style.display = "none";
                   window.scrollTo({ top: 0, behavior: "smooth" });
