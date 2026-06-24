@@ -357,6 +357,7 @@ const VendorDashboard = () => {
     const plan = await resolvePlan("store_upgrade");
     const PaystackPop = (window as any).PaystackPop;
     const ref = `store_upgrade_${vendor.id}_${Date.now()}`;
+    setPayingUpgrade(true);
     const handler = PaystackPop.setup({
       key: "pk_live_86d78a3f9090b60d4d45f2ee1caf54dda3198ad5",
       email: user.email,
@@ -639,8 +640,11 @@ const VendorDashboard = () => {
 
             {/* Store Upgrade CTA */}
             {(!vendor.is_store_upgraded || (vendor.store_upgrade_expires_at && new Date(vendor.store_upgrade_expires_at) < new Date())) && (
-              <div
-                className="relative rounded-2xl border border-accent/30 bg-gradient-to-br from-accent/10 via-accent/5 to-background p-5 overflow-hidden cursor-pointer group"
+              <button
+                type="button"
+                disabled={payingUpgrade}
+                style={{ touchAction: "manipulation", width: "100%", textAlign: "left" }}
+                className="relative rounded-2xl border border-accent/30 bg-gradient-to-br from-accent/10 via-accent/5 to-background p-5 overflow-hidden cursor-pointer group disabled:opacity-70"
                 onClick={initiateUpgradePayment}
               >
                 <div className="absolute top-0 right-0 w-24 h-24 rounded-full bg-accent/10 -translate-y-8 translate-x-8" />
@@ -660,12 +664,8 @@ const VendorDashboard = () => {
                     {payingUpgrade ? "Processing…" : "Tap to pay & upgrade"} <span className="text-base">→</span>
                   </div>
                 </div>
-              </div>
+              </button>
             )}
-          </div>
-        )}
-
-        {/* ── Pro Features Showcase (only for upgraded vendors) ── */}
         {vendor.is_store_upgraded && (!vendor.store_upgrade_expires_at || new Date(vendor.store_upgrade_expires_at) > new Date()) && (
           <div className="relative rounded-2xl overflow-hidden p-px"
             style={{ background: "linear-gradient(135deg, #f59e0b, #8b5cf6, #3b82f6)" }}>
@@ -1475,7 +1475,7 @@ const VendorDashboard = () => {
       </main>
 
       {/* ── Mobile bottom nav bar ── */}
-      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-xl border-t border-border/60 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
+      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-[9998] bg-background/95 backdrop-blur-xl border-t border-border/60 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
         {/* Notch-safe padding */}
         <div className="flex items-center justify-around px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))]">
           {[
@@ -1513,7 +1513,7 @@ const VendorDashboard = () => {
         {/* More menu drawer */}
         <div
           id="mobile-more-menu"
-          style={{ display: "none" }}
+          style={{ display: "none", zIndex: 9999 }}
           className="absolute bottom-full left-0 right-0 bg-background border-t border-border/60 rounded-t-2xl shadow-2xl px-4 py-4"
         >
           <div className="w-8 h-1 bg-muted rounded-full mx-auto mb-4" />
