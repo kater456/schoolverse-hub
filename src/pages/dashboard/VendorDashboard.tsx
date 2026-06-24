@@ -666,6 +666,9 @@ const VendorDashboard = () => {
                 </div>
               </button>
             )}
+       </div>
+        )}
+
         {vendor.is_store_upgraded && (!vendor.store_upgrade_expires_at || new Date(vendor.store_upgrade_expires_at) > new Date()) && (
           <div className="relative rounded-2xl overflow-hidden p-px"
             style={{ background: "linear-gradient(135deg, #f59e0b, #8b5cf6, #3b82f6)" }}>
