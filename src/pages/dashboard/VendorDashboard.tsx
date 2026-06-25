@@ -357,7 +357,6 @@ const VendorDashboard = () => {
     const plan = await resolvePlan("store_upgrade");
     const PaystackPop = (window as any).PaystackPop;
     const ref = `store_upgrade_${vendor.id}_${Date.now()}`;
-    setPayingUpgrade(true);
     const handler = PaystackPop.setup({
       key: "pk_live_86d78a3f9090b60d4d45f2ee1caf54dda3198ad5",
       email: user.email,
@@ -366,7 +365,7 @@ const VendorDashboard = () => {
       ref,
       metadata: { vendor_id: vendor.id, plan: "store_upgrade" },
       channels: plan.channels,
-      onClose: () => toast({ title: "Payment cancelled" }),
+      onClose: () => { setPayingUpgrade(false); toast({ title: "Payment cancelled" }); },
       callback: async (response: any) => {
         setPayingUpgrade(true);
         try {
@@ -387,6 +386,7 @@ const VendorDashboard = () => {
       },
     });
     handler.openIframe();
+    setPayingUpgrade(true);
   };
   const markDelivered = async (txnId: string) => {
     const { error } = await supabase.from("transactions").update({ vendor_marked_delivered: true } as any).eq("id", txnId);
@@ -781,8 +781,10 @@ const VendorDashboard = () => {
               ))}
             </TabsList>
 
-            {/* ═══ Desktop tab content wrapper ═══ */}
-            <div className="flex-1 min-w-0">
+          </div>{/* ── end hidden sm:flex row ── */}
+
+          {/* Tab content — visible on ALL screen sizes */}
+          <div className="mt-4 sm:mt-0 sm:flex-1 sm:min-w-0">
 
           {/* Products */}
           <TabsContent value="products">
@@ -1467,9 +1469,7 @@ const VendorDashboard = () => {
               </Card>
             </div>
           </TabsContent>
-
-            </div>{/* ── end desktop flex-1 content ── */}
-          </div>{/* ── end hidden sm:flex row ── */}
+          </div>
 
           {/* ═══ MOBILE: sm:hidden wrapper keeps mobile content below bottom nav ═══ */}
           <div className="sm:hidden" />
