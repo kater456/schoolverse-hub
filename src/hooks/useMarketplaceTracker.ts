@@ -1,3 +1,4 @@
+import { safeLocalStorage, safeSessionStorage } from "@/lib/safeStorage";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -20,10 +21,10 @@ export const useMarketplaceTracker = () => {
 
   const getAnonymousId = () => {
     try {
-      let id = localStorage.getItem(ANONYMOUS_ID_KEY);
+      let id = safeLocalStorage.getItem(ANONYMOUS_ID_KEY);
       if (!id) {
         id = crypto.randomUUID?.() || Math.random().toString(36).substring(2) + Date.now().toString(36);
-        localStorage.setItem(ANONYMOUS_ID_KEY, id);
+        safeLocalStorage.setItem(ANONYMOUS_ID_KEY, id);
       }
       return id;
     } catch (e) {
@@ -66,12 +67,12 @@ export const useMarketplaceTracker = () => {
     if (eventType === 'view') {
       const cooldownKey = `${VIEW_COOLDOWN_PREFIX}${vendorId}`;
       try {
-        const lastView = sessionStorage.getItem(cooldownKey);
+        const lastView = safeSessionStorage.getItem(cooldownKey);
         const now = Date.now();
         if (lastView && now - parseInt(lastView) < COOLDOWN_MS) {
           return; // Still in cooldown
         }
-        sessionStorage.setItem(cooldownKey, now.toString());
+        safeSessionStorage.setItem(cooldownKey, now.toString());
       } catch (e) {
         console.warn("sessionStorage not available for cooldown", e);
       }
