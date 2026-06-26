@@ -1,3 +1,4 @@
+import { safeLocalStorage } from "@/lib/safeStorage";
 import { useState, useEffect } from "react";
 import { X, Download, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,7 +23,7 @@ const InstallPrompt = () => {
     if (isStandalone) return;
 
     // Check if dismissed recently
-    const dismissedAt = localStorage.getItem("pwa-prompt-dismissed");
+    const dismissedAt = safeLocalStorage.getItem("pwa-prompt-dismissed");
     if (dismissedAt) {
       const dismissedTime = new Date(dismissedAt).getTime();
       const now = new Date().getTime();
@@ -65,7 +66,7 @@ const InstallPrompt = () => {
 
   const handleDismiss = () => {
     setShowPrompt(false);
-    localStorage.setItem("pwa-prompt-dismissed", new Date().toISOString());
+    safeLocalStorage.setItem("pwa-prompt-dismissed", new Date().toISOString());
   };
 
   if (!showPrompt) return null;
