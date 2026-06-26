@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { safeSessionStorage } from "@/lib/safeStorage";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -48,9 +49,9 @@ const Index = () => {
   const [checkingVendor,   setCheckingVendor]   = useState(false);
 
   // Show splash once per session
-  const [showSplash, setShowSplash] = useState(() => !sessionStorage.getItem("splash_shown"));
+  const [showSplash, setShowSplash] = useState(() => !safeSessionStorage.getItem("splash_shown"));
   const handleSplashEnter = () => {
-    sessionStorage.setItem("splash_shown", "1");
+    safeSessionStorage.setItem("splash_shown", "1");
     setShowSplash(false);
   };
 
