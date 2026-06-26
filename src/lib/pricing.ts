@@ -1,3 +1,4 @@
+import { safeLocalStorage } from "@/lib/safeStorage";
 // ─────────────────────────────────────────────────────────────────────────────
 // Multi-currency pricing for Paystack across Africa.
 // Funds for ALL currencies settle into the same Paystack merchant wallet.
@@ -86,7 +87,7 @@ let inflight: Promise<Currency> | null = null;
 export async function detectCurrency(): Promise<Currency> {
   // Cached?
   try {
-    const raw = localStorage.getItem(CACHE_KEY);
+    const raw = safeLocalStorage.getItem(CACHE_KEY);
     if (raw) {
       const { currency, ts } = JSON.parse(raw);
       if (currency && Date.now() - ts < CACHE_TTL_MS) return currency as Currency;
@@ -103,7 +104,7 @@ export async function detectCurrency(): Promise<Currency> {
       const cc = (data.country_code || data.country || "NG").toUpperCase();
       const currency = COUNTRY_TO_CURRENCY[cc] || "NGN";
       try {
-        localStorage.setItem(CACHE_KEY, JSON.stringify({ currency, ts: Date.now() }));
+        safeLocalStorage.setItem(CACHE_KEY, JSON.stringify({ currency, ts: Date.now() }));
       } catch { /* ignore */ }
       return currency;
     } catch {
