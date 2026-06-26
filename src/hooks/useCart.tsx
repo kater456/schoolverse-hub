@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { safeLocalStorage } from "@/lib/safeStorage";
 
 export interface CartItem {
   id: string;
@@ -23,12 +24,12 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [items, setItems] = useState<CartItem[]>(() => {
-    const saved = localStorage.getItem("campusmarket-cart");
+    const saved = safeLocalStorage.getItem("campusmarket-cart");
     return saved ? JSON.parse(saved) : [];
   });
 
   useEffect(() => {
-    localStorage.setItem("campusmarket-cart", JSON.stringify(items));
+    safeLocalStorage.setItem("campusmarket-cart", JSON.stringify(items));
   }, [items]);
 
   const addToCart = (item: Omit<CartItem, "quantity">) => {
