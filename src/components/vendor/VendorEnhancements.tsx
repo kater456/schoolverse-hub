@@ -1,3 +1,4 @@
+import { safeLocalStorage } from "@/lib/safeStorage";
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,10 +17,10 @@ import {
    Session id for anonymous reel likes
    ────────────────────────────────────────────────────────────── */
 const getSessionId = () => {
-  let id = localStorage.getItem("cm_session_id");
+  let id = safeLocalStorage.getItem("cm_session_id");
   if (!id) {
     id = crypto.randomUUID();
-    localStorage.setItem("cm_session_id", id);
+    safeLocalStorage.setItem("cm_session_id", id);
   }
   return id;
 };
@@ -215,9 +216,9 @@ export const QuickCartSheet = ({
   const addToCart = (p: any) => {
     try {
       const key = "campus_cart";
-      const cart = JSON.parse(localStorage.getItem(key) || "[]");
+      const cart = JSON.parse(safeLocalStorage.getItem(key) || "[]");
       cart.push({ ...p, vendor_id: vendorId, vendor_name: vendorName, qty: 1 });
-      localStorage.setItem(key, JSON.stringify(cart));
+      safeLocalStorage.setItem(key, JSON.stringify(cart));
       toast.success(`${p.name} added to cart`);
     } catch {
       toast.error("Couldn't add to cart");
