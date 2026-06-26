@@ -1,3 +1,4 @@
+import { safeSessionStorage } from "@/lib/safeStorage";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -186,8 +187,8 @@ const VendorProfile = () => {
 
         // Fire-and-forget: view tracking
         const viewKey = `vendor_viewed_${id}`;
-        if (!sessionStorage.getItem(viewKey)) {
-          sessionStorage.setItem(viewKey, "1");
+        if (!safeSessionStorage.getItem(viewKey)) {
+          safeSessionStorage.setItem(viewKey, "1");
           supabase.from("vendor_views").insert({
             vendor_id: id, viewer_id: user?.id || null, school_id: data.schools?.id || null,
           } as any).then(() => {
