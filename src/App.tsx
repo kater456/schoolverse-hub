@@ -1,4 +1,4 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, Component, ReactNode } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -70,6 +70,32 @@ const PageLoader = () => (
   </div>
 );
 
+// ── Error Boundary — catches crashes and shows a message instead of blank page ─
+class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state = { error: null };
+  static getDerivedStateFromError(error: Error) { return { error }; }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ padding: 32, fontFamily: "system-ui", textAlign: "center" }}>
+          <h2 style={{ color: "#b45309" }}>Something went wrong</h2>
+          <p style={{ color: "#555", fontSize: 14 }}>
+            {(this.state.error as Error).message}
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            style={{ marginTop: 16, padding: "10px 24px", background: "#f59e0b",
+              border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer" }}
+          >
+            Reload page
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -81,6 +107,7 @@ const queryClient = new QueryClient({
 });
 
 const App = () => (
+  <ErrorBoundary>
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <TooltipProvider>
@@ -187,6 +214,7 @@ const App = () => (
       </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;
