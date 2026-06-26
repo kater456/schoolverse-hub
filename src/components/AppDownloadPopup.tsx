@@ -1,3 +1,4 @@
+import { safeSessionStorage } from "@/lib/safeStorage";
 import { useState, useEffect, useRef } from "react";
 import { X, Download, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,7 +20,7 @@ const AppDownloadPopup = () => {
   const scrolledEnough = useRef(false);
 
   useEffect(() => {
-    const dismissed = sessionStorage.getItem("app-popup-dismissed");
+    const dismissed = safeSessionStorage.getItem("app-popup-dismissed");
     if (dismissed) return;
 
     const isStandalone = window.matchMedia("(display-mode: standalone)").matches;
@@ -63,7 +64,7 @@ const AppDownloadPopup = () => {
 
   const dismiss = () => {
     setShowBanner(false);
-    sessionStorage.setItem("app-popup-dismissed", "true");
+    safeSessionStorage.setItem("app-popup-dismissed", "true");
   };
 
   const handleInstall = async () => {
