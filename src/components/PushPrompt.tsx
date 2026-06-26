@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import { Bell, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ensurePushRegistered, isPushSupported } from "@/lib/push";
+import { safeLocalStorage } from "@/lib/safeStorage";
 import { useToast } from "@/hooks/use-toast";
 
 const STORAGE_KEY = "notifPromptShown";
@@ -14,7 +15,7 @@ const PushPrompt = () => {
   const routeCount = useRef(0);
   const hasNavigatedEnough = useRef(false);
   const alreadyShown = useRef(
-    typeof window !== "undefined" && localStorage.getItem(STORAGE_KEY) === "true",
+    typeof window !== "undefined" && safeLocalStorage.getItem(STORAGE_KEY) === "true",
   );
 
   // Eagerly ensure subscription if permission already granted
@@ -34,7 +35,7 @@ const PushPrompt = () => {
       hasNavigatedEnough.current = true;
       if (!show) {
         setShow(true);
-        localStorage.setItem(STORAGE_KEY, "true");
+        safeLocalStorage.setItem(STORAGE_KEY, "true");
         alreadyShown.current = true;
       }
     }
