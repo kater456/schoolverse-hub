@@ -36,7 +36,7 @@ import ExitPortfolio from "@/components/vendor/ExitPortfolio";
 import ProFeatureGate from "@/components/vendor/ProFeatureGate";
 import VendorLiveLocation from "@/components/vendor/VendorLiveLocation";
 import VendorLocationSettings from "@/components/vendor/VendorLocationSettings";
-import { resolvePlan } from "@/lib/pricing";
+import { resolvePlan, SUBSCRIPTION_PLAN_CODES, isSubscriptionActive, hasPlan, daysRemaining } from "@/lib/pricing";
 
 const VendorDashboard = () => {
   const { user, signOut } = useAuth();
@@ -334,7 +334,99 @@ const VendorDashboard = () => {
     });
     handler.openIframe();
   };
-  const initiateUpgradePayment = async () => {
+  const initiateSubscription = async (plan: "standard" | "pro") => {
+  if (!user?.email) {
+    toast({ title: "Please sign in first", variant: "destructive" });
+    return;
+  }
+
+  if (!(window as any).PaystackPop) {
+    await new Promise<void>((resolve) => {
+      const s = document.createElement("script");
+      s.src = "https://js.paystack.co/v1/inline.js";
+      s.async = true;
+      s.onload = () => resolve();
+      document.body.appendChild(s);
+    });
+  }
+
+  setPayingUpgrade(true);
+
+  try {
+    const planKey = plan === "pro" ? "subscription_pro" : "subscription_standard";
+    const resolvedPlan = await resolvePlan(planKey as any);
+    const PaystackPop = (window as any).PaystackPop;
+    const ref = `sub_${plan}_${vendor.id}_${Date.now()}`;
+
+    const handler = PaystackPop.setup({
+      key: "pk_live_86d78a3f9090b60d4d45f2ee1caf54dda3198ad5",
+      email: user.email,
+      amount: resolvedPlan.amountSubunits,
+      currency: resolvedPlan.currency,
+      ref,
+      plan: SUBSCRIPTION_PLAN_CODES[plan],
+      channels: resolvedPlan.channels,
+      metadata: { vendor_id: vendor.id, plan },
+      onClose: () => {
+        setPayingUpgrade(false);
+        toast({ title: "Payment cancelled" });
+      },
+      callback: async (response: any) => {
+        try {
+          const { data, error } = await supabase.functions.invoke("verify-subscription", {
+            body: {
+              reference: response.reference,
+              vendor_id: vendor.id,
+              plan,
+            },
+          });
+
+          if (error || !data?.success) {
+            throw new Error(error?.message || data?.error || "Verification failed");
+          }
+
+          toast({
+            title: `🎉 ${plan === "pro" ? "Pro" : "Standard"} activated!`,
+            description: "Your subscription is now live.",
+          });
+
+          // Refresh vendor data
+          await fetchVendorData();
+        } catch (err: any) {
+          toast({
+            title: "Payment received but activation failed",
+            description: "Contact support with ref: " + response.reference,
+            variant: "destructive",
+          });
+        } finally {
+          setPayingUpgrade(false);
+        }
+      },
+    });
+
+    handler.openIframe();
+  } catch (err: any) {
+    setPayingUpgrade(false);
+    toast({ title: "Something went wrong", description: err.message, variant: "destructive" });
+  }
+};
+
+const cancelSubscription = async () => {
+  if (!vendor?.subscription_code) return;
+  try {
+    const { data, error } = await supabase.functions.invoke("cancel-subscription", {
+      body: { vendor_id: vendor.id },
+    });
+    if (error || !data?.success) throw new Error(error?.message || "Cancellation failed");
+    toast({
+      title: "Subscription cancelled",
+      description: `You keep access until ${new Date(data.access_until).toLocaleDateString("en-GB", { day: "numeric", month: "long" })}.`,
+    });
+    setVendor((v: any) => ({ ...v, subscription_status: "cancelled" }));
+  } catch (err: any) {
+    toast({ title: "Cancellation failed", description: err.message, variant: "destructive" });
+  }
+};
     if (!(window as any).PaystackPop) {
       await new Promise<void>((resolve) => {
         if (document.querySelector('script[src="https://js.paystack.co/v1/inline.js"]')) {
