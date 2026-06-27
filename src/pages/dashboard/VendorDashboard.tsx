@@ -694,9 +694,140 @@ const cancelSubscription = async () => {
           ))}
         </div>
 
-        {/* ── Upgrade CTAs ── */}
-        {(!vendor.is_verified || !vendor.is_store_upgraded || (vendor.is_store_upgraded && vendor.store_upgrade_expires_at && new Date(vendor.store_upgrade_expires_at) < new Date())) && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {/* ── Subscription CTAs ── */}
+{!isSubscriptionActive(vendor) && (
+  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
+    {/* Standard CTA */}
+    <button
+      type="button"
+      disabled={payingUpgrade}
+      style={{ touchAction: "manipulation", width: "100%", textAlign: "left" }}
+      className="relative rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-background p-5 overflow-hidden cursor-pointer group disabled:opacity-70"
+      onClick={() => initiateSubscription("standard")}
+    >
+      <div className="absolute top-0 right-0 w-24 h-24 rounded-full bg-primary/10 -translate-y-8 translate-x-8" />
+      <div className="relative">
+        <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center mb-3">
+          <span className="text-xl">⚡</span>
+        </div>
+        <h3 className="font-bold text-foreground text-sm mb-1">Standard Plan</h3>
+        <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
+          20 products, deals, basic store design, and Ad Studio access.
+        </p>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-primary">₦1,500/month</span>
+          <span className="text-[10px] text-muted-foreground">→ auto-renews</span>
+        </div>
+        <div className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-primary group-hover:gap-2.5 transition-all">
+          {payingUpgrade ? "Processing…" : "Subscribe now"} <span className="text-base">→</span>
+        </div>
+      </div>
+    </button>
+
+    {/* Pro CTA */}
+    <button
+      type="button"
+      disabled={payingUpgrade}
+      style={{ touchAction: "manipulation", width: "100%", textAlign: "left" }}
+      className="relative rounded-2xl border border-accent/30 bg-gradient-to-br from-accent/10 via-accent/5 to-background p-5 overflow-hidden cursor-pointer group disabled:opacity-70"
+      onClick={() => initiateSubscription("pro")}
+    >
+      <div className="absolute top-0 right-0 w-24 h-24 rounded-full bg-accent/10 -translate-y-8 translate-x-8" />
+      <div className="relative">
+        <div className="w-10 h-10 rounded-xl bg-accent/15 flex items-center justify-center mb-3">
+          <Crown className="h-5 w-5 text-accent" />
+        </div>
+        <h3 className="font-bold text-foreground text-sm mb-1">Pro Plan</h3>
+        <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
+          Unlimited products, AI Advisor, Community, full store design, and more.
+        </p>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-accent">₦3,500/month</span>
+          <span className="text-[10px] text-muted-foreground">→ auto-renews</span>
+        </div>
+        <div className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-accent group-hover:gap-2.5 transition-all">
+          {payingUpgrade ? "Processing…" : "Subscribe now"} <span className="text-base">→</span>
+        </div>
+      </div>
+    </button>
+  </div>
+)}
+
+{/* ── Active subscription status card ── */}
+{isSubscriptionActive(vendor) && (
+  <div className="relative rounded-2xl overflow-hidden p-px"
+    style={{ background: "linear-gradient(135deg, #f59e0b, #8b5cf6, #3b82f6)" }}>
+    <div className="rounded-2xl relative overflow-hidden"
+      style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)" }}>
+      <div className="absolute inset-0 opacity-30"
+        style={{ background: "radial-gradient(ellipse at 20% 50%, rgba(139,92,246,0.4) 0%, transparent 60%), radial-gradient(ellipse at 80% 50%, rgba(59,130,246,0.4) 0%, transparent 60%)" }} />
+      <div className="relative p-4 sm:p-5">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-1.5 bg-gradient-to-r from-amber-400/20 to-amber-400/10 border border-amber-400/30 rounded-full px-2.5 py-1">
+            <Crown className="h-3 w-3 text-amber-400" />
+            <span className="text-[10px] font-bold text-amber-300 uppercase tracking-widest">
+              {vendor.subscription_plan === "pro" ? "Pro" : "Standard"} Active
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-[10px] text-white/40">
+              {vendor.subscription_status === "cancelled"
+                ? `Cancels in ${daysRemaining(vendor)} days`
+                : `Renews in ${daysRemaining(vendor)} days`}
+            </span>
+            {vendor.subscription_status !== "cancelled" && (
+              <button
+                onClick={cancelSubscription}
+                className="text-[10px] text-white/30 hover:text-red-400 transition-colors underline"
+              >
+                Cancel
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Upgrade to Pro prompt if on Standard */}
+        {vendor.subscription_plan === "standard" && (
+          <button
+            onClick={() => initiateSubscription("pro")}
+            disabled={payingUpgrade}
+            className="w-full mt-1 mb-3 flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 border border-amber-400/20 hover:bg-white/10 transition-all"
+          >
+            <span className="text-xs text-white/70">Upgrade to Pro for AI Advisor, Community & more</span>
+            <span className="text-[10px] font-bold text-amber-400">₦3,500/mo →</span>
+          </button>
+        )}
+
+        <p className="text-white font-bold text-sm mb-3">Your Features</p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {[
+            { icon: "📦", label: "Products",     sub: vendor.subscription_plan === "pro" ? "Unlimited" : "Up to 20", tab: "products" },
+            { icon: "🎥", label: "Ad Studio",    sub: "Video credits",    tab: "reels"     },
+            { icon: "🔥", label: "Deals",        sub: "Flash sales",      tab: "deals"     },
+            { icon: "🏪", label: "Store Design", sub: "Custom theme",     tab: "store"     },
+            ...(hasPlan(vendor, "pro") ? [
+              { icon: "✨", label: "AI Advisor",  sub: "Business insights", tab: "ai"        },
+              { icon: "👥", label: "Community",   sub: "Student network",   tab: "community" },
+            ] : []),
+          ].map(({ icon, label, sub, tab }) => (
+            <button
+              key={label}
+              onClick={() => setActiveTab(tab)}
+              className="group flex items-center gap-2 sm:flex-col sm:items-center p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all text-left sm:text-center"
+            >
+              <span className="text-2xl sm:text-3xl sm:mb-1">{icon}</span>
+              <div>
+                <p className="text-xs font-semibold text-white leading-none">{label}</p>
+                <p className="text-[10px] text-white/40 mt-0.5 leading-tight">{sub}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
+)}
 
             {/* Get Verified CTA */}
             {!vendor.is_verified && (
