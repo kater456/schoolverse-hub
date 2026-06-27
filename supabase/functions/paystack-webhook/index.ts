@@ -1,200 +1,222 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { createHmac } from "https://deno.land/std@0.177.0/node/crypto.ts";
+import { crypto } from "https://deno.land/std@0.168.0/crypto/mod.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-paystack-signature",
-};
+const supabase = createClient(
+  Deno.env.get("SUPABASE_URL")!,
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+);
 
-function verifySignature(body: string, signature: string, secret: string): boolean {
-  const hash = createHmac("sha512", secret).update(body).digest("hex");
+// ── Verify the request genuinely came from Paystack ───────────────────
+async function verifyPaystackSignature(
+  body: string,
+  signature: string | null
+): Promise<boolean> {
+  if (!signature) return false;
+  const secret = Deno.env.get("PAYSTACK_SECRET_KEY")!;
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-512" },
+    false,
+    ["sign"]
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, encoder.encode(body));
+  const hash = Array.from(new Uint8Array(sig))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
   return hash === signature;
 }
 
-// ── Featured listing payment ──────────────────────────────────────────────────
-async function handleFeaturedPayment(supabase: any, data: any) {
-  const vendorId = data.metadata?.vendor_id
-    ?? data.metadata?.custom_fields?.find((f: any) => f.variable_name === "vendor_id")?.value;
-  const plan = data.metadata?.plan ?? "top_listing";
+// ── Resolve plan code to plan name ────────────────────────────────────
+function resolvePlanName(planCode: string): string {
+  const standard = Deno.env.get("PAYSTACK_STANDARD_PLAN_CODE");
+  const pro = Deno.env.get("PAYSTACK_PRO_PLAN_CODE");
+  if (planCode === pro) return "pro";
+  if (planCode === standard) return "standard";
+  return "unknown";
+}
 
-  if (!vendorId) {
-    console.error("paystack-webhook: no vendor_id for featured", data.reference);
-    return;
-  }
+// ── Find vendor by customer email ─────────────────────────────────────
+async function findVendorByEmail(email: string) {
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("user_id")
+    .eq("email", email)
+    .maybeSingle();
 
-  // Idempotency
-  const { data: existing } = await supabase
-    .from("featured_listings").select("id")
-    .eq("payment_reference", data.reference).maybeSingle();
-  if (existing) return;
+  if (!profile?.user_id) return null;
 
-  const minAmount = plan === "top_listing_reels" ? 200000 : 100000;
-  if (data.amount < minAmount) return;
+  const { data: vendor } = await supabase
+    .from("vendors")
+    .select("id, subscription_plan, subscription_code")
+    .eq("user_id", profile.user_id)
+    .maybeSingle();
 
-  const now    = new Date();
-  const endsAt = new Date(now.getTime() + 7 * 86_400_000);
+  return vendor || null;
+}
 
-  const { error: insertError } = await supabase.from("featured_listings").insert({
+// ── Find vendor by subscription code ──────────────────────────────────
+async function findVendorBySubscriptionCode(code: string) {
+  const { data: vendor } = await supabase
+    .from("vendors")
+    .select("id, subscription_plan, subscription_code")
+    .eq("subscription_code", code)
+    .maybeSingle();
+  return vendor || null;
+}
+
+// ── Log every event for debugging ─────────────────────────────────────
+async function logEvent(
+  vendorId: string | null,
+  eventType: string,
+  payload: any,
+  extra?: Record<string, any>
+) {
+  await supabase.from("subscription_events").insert({
     vendor_id: vendorId,
-    payment_reference: data.reference,
-    payment_status: "confirmed",
-    amount: data.amount / 100,
-    starts_at: now.toISOString(),
-    ends_at: endsAt.toISOString(),
-    plan,
+    event_type: eventType,
+    paystack_ref: payload?.data?.reference || null,
+    subscription_code: payload?.data?.subscription_code || null,
+    plan: extra?.plan || null,
+    amount_ngn: payload?.data?.amount ? payload.data.amount / 100 : null,
+    raw_payload: payload,
   });
-  if (insertError) throw insertError;
-
-  const updates: any = { promoted_until: endsAt.toISOString() };
-  if (plan === "top_listing_reels") updates.reels_enabled = true;
-
-  const { error: updateError } = await supabase.from("vendors")
-    .update(updates).eq("id", vendorId);
-  if (updateError) throw updateError;
-
-  console.log("paystack-webhook: featured activated", vendorId);
 }
 
-// ── Vendor registration payment ───────────────────────────────────────────────
-async function handleRegistrationPayment(supabase: any, data: any) {
-  const vendorId = data.metadata?.vendor_id
-    ?? data.metadata?.custom_fields?.find((f: any) => f.variable_name === "vendor_id")?.value;
-
-  if (!vendorId) { console.error("paystack-webhook: no vendor_id for registration", data.reference); return; }
-
-  const { data: vendor } = await supabase.from("vendors").select("id, is_approved").eq("id", vendorId).single();
-  if (!vendor || vendor.is_approved) return;
-
-  if (data.amount < 120000) { console.warn("paystack-webhook: insufficient registration amount", data.amount); return; }
-
-  const { error } = await supabase.from("vendors")
-    .update({ is_approved: true, payment_status: "paid", payment_reference: data.reference }).eq("id", vendorId);
-  if (error) throw error;
-
-  await supabase.from("vendor_notifications").insert({
-    vendor_id: vendorId, type: "approval",
-    title: "✅ Account Activated!",
-    message: "Your registration payment was confirmed and your account is now live.",
-    is_read: false,
-  });
-
-  console.log("paystack-webhook: vendor approved", vendorId);
-}
-
-// ── Verified badge payment ────────────────────────────────────────────────────
-async function handleVerificationPayment(supabase: any, data: any) {
-  const vendorId = data.metadata?.vendor_id
-    ?? data.metadata?.custom_fields?.find((f: any) => f.variable_name === "vendor_id")?.value;
-
-  if (!vendorId) { console.error("paystack-webhook: no vendor_id for verification", data.reference); return; }
-  if (data.amount < 150000) return;
-
-  // Idempotency: skip if already verified with this reference
-  const { data: existingVerif } = await supabase.from("vendors")
-    .select("id, is_verified, verification_payment_ref")
-    .eq("id", vendorId).single();
-  if (existingVerif?.is_verified && existingVerif?.verification_payment_ref === data.reference) return;
-
-  const { error } = await supabase.from("vendors").update({
-    is_verified: true,
-    verification_payment_ref: data.reference,
-    verification_applied_at: new Date().toISOString(),
-  }).eq("id", vendorId);
-  if (error) throw error;
-
-  console.log("paystack-webhook: vendor verified", vendorId);
-}
-
-// ── Store upgrade payment ─────────────────────────────────────────────────────
-async function handleStoreUpgrade(supabase: any, data: any) {
-  const vendorId = data.metadata?.vendor_id
-    ?? data.metadata?.custom_fields?.find((f: any) => f.variable_name === "vendor_id")?.value;
-
-  if (!vendorId) { console.error("paystack-webhook: no vendor_id for store upgrade", data.reference); return; }
-  if (data.amount < 200000) return;
-
-  const { data: existing } = await supabase.from("vendor_store_upgrades")
-    .select("id").eq("payment_reference", data.reference).maybeSingle();
-  if (existing) return;
-
-  const now    = new Date();
-  const endsAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-
-  const { error: insertError } = await supabase.from("vendor_store_upgrades").insert({
-    vendor_id: vendorId, payment_reference: data.reference,
-    payment_status: "confirmed", amount: 2000,
-    starts_at: now.toISOString(), ends_at: endsAt.toISOString(),
-  });
-  if (insertError) throw insertError;
-
-  const { error: updateError } = await supabase.from("vendors").update({
-    is_store_upgraded: true, store_upgrade_expires_at: endsAt.toISOString(),
-  }).eq("id", vendorId);
-  if (updateError) throw updateError;
-
-  console.log("paystack-webhook: store upgraded", vendorId);
-}
-
-// ── Route by reference prefix ─────────────────────────────────────────────────
-async function routeByReference(supabase: any, data: any) {
-  const ref: string = data.reference ?? "";
-
-  if (ref.startsWith("vr_"))            await handleRegistrationPayment(supabase, data);
-  else if (ref.startsWith("verif_"))    await handleVerificationPayment(supabase, data);
-  else if (ref.startsWith("feat_"))     await handleFeaturedPayment(supabase, data);
-  else if (ref.startsWith("store_upgrade_")) await handleStoreUpgrade(supabase, data);
-  else {
-    // Fallback: metadata-based routing
-    const type = data.metadata?.payment_type;
-    if      (type === "registration")  await handleRegistrationPayment(supabase, data);
-    else if (type === "verification")  await handleVerificationPayment(supabase, data);
-    else if (type === "featured")      await handleFeaturedPayment(supabase, data);
-    else if (type === "store_upgrade") await handleStoreUpgrade(supabase, data);
-    else console.warn("paystack-webhook: unknown reference prefix", ref);
+serve(async (req) => {
+  // Only accept POST
+  if (req.method !== "POST") {
+    return new Response("Method not allowed", { status: 405 });
   }
-}
 
-// ── Main handler ──────────────────────────────────────────────────────────────
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  const rawBody = await req.text();
+  const signature = req.headers.get("x-paystack-signature");
 
-  try {
-    const PAYSTACK_SECRET_KEY = Deno.env.get("PAYSTACK_SECRET_KEY");
-    if (!PAYSTACK_SECRET_KEY) throw new Error("PAYSTACK_SECRET_KEY not configured");
+  // Reject anything not from Paystack
+  const valid = await verifyPaystackSignature(rawBody, signature);
+  if (!valid) {
+    return new Response("Unauthorized", { status: 401 });
+  }
 
-    const rawBody = await req.text();
+  const payload = JSON.parse(rawBody);
+  const event = payload.event;
+  const data = payload.data;
 
-    const signature = req.headers.get("x-paystack-signature");
-    if (!signature || !verifySignature(rawBody, signature, PAYSTACK_SECRET_KEY)) {
-      return new Response(JSON.stringify({ error: "Invalid signature" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+  console.log("Paystack webhook received:", event);
+
+  // ── charge.success ─────────────────────────────────────────────────
+  // Fires on first payment AND every monthly renewal
+  if (event === "charge.success") {
+    const subscriptionCode = data?.subscription_code;
+    const customerEmail = data?.customer?.email;
+    const planCode = data?.plan?.plan_code;
+
+    // Only handle subscription charges, not one-time payments
+    if (!subscriptionCode) {
+      return new Response("OK", { status: 200 });
     }
 
-    const event = JSON.parse(rawBody);
-    console.log("paystack-webhook event:", event.event);
+    const plan = resolvePlanName(planCode);
+    const vendor = await findVendorByEmail(customerEmail);
 
-    if (event.event !== "charge.success") {
-      return new Response(JSON.stringify({ received: true }), {
-        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (!vendor) {
+      await logEvent(null, "charge.success.no_vendor", payload, { plan });
+      return new Response("OK", { status: 200 });
     }
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
+    // Extend subscription by 30 days from now
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 30);
 
-    await routeByReference(supabase, event.data);
+    await supabase
+      .from("vendors")
+      .update({
+        subscription_plan: plan,
+        subscription_code: subscriptionCode,
+        subscription_status: "active",
+        subscription_expires: expiresAt.toISOString(),
+      })
+      .eq("id", vendor.id);
 
-    return new Response(JSON.stringify({ received: true }), {
-      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    console.error("paystack-webhook error:", message);
-    return new Response(JSON.stringify({ received: true, error: message }), {
-      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    await logEvent(vendor.id, "charge.success", payload, { plan });
+    console.log(`Subscription renewed for vendor ${vendor.id} — plan: ${plan}`);
   }
+
+  // ── subscription.create ────────────────────────────────────────────
+  // Fires when a new subscription is first created
+  else if (event === "subscription.create") {
+    const subscriptionCode = data?.subscription_code;
+    const emailToken = data?.email_token;
+    const customerEmail = data?.customer?.email;
+    const planCode = data?.plan?.plan_code;
+    const plan = resolvePlanName(planCode);
+
+    const vendor = await findVendorByEmail(customerEmail);
+    if (!vendor) {
+      await logEvent(null, "subscription.create.no_vendor", payload, { plan });
+      return new Response("OK", { status: 200 });
+    }
+
+    const now = new Date();
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 30);
+
+    await supabase
+      .from("vendors")
+      .update({
+        subscription_plan: plan,
+        subscription_code: subscriptionCode,
+        subscription_status: "active",
+        subscription_start: now.toISOString(),
+        subscription_expires: expiresAt.toISOString(),
+        email_token: emailToken,
+      })
+      .eq("id", vendor.id);
+
+    await logEvent(vendor.id, "subscription.create", payload, { plan });
+    console.log(`New subscription created for vendor ${vendor.id} — plan: ${plan}`);
+  }
+
+  // ── subscription.disable ───────────────────────────────────────────
+  // Fires when subscription is cancelled or payment permanently fails
+  else if (event === "subscription.disable") {
+    const subscriptionCode = data?.subscription_code;
+    const vendor = await findVendorBySubscriptionCode(subscriptionCode);
+
+    if (!vendor) {
+      await logEvent(null, "subscription.disable.no_vendor", payload);
+      return new Response("OK", { status: 200 });
+    }
+
+    // Mark cancelled but DO NOT remove access immediately
+    // Vendor keeps access until subscription_expires
+    await supabase
+      .from("vendors")
+      .update({ subscription_status: "cancelled" })
+      .eq("id", vendor.id);
+
+    await logEvent(vendor.id, "subscription.disable", payload);
+    console.log(`Subscription cancelled for vendor ${vendor.id} — access until expiry`);
+  }
+
+  // ── invoice.payment_failed ─────────────────────────────────────────
+  // Fires when a renewal charge fails — Paystack will retry
+  else if (event === "invoice.payment_failed") {
+    const subscriptionCode = data?.subscription_code;
+    const vendor = await findVendorBySubscriptionCode(subscriptionCode);
+
+    if (!vendor) {
+      await logEvent(null, "invoice.payment_failed.no_vendor", payload);
+      return new Response("OK", { status: 200 });
+    }
+
+    // Log it but don't cut access — Paystack retries before disabling
+    await logEvent(vendor.id, "invoice.payment_failed", payload);
+    console.log(`Payment failed for vendor ${vendor.id} — Paystack will retry`);
+  }
+
+  // Always return 200 — Paystack retries if it gets anything else
+  return new Response("OK", { status: 200 });
 });
