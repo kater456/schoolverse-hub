@@ -141,7 +141,7 @@ const Login = () => {
       </div>
 
       {/* Right Side - Branding */}
-      <div className="hidden lg:flex flex-1 bg-gradient-hero relative overflow-hidden">
+      <div className="hidden lg:flex flex-1 relative overflow-hidden" style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)" }}>
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute top-1/4 right-1/4 w-80 h-80 bg-accent/10 rounded-full blur-3xl animate-float" />
           <div className="absolute bottom-1/3 left-1/4 w-64 h-64 bg-primary-foreground/5 rounded-full blur-3xl animate-float" style={{ animationDelay: "2s" }} />
@@ -151,7 +151,7 @@ const Login = () => {
             <h2 className="font-display text-4xl font-bold text-primary-foreground mb-6">Your Campus Marketplace Awaits</h2>
             <p className="text-primary-foreground/70 text-lg mb-8">Browse student businesses, discover new products, and support your campus community.</p>
             <div className="space-y-4 text-left">
-              {["Browse campus businesses", "List your products for free", "Get featured for ₦2,000", "Connect with students"].map((feature) => (
+              {["Browse campus businesses", "List your products for free", "Standard plan from ₦1,500/month", "Pro plan from ₦3,500/month", "Connect with students"].map((feature) => (
                 <div key={feature} className="flex items-center gap-3 text-primary-foreground/80">
                   <div className="w-2 h-2 rounded-full bg-accent" />
                   <span>{feature}</span>
