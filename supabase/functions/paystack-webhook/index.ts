@@ -38,25 +38,33 @@ function resolvePlanName(planCode: string): string {
   return "unknown";
 }
 
-// ── Find vendor by customer email ─────────────────────────────────────
+// ── Find vendor by customer email via Auth ────────────────────────────
 async function findVendorByEmail(email: string) {
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("user_id")
-    .eq("email", email)
-    .maybeSingle();
+  const supabaseAdmin = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
 
-  if (!profile?.user_id) return null;
+  // Search auth users by email directly
+  const { data, error } = await supabaseAdmin.auth.admin.listUsers({
+    page: 1,
+    perPage: 1000,
+  });
+
+  if (error || !data?.users) return null;
+
+  const user = data.users.find((u: any) => u.email === email);
+  if (!user) return null;
 
   const { data: vendor } = await supabase
     .from("vendors")
     .select("id, subscription_plan, subscription_code")
-    .eq("user_id", profile.user_id)
+    .eq("user_id", user.id)
     .maybeSingle();
 
   return vendor || null;
 }
-
 // ── Find vendor by subscription code ──────────────────────────────────
 async function findVendorBySubscriptionCode(code: string) {
   const { data: vendor } = await supabase
