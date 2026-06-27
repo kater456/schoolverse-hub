@@ -326,15 +326,17 @@ const VendorDashboard = () => {
       toast({ title: "Please sign in first", variant: "destructive" });
       return;
     }
+
+    // Ensure Paystack script is loaded before doing anything
     if (!(window as any).PaystackPop) {
-      await new Promise<void>((resolve) => {
-        const s = document.createElement("script");
-        s.src = "https://js.paystack.co/v1/inline.js";
-        s.async = true;
-        s.onload = () => resolve();
-        document.body.appendChild(s);
-      });
+      toast({ title: "Loading payment…", description: "Please tap again in a moment." });
+      const s = document.createElement("script");
+      s.src = "https://js.paystack.co/v1/inline.js";
+      s.async = true;
+      document.body.appendChild(s);
+      return; // Exit — user taps again once loaded
     }
+
     setPayingUpgrade(true);
     try {
       const planKey = plan === "pro" ? "subscription_pro" : "subscription_standard";
