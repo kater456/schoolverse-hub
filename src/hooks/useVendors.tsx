@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { isRealtimeSafe } from "@/lib/safeStorage";
 
 export interface Vendor {
   id: string;
@@ -146,16 +147,18 @@ export const useAllVendors = (opts: UseAllVendorsOpts = {}) => {
   useEffect(() => {
     fetchAllVendors();
     // realtime: refetch on any vendors mutation
-    const ch = supabase
-      .channel("admin-vendors-realtime")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "vendors" },
-        () => fetchAllVendors()
-      )
-      .subscribe();
+    const ch = isRealtimeSafe()
+      ? supabase
+          .channel("admin-vendors-realtime")
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "vendors" },
+            () => fetchAllVendors()
+          )
+          .subscribe()
+      : null;
     return () => {
-      supabase.removeChannel(ch);
+      if (ch) supabase.removeChannel(ch);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, pageSize, search, status]);

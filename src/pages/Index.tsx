@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { safeSessionStorage } from "@/lib/safeStorage";
+import { safeSessionStorage, isRealtimeSafe } from "@/lib/safeStorage";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -83,11 +83,13 @@ const Index = () => {
     };
     fetchSchools();
 
-    const channel = supabase.channel("homepage-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "vendors" }, fetchSchools)
-      .on("postgres_changes", { event: "*", schema: "public", table: "platform_ads" }, () => {})
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    const channel = isRealtimeSafe()
+      ? supabase.channel("homepage-realtime")
+          .on("postgres_changes", { event: "*", schema: "public", table: "vendors" }, fetchSchools)
+          .on("postgres_changes", { event: "*", schema: "public", table: "platform_ads" }, () => {})
+          .subscribe()
+      : null;
+    return () => { if (channel) supabase.removeChannel(channel); };
   }, []);
 
   // Check vendor status so we can show smart buttons

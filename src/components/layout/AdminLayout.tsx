@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { isRealtimeSafe } from "@/lib/safeStorage";
 import ThemeToggle from "@/components/ThemeToggle";
 import {
   LayoutDashboard, Users, GraduationCap, MapPin, Star, LogOut,
@@ -186,11 +187,13 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     fetchCounts();
-    const channel = supabase.channel("admin-layout-live")
-      .on("postgres_changes", { event: "*", schema: "public", table: "vendors" }, fetchCounts)
-      .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, fetchCounts)
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    const channel = isRealtimeSafe()
+      ? supabase.channel("admin-layout-live")
+          .on("postgres_changes", { event: "*", schema: "public", table: "vendors" }, fetchCounts)
+          .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, fetchCounts)
+          .subscribe()
+      : null;
+    return () => { if (channel) supabase.removeChannel(channel); };
   }, [fetchCounts]);
 
   // ── Keyboard shortcuts ──────────────────────────────────────────────────

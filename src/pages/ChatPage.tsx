@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { isRealtimeSafe } from "@/lib/safeStorage";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -156,43 +157,45 @@ const ChatPage: React.FC = () => {
   useEffect(() => {
     if (!conversationId || !user) return;
 
-    const channel = supabase
-      .channel(`chat-${conversationId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-          filter: `conversation_id=eq.${conversationId}`,
-        },
-        async (payload) => {
-          const newMsg = payload.new as Message;
-          setMessages((prev) => {
-            // avoid duplicates
-            if (prev.find((m) => m.id === newMsg.id)) return prev;
-            return [...prev, newMsg];
-          });
+    const channel = isRealtimeSafe()
+      ? supabase
+          .channel(`chat-${conversationId}`)
+          .on(
+            "postgres_changes",
+            {
+              event: "INSERT",
+              schema: "public",
+              table: "messages",
+              filter: `conversation_id=eq.${conversationId}`,
+            },
+            async (payload) => {
+              const newMsg = payload.new as Message;
+              setMessages((prev) => {
+                // avoid duplicates
+                if (prev.find((m) => m.id === newMsg.id)) return prev;
+                return [...prev, newMsg];
+              });
 
-          // If the new message is from the other person, mark it read immediately
-          if (newMsg.sender_id !== user.id) {
-            await (supabase as any)
-              .from("messages")
-              .update({ is_read: true })
-              .eq("id", newMsg.id);
+              // If the new message is from the other person, mark it read immediately
+              if (newMsg.sender_id !== user.id) {
+                await (supabase as any)
+                  .from("messages")
+                  .update({ is_read: true })
+                  .eq("id", newMsg.id);
 
-            const amV = conversation?.vendors?.user_id === user.id;
-            const unreadField = amV ? "vendor_unread" : "buyer_unread";
-            await (supabase as any)
-              .from("conversations")
-              .update({ [unreadField]: 0 })
-              .eq("id", conversationId);
-          }
-        }
-      )
-      .subscribe();
+                const amV = conversation?.vendors?.user_id === user.id;
+                const unreadField = amV ? "vendor_unread" : "buyer_unread";
+                await (supabase as any)
+                  .from("conversations")
+                  .update({ [unreadField]: 0 })
+                  .eq("id", conversationId);
+              }
+            }
+          )
+          .subscribe()
+      : null;
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { if (channel) supabase.removeChannel(channel); };
   }, [conversationId, user, conversation]);
 
   // ── Auto-scroll ───────────────────────────────────────────────────────────
