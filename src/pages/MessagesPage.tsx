@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { isRealtimeSafe } from "@/lib/safeStorage";
 import { useAuth } from "@/hooks/useAuth";
 import Navbar from "@/components/layout/Navbar";
 import { Badge } from "@/components/ui/badge";
@@ -23,11 +24,13 @@ const MessagesPage = () => {
     supabase.from("vendors").select("id").eq("user_id", user.id).eq("is_approved", true)
       .maybeSingle().then(({ data }) => { if (data) setVendorId(data.id); });
 
-    const channel = supabase.channel("inbox-updates")
-      .on("postgres_changes", { event: "*", schema: "public", table: "conversations" }, () => loadConversations())
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, () => loadConversations())
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    const channel = isRealtimeSafe()
+      ? supabase.channel("inbox-updates")
+          .on("postgres_changes", { event: "*", schema: "public", table: "conversations" }, () => loadConversations())
+          .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, () => loadConversations())
+          .subscribe()
+      : null;
+    return () => { if (channel) supabase.removeChannel(channel); };
   }, [user]);
 
   const loadConversations = async () => {

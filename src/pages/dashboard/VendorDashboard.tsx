@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { isRealtimeSafe } from "@/lib/safeStorage";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -139,17 +140,19 @@ const VendorDashboard = () => {
     }
     fetchVendorData();
 
-    const channel = supabase
-      .channel("vendor-dashboard-realtime")
-      .on("postgres_changes", {
-        event: "UPDATE", schema: "public", table: "vendors",
-        filter: `user_id=eq.${user.id}`,
-      }, (payload) => {
-        if (payload.new) setVendor((prev: any) => prev ? { ...prev, ...payload.new } : prev);
-      })
-      .subscribe();
+    const channel = isRealtimeSafe()
+      ? supabase
+          .channel("vendor-dashboard-realtime")
+          .on("postgres_changes", {
+            event: "UPDATE", schema: "public", table: "vendors",
+            filter: `user_id=eq.${user.id}`,
+          }, (payload) => {
+            if (payload.new) setVendor((prev: any) => prev ? { ...prev, ...payload.new } : prev);
+          })
+          .subscribe()
+      : null;
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { if (channel) supabase.removeChannel(channel); };
   }, [user]);
 
   useEffect(() => {
@@ -166,19 +169,21 @@ const VendorDashboard = () => {
           .eq("vendor_id", vendorId).gte("created_at", since)
           .then(({ count }) => setViewsTrend(count || 0));
 
-        const viewsChannel = supabase
-          .channel("vendor-views-live")
-          .on("postgres_changes", {
-            event: "INSERT", schema: "public", table: "vendor_views",
-            filter: `vendor_id=eq.${vendorId}`,
-          }, () => {
-            setStats((prev) => ({ ...prev, views: prev.views + 1 }));
-            setLiveViews((prev) => prev + 1);
-            setViewsTrend((prev) => prev + 1);
-          })
-          .subscribe();
+        const viewsChannel = isRealtimeSafe()
+          ? supabase
+              .channel("vendor-views-live")
+              .on("postgres_changes", {
+                event: "INSERT", schema: "public", table: "vendor_views",
+                filter: `vendor_id=eq.${vendorId}`,
+              }, () => {
+                setStats((prev) => ({ ...prev, views: prev.views + 1 }));
+                setLiveViews((prev) => prev + 1);
+                setViewsTrend((prev) => prev + 1);
+              })
+              .subscribe()
+          : null;
 
-        return () => { supabase.removeChannel(viewsChannel); };
+        return () => { if (viewsChannel) supabase.removeChannel(viewsChannel); };
       });
   }, [user]);
 

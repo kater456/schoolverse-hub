@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Menu, X, ShoppingBag, Search, Film, LogOut, Plus, MessageCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { isRealtimeSafe } from "@/lib/safeStorage";
 import ThemeToggle from "@/components/ThemeToggle";
 
 const Navbar = () => {
@@ -69,19 +70,21 @@ const Navbar = () => {
     };
     fetchUnread();
 
-    const channel = supabase.channel("vendor-approval-navbar")
-      .on("postgres_changes", {
-        event: "UPDATE", schema: "public", table: "vendors",
-        filter: `user_id=eq.${user.id}`,
-      }, (payload) => {
-        if (payload.new?.is_approved) setIsApprovedVendor(true);
-      })
-      .on("postgres_changes", {
-        event: "*", schema: "public", table: "conversations",
-      }, () => fetchUnread())
-      .subscribe();
+    const channel = isRealtimeSafe()
+      ? supabase.channel("vendor-approval-navbar")
+          .on("postgres_changes", {
+            event: "UPDATE", schema: "public", table: "vendors",
+            filter: `user_id=eq.${user.id}`,
+          }, (payload) => {
+            if (payload.new?.is_approved) setIsApprovedVendor(true);
+          })
+          .on("postgres_changes", {
+            event: "*", schema: "public", table: "conversations",
+          }, () => fetchUnread())
+          .subscribe()
+      : null;
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { if (channel) supabase.removeChannel(channel); };
   }, [user]);
 
   return (

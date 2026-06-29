@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { isRealtimeSafe } from "@/lib/safeStorage";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,11 +33,13 @@ const PushBroadcastPanel = ({ scope = "super_admin" }: Props) => {
       (supabase.from("schools") as any).select("id,name").order("name").then(({ data }: any) => setSchools(data || []));
     }
     loadHistory();
-    const ch = supabase
-      .channel("push_log")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "admin_activity_log" }, loadHistory)
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    const ch = isRealtimeSafe()
+      ? supabase
+          .channel("push_log")
+          .on("postgres_changes", { event: "INSERT", schema: "public", table: "admin_activity_log" }, loadHistory)
+          .subscribe()
+      : null;
+    return () => { if (ch) supabase.removeChannel(ch); };
   }, []);
 
   const loadHistory = async () => {
