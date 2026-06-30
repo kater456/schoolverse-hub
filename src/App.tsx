@@ -38,6 +38,7 @@ const SignUp         = lazy(() => import("./pages/auth/SignUp"));
 const Login          = lazy(() => import("./pages/auth/Login"));
 const VerifyEmail    = lazy(() => import("./pages/auth/VerifyEmail"));
 const ForgotPassword = lazy(() => import("./pages/auth/ForgotPassword"));
+const ResetPassword  = lazy(() => import("./pages/auth/ResetPassword"));
 
 // Setup
 const SetupSuperAdmin = lazy(() => import("./pages/SetupSuperAdmin"));
@@ -147,6 +148,7 @@ const App = () => (
               <Route path="/login"           element={<Login />} />
               <Route path="/verify-email"    element={<VerifyEmail />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password"  element={<ResetPassword />} />
               <Route path="/setup-admin"     element={<SetupSuperAdmin />} />
 
               {/* Admin */}
