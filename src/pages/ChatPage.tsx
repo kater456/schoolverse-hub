@@ -242,6 +242,25 @@ const ChatPage: React.FC = () => {
         .from("conversations")
         .update({ [otherUnreadField]: current + 1, last_message: text, last_message_at: new Date().toISOString() })
         .eq("id", conversationId);
+
+      // Trigger push notification to recipient
+      if (conversation) {
+        const recipientUserId = iAmVendor ? conversation.buyer_id : conversation.vendors?.user_id;
+        if (recipientUserId) {
+          const senderName = iAmVendor
+            ? (conversation.vendors?.business_name || "Vendor")
+            : (`${user.user_metadata?.first_name || ""} ${user.user_metadata?.last_name || ""}`.trim() || "A potential client");
+
+          supabase.functions.invoke('send-push', {
+            body: {
+              user_id: recipientUserId,
+              type: 'new_enquiry',
+              data: { sender: senderName, preview: text.slice(0, 80) },
+              url: `/messages/${conversationId}`,
+            }
+          }).catch(() => {});
+        }
+      }
     }
 
     setSending(false);

@@ -95,6 +95,41 @@ export const useMarketplaceTracker = () => {
 
       if (error) {
         console.error("Error tracking marketplace event:", error);
+      } else if (eventType === 'view') {
+        // Check for milestones
+        const { count } = await supabase
+          .from("marketplace_analytics" as any)
+          .select('*', { count: 'exact', head: true })
+          .eq("vendor_id", vendorId)
+          .eq("event_type", "view");
+
+        if (count) {
+          const milestones = [10, 50, 100, 500];
+          const reachedMilestone = milestones.reverse().find(m => count >= m);
+
+          if (reachedMilestone) {
+            const { data: vendor } = await supabase
+              .from("vendors")
+              .select("user_id, last_notified_milestone")
+              .eq("id", vendorId)
+              .single();
+
+            if (vendor && reachedMilestone > (vendor.last_notified_milestone || 0)) {
+              await supabase.functions.invoke('send-push', {
+                body: {
+                  user_id: vendor.user_id,
+                  type: 'profile_view_milestone',
+                  data: { count: reachedMilestone.toString() },
+                }
+              });
+
+              await supabase
+                .from("vendors")
+                .update({ last_notified_milestone: reachedMilestone } as any)
+                .eq("id", vendorId);
+            }
+          }
+        }
       }
     } catch (e) {
       console.error("Failed to track marketplace event:", e);

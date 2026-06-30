@@ -136,11 +136,21 @@ const ManageVendors = () => {
     try { await fn(); } finally { setActionLoading(null); }
   };
 
-  const approveVendor    = (id: string) => run(id, async () => {
-    const ok = await patch(id, { is_approved: true }, "Vendor approved ✅");
+  const approveVendor    = (v: any) => run(v.id, async () => {
+    const ok = await patch(v.id, { is_approved: true }, "Vendor approved ✅");
     if (ok) {
       supabase.functions.invoke("notify-super-admin", {
         body: { type: "new_vendor", title: "New vendor joined", message: "A new vendor has been approved on the platform." },
+      }).catch(() => {});
+
+      supabase.functions.invoke('send-push', {
+        body: {
+          user_id: v.user_id,
+          type: 'broadcast',
+          title: 'Your store is now live on Campus Market 🎉',
+          body: 'Your vendor account has been approved. Start adding products and sharing your store link.',
+          url: '/dashboard',
+        }
       }).catch(() => {});
     }
   });
@@ -282,7 +292,7 @@ const ManageVendors = () => {
                       <DropdownMenuSeparator />
 
                       {!v.is_approved && v.is_active && !v.is_suspended && (
-                        <DropdownMenuItem onClick={() => approveVendor(v.id)} className="text-success focus:text-success">
+                        <DropdownMenuItem onClick={() => approveVendor(v)} className="text-success focus:text-success">
                           <Check className="h-4 w-4 mr-2" /> Approve
                         </DropdownMenuItem>
                       )}
@@ -481,7 +491,7 @@ const ManageVendors = () => {
               <div className="flex flex-wrap gap-2">
                 {!detailVendor.is_approved && detailVendor.is_active && !detailVendor.is_suspended && (
                   <Button size="sm" className="bg-success text-success-foreground hover:bg-success/90 h-8"
-                    onClick={() => approveVendor(detailVendor.id)}>
+                    onClick={() => approveVendor(detailVendor)}>
                     <Check className="h-3.5 w-3.5 mr-1" /> Approve
                   </Button>
                 )}
