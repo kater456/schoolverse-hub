@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { GraduationCap, ArrowRight, Loader2, Mail, CheckCircle2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
@@ -16,15 +17,26 @@ const ForgotPassword = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulating API call
-    setTimeout(() => {
-      setIsLoading(false);
-      setIsSubmitted(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+
+    setIsLoading(false);
+
+    if (error) {
       toast({
-        title: "Reset link sent",
-        description: "Check your email for password reset instructions.",
+        title: "Couldn't send reset link",
+        description: error.message,
+        variant: "destructive",
       });
-    }, 1500);
+      return;
+    }
+
+    setIsSubmitted(true);
+    toast({
+      title: "Reset link sent",
+      description: "Check your email for password reset instructions.",
+    });
   };
 
   if (isSubmitted) {
