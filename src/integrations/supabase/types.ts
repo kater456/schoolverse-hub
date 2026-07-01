@@ -14,6 +14,75 @@ export type Database = {
   }
   public: {
     Tables: {
+      academic_sessions: {
+        Row: {
+          course_id: string
+          course_name: string
+          created_at: string
+          id: string
+          is_open: boolean
+          locked_message: string
+          updated_at: string
+        }
+        Insert: {
+          course_id: string
+          course_name: string
+          created_at?: string
+          id?: string
+          is_open?: boolean
+          locked_message?: string
+          updated_at?: string
+        }
+        Update: {
+          course_id?: string
+          course_name?: string
+          created_at?: string
+          id?: string
+          is_open?: boolean
+          locked_message?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      academic_visitors: {
+        Row: {
+          completed_test: boolean
+          course_id: string
+          id: string
+          percentage: number | null
+          score: number | null
+          total_questions: number | null
+          user_email: string | null
+          user_id: string | null
+          user_name: string | null
+          visited_at: string
+        }
+        Insert: {
+          completed_test?: boolean
+          course_id: string
+          id?: string
+          percentage?: number | null
+          score?: number | null
+          total_questions?: number | null
+          user_email?: string | null
+          user_id?: string | null
+          user_name?: string | null
+          visited_at?: string
+        }
+        Update: {
+          completed_test?: boolean
+          course_id?: string
+          id?: string
+          percentage?: number | null
+          score?: number | null
+          total_questions?: number | null
+          user_email?: string | null
+          user_id?: string | null
+          user_name?: string | null
+          visited_at?: string
+        }
+        Relationships: []
+      }
       ad_events: {
         Row: {
           ad_id: string | null
@@ -297,6 +366,50 @@ export type Database = {
             columns: ["vendor_id"]
             isOneToOne: false
             referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_analytics: {
+        Row: {
+          anonymous_id: string | null
+          created_at: string | null
+          event_source: string | null
+          event_type: string
+          id: string
+          metadata: Json | null
+          page_url: string | null
+          user_id: string | null
+          vendor_id: string | null
+        }
+        Insert: {
+          anonymous_id?: string | null
+          created_at?: string | null
+          event_source?: string | null
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          page_url?: string | null
+          user_id?: string | null
+          vendor_id?: string | null
+        }
+        Update: {
+          anonymous_id?: string | null
+          created_at?: string | null
+          event_source?: string | null
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          page_url?: string | null
+          user_id?: string | null
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_analytics_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -665,6 +778,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
+          email: string | null
           first_name: string | null
           grade: string | null
           id: string
@@ -682,6 +796,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          email?: string | null
           first_name?: string | null
           grade?: string | null
           id?: string
@@ -699,6 +814,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           created_at?: string
+          email?: string | null
           first_name?: string | null
           grade?: string | null
           id?: string
@@ -953,6 +1069,50 @@ export type Database = {
           },
         ]
       }
+      subscription_events: {
+        Row: {
+          amount_ngn: number | null
+          created_at: string | null
+          event_type: string
+          id: string
+          paystack_ref: string | null
+          plan: string | null
+          raw_payload: Json | null
+          subscription_code: string | null
+          vendor_id: string | null
+        }
+        Insert: {
+          amount_ngn?: number | null
+          created_at?: string | null
+          event_type: string
+          id?: string
+          paystack_ref?: string | null
+          plan?: string | null
+          raw_payload?: Json | null
+          subscription_code?: string | null
+          vendor_id?: string | null
+        }
+        Update: {
+          amount_ngn?: number | null
+          created_at?: string | null
+          event_type?: string
+          id?: string
+          paystack_ref?: string | null
+          plan?: string | null
+          raw_payload?: Json | null
+          subscription_code?: string | null
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_events_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transactions: {
         Row: {
           created_at: string | null
@@ -1144,6 +1304,38 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "vendor_ai_videos_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendor_analytics: {
+        Row: {
+          event_type: string
+          id: string
+          occurred_at: string
+          vendor_id: string
+          visitor_id: string | null
+        }
+        Insert: {
+          event_type: string
+          id?: string
+          occurred_at?: string
+          vendor_id: string
+          visitor_id?: string | null
+        }
+        Update: {
+          event_type?: string
+          id?: string
+          occurred_at?: string
+          vendor_id?: string
+          visitor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_analytics_vendor_id_fkey"
             columns: ["vendor_id"]
             isOneToOne: false
             referencedRelation: "vendors"
@@ -1818,6 +2010,7 @@ export type Database = {
       }
       vendors: {
         Row: {
+          academic_level: string | null
           accepts_orders: boolean | null
           banner_url: string | null
           brand_name: string | null
@@ -1828,7 +2021,9 @@ export type Database = {
           country: string | null
           created_at: string
           delivery_available: boolean | null
+          department: string | null
           description: string | null
+          email_token: string | null
           id: string
           is_active: boolean | null
           is_approved: boolean | null
@@ -1859,6 +2054,11 @@ export type Database = {
           store_theme_color: string | null
           store_upgrade_expires_at: string | null
           strike_count: number | null
+          subscription_code: string | null
+          subscription_expires: string | null
+          subscription_plan: string
+          subscription_start: string | null
+          subscription_status: string
           updated_at: string
           upgrade_payment_ref: string | null
           upgrade_payment_status: string | null
@@ -1866,9 +2066,11 @@ export type Database = {
           vendor_of_week_expires_at: string | null
           verification_applied_at: string | null
           verification_payment_ref: string | null
+          video_credits: number
           whatsapp_orders: boolean | null
         }
         Insert: {
+          academic_level?: string | null
           accepts_orders?: boolean | null
           banner_url?: string | null
           brand_name?: string | null
@@ -1879,7 +2081,9 @@ export type Database = {
           country?: string | null
           created_at?: string
           delivery_available?: boolean | null
+          department?: string | null
           description?: string | null
+          email_token?: string | null
           id?: string
           is_active?: boolean | null
           is_approved?: boolean | null
@@ -1910,6 +2114,11 @@ export type Database = {
           store_theme_color?: string | null
           store_upgrade_expires_at?: string | null
           strike_count?: number | null
+          subscription_code?: string | null
+          subscription_expires?: string | null
+          subscription_plan?: string
+          subscription_start?: string | null
+          subscription_status?: string
           updated_at?: string
           upgrade_payment_ref?: string | null
           upgrade_payment_status?: string | null
@@ -1917,9 +2126,11 @@ export type Database = {
           vendor_of_week_expires_at?: string | null
           verification_applied_at?: string | null
           verification_payment_ref?: string | null
+          video_credits?: number
           whatsapp_orders?: boolean | null
         }
         Update: {
+          academic_level?: string | null
           accepts_orders?: boolean | null
           banner_url?: string | null
           brand_name?: string | null
@@ -1930,7 +2141,9 @@ export type Database = {
           country?: string | null
           created_at?: string
           delivery_available?: boolean | null
+          department?: string | null
           description?: string | null
+          email_token?: string | null
           id?: string
           is_active?: boolean | null
           is_approved?: boolean | null
@@ -1961,6 +2174,11 @@ export type Database = {
           store_theme_color?: string | null
           store_upgrade_expires_at?: string | null
           strike_count?: number | null
+          subscription_code?: string | null
+          subscription_expires?: string | null
+          subscription_plan?: string
+          subscription_start?: string | null
+          subscription_status?: string
           updated_at?: string
           upgrade_payment_ref?: string | null
           upgrade_payment_status?: string | null
@@ -1968,6 +2186,7 @@ export type Database = {
           vendor_of_week_expires_at?: string | null
           verification_applied_at?: string | null
           verification_payment_ref?: string | null
+          video_credits?: number
           whatsapp_orders?: boolean | null
         }
         Relationships: [
@@ -1990,6 +2209,41 @@ export type Database = {
             columns: ["school_id"]
             isOneToOne: false
             referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      video_credit_purchases: {
+        Row: {
+          amount_ngn: number
+          created_at: string | null
+          credits_added: number
+          id: string
+          paystack_ref: string | null
+          vendor_id: string | null
+        }
+        Insert: {
+          amount_ngn: number
+          created_at?: string | null
+          credits_added?: number
+          id?: string
+          paystack_ref?: string | null
+          vendor_id?: string | null
+        }
+        Update: {
+          amount_ngn?: number
+          created_at?: string | null
+          credits_added?: number
+          id?: string
+          paystack_ref?: string | null
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_credit_purchases_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
             referencedColumns: ["id"]
           },
         ]
