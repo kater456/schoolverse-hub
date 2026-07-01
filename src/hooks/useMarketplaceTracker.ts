@@ -110,9 +110,10 @@ export const useMarketplaceTracker = () => {
           if (reachedMilestone) {
             const { data: vendor } = await supabase
               .from("vendors")
-              .select("user_id, last_notified_milestone")
+              .select("user_id, last_notified_milestone" as any)
               .eq("id", vendorId)
-              .single();
+              .single() as any;
+
 
             if (vendor && reachedMilestone > (vendor.last_notified_milestone || 0)) {
               await supabase.functions.invoke('send-push', {
