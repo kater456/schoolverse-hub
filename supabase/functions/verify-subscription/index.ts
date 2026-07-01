@@ -26,6 +26,40 @@ serve(async (req) => {
       );
     }
 
+    // ── Authenticate caller & verify they own this vendor ─────────────
+    const token = req.headers.get("Authorization")?.replace("Bearer ", "");
+    const { data: userData } = token
+      ? await supabase.auth.getUser(token)
+      : ({ data: { user: null } } as any);
+    if (!userData?.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { data: ownerRow } = await supabase
+      .from("vendors").select("user_id").eq("id", vendor_id).single();
+    if (!ownerRow || ownerRow.user_id !== userData.user.id) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ── Idempotency: skip if this reference was already processed ─────
+    const { data: existingEvent } = await supabase
+      .from("subscription_events")
+      .select("id")
+      .eq("paystack_ref", reference)
+      .in("event_type", ["charge.success", "subscription.create", "subscription.verify.success"])
+      .maybeSingle();
+
+    if (existingEvent) {
+      return new Response(
+        JSON.stringify({ success: true, message: "Already processed", idempotent: true }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+
     // ── Verify the transaction with Paystack ──────────────────────────
     const paystackRes = await fetch(
       `https://api.paystack.co/transaction/verify/${reference}`,
