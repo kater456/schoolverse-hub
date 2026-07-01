@@ -210,7 +210,15 @@ const VendorRegistration = () => {
         } as any)
         .select().single();
 
-      if (vendorError) throw vendorError;
+      if (vendorError) {
+        if (vendorError.code === '23505') {
+          // Duplicate application — show the already-submitted screen
+          setHasExistingApplication(true);
+          setIsSubmitting(false);
+          return;
+        }
+        throw vendorError;
+      }
 
       let vendorPhotoUrl = null;
       if (vendorPhoto) vendorPhotoUrl = await uploadFile(vendorPhoto, `${user.id}/vendor-photo-${Date.now()}`);

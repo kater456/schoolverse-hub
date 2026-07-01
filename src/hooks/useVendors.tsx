@@ -121,7 +121,7 @@ export const useAllVendors = (opts: UseAllVendorsOpts = {}) => {
       )
       .order("created_at", { ascending: false });
 
-    if (status === "active") q = q.neq("is_active", false);
+    if (status === "active") q = q.eq("is_active", true);
     if (status === "rejected") q = q.eq("is_active", false);
 
     const term = search.trim();
