@@ -178,6 +178,7 @@ const VendorRegistration = () => {
   // ── Submit ────────────────────────────────────────────────────────────────
   const onSubmit = async (data: VendorFormData) => {
     if (!user) return;
+    if (isSubmitting) return; // extra guard against double-tap race condition
 
     if (isOtherServices && !otherServiceSpec.trim()) {
       toast({ title: "Please specify your service", description: 'Describe what you offer under "Other Services".', variant: "destructive" });
