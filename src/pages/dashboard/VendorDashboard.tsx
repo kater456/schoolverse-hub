@@ -38,6 +38,7 @@ import ProFeatureGate from "@/components/vendor/ProFeatureGate";
 import VendorLiveLocation from "@/components/vendor/VendorLiveLocation";
 import VendorLocationSettings from "@/components/vendor/VendorLocationSettings";
 import { resolvePlan, SUBSCRIPTION_PLAN_CODES, isSubscriptionActive, hasPlan, daysRemaining } from "@/lib/pricing";
+import VendorAnalytics from "@/components/vendor/VendorAnalytics";
 
 const VendorDashboard = () => {
   const { user, signOut } = useAuth();
