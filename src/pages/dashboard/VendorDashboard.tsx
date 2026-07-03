@@ -791,6 +791,7 @@ const VendorDashboard = () => {
                 { v: "verify",       icon: ShieldCheck,   label: vendor.is_verified ? "Verified ✅" : "Get Verified" },
                 { v: "testimonials", icon: MessageSquare, label: "Reviews"                                  },
                 { v: "engagement",   icon: BarChart3,     label: "Insights"                                 },
+                { v: "analytics",    icon: TrendingUp,    label: "Analytics"                                },
               ].map(({ v, icon: Icon, label }) => (
                 <TabsTrigger key={v} value={v}
                   className="w-full justify-start gap-2.5 px-3 h-9 text-sm rounded-xl border-0 bg-transparent data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm font-medium">
