@@ -1449,6 +1449,7 @@ const VendorDashboard = () => {
             {[
               { v: "deals",        icon: Flame,         label: "Deals",     color: "bg-orange-50 text-orange-600"  },
               { v: "engagement",   icon: BarChart3,     label: "Insights",  color: "bg-blue-50 text-blue-600"    },
+              { v: "analytics",    icon: TrendingUp,    label: "Analytics", color: "bg-teal-50 text-teal-600"    },
               { v: "store",        icon: Crown,         label: "Store",     color: "bg-amber-50 text-amber-600"   },
               { v: "testimonials", icon: MessageSquare, label: "Reviews",   color: "bg-pink-50 text-pink-600"    },
               { v: "verify",       icon: ShieldCheck,   label: vendor.is_verified ? "Verified ✅" : "Verify", color: "bg-green-50 text-green-600" },
