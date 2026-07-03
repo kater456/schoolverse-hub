@@ -110,7 +110,11 @@ CREATE POLICY "Anyone can update vendor customers"
 ON public.vendor_customers
 FOR UPDATE
 TO public
-USING (true)
+USING (
+    (auth.uid() IS NOT NULL AND auth.uid() = buyer_id)
+    OR
+    (buyer_id IS NULL AND visitor_id IS NOT NULL)
+)
 WITH CHECK (true);
 
 -- Enable Realtime

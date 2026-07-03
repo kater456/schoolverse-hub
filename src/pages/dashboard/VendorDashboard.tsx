@@ -32,6 +32,7 @@ import VendorStoreUpgrade from "@/components/vendor/VendorStoreUpgrade";
 import VendorTestimonialManager from "@/components/vendor/VendorTestimonialManager";
 import VendorAIAdvisor from "@/components/vendor/VendorAiAdvisor";
 import VendorCommunity from "@/components/vendor/VendorCommunity";
+import VendorAnalytics from "@/components/vendor/VendorAnalytics";
 import { TrustScoreBreakdown } from "@/components/guarantee/TrustScore";
 import ExitPortfolio from "@/components/vendor/ExitPortfolio";
 import ProFeatureGate from "@/components/vendor/ProFeatureGate";
@@ -988,7 +989,8 @@ const VendorDashboard = () => {
                 </Card>
               </TabsContent>
 
-              <TabsContent value="engagement">
+              <TabsContent value="engagement" className="space-y-6">
+                <VendorAnalytics vendorId={vendor.id} />
                 <div className="grid lg:grid-cols-2 gap-6">
                   <Card className="border-border/50">
                     <CardHeader><CardTitle className="text-base flex items-center gap-2"><MessageSquare className="h-4 w-4" /> Recent Comments</CardTitle></CardHeader>
@@ -1311,7 +1313,8 @@ const VendorDashboard = () => {
               </Card>
             </TabsContent>
             <TabsContent value="deals"><VendorDealManager vendorId={vendor.id} /></TabsContent>
-            <TabsContent value="engagement">
+            <TabsContent value="engagement" className="space-y-4">
+              <VendorAnalytics vendorId={vendor.id} />
               <Card className="border-border/50">
                 <CardHeader><CardTitle className="text-base flex items-center gap-2"><BarChart3 className="h-4 w-4" /> Business Visibility</CardTitle></CardHeader>
                 <CardContent className="space-y-2">

@@ -8,10 +8,21 @@ const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 
 export type TrackerEventType = 'view' | 'inquiry_click' | 'message_sent' | 'order_started' | 'order_completed';
 
+const generateUUID = () => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+};
+
 const getVisitorId = (): string => {
   let id = safeLocalStorage.getItem(VISITOR_ID_KEY);
   if (!id) {
-    id = crypto.randomUUID?.() || Math.random().toString(36).substring(2) + Date.now().toString(36);
+    id = generateUUID();
     safeLocalStorage.setItem(VISITOR_ID_KEY, id);
   }
   return id;
@@ -23,7 +34,7 @@ const getSessionId = (): string => {
   let expiry = safeSessionStorage.getItem(SESSION_EXPIRY_KEY);
 
   if (!id || !expiry || now > parseInt(expiry)) {
-    id = crypto.randomUUID?.() || Math.random().toString(36).substring(2) + Date.now().toString(36);
+    id = generateUUID();
     safeSessionStorage.setItem(SESSION_ID_KEY, id);
   }
 
