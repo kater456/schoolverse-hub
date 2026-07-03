@@ -38,6 +38,7 @@ import ProFeatureGate from "@/components/vendor/ProFeatureGate";
 import VendorLiveLocation from "@/components/vendor/VendorLiveLocation";
 import VendorLocationSettings from "@/components/vendor/VendorLocationSettings";
 import { resolvePlan, SUBSCRIPTION_PLAN_CODES, isSubscriptionActive, hasPlan, daysRemaining } from "@/lib/pricing";
+import VendorAnalytics from "@/components/vendor/VendorAnalytics";
 
 const VendorDashboard = () => {
   const { user, signOut } = useAuth();
@@ -790,6 +791,7 @@ const VendorDashboard = () => {
                 { v: "verify",       icon: ShieldCheck,   label: vendor.is_verified ? "Verified ✅" : "Get Verified" },
                 { v: "testimonials", icon: MessageSquare, label: "Reviews"                                  },
                 { v: "engagement",   icon: BarChart3,     label: "Insights"                                 },
+                { v: "analytics",    icon: TrendingUp,    label: "Analytics"                                },
               ].map(({ v, icon: Icon, label }) => (
                 <TabsTrigger key={v} value={v}
                   className="w-full justify-start gap-2.5 px-3 h-9 text-sm rounded-xl border-0 bg-transparent data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm font-medium">
@@ -1042,6 +1044,12 @@ const VendorDashboard = () => {
                   </Card>
                 </div>
               </TabsContent>
+
+              <TabsContent value="analytics">
+                <VendorAnalytics />
+              </TabsContent>
+
+
 
               <TabsContent value="verify">
                 <div className="space-y-6 max-w-xl">
@@ -1327,6 +1335,9 @@ const VendorDashboard = () => {
                 </CardContent>
               </Card>
             </TabsContent>
+            <TabsContent value="analytics">
+              <VendorAnalytics />
+            </TabsContent>
             <TabsContent value="store">
               <ProFeatureGate vendor={vendor} feature="Store Designer" description="Customize your store with a banner, brand colors, and a premium layout." icon="🏪" onUpgradeSuccess={(v) => setVendor(v)}>
                 <VendorStoreUpgrade vendor={vendor} onUpdate={(v) => setVendor((prev: any) => ({ ...prev, ...v }))} />
@@ -1438,6 +1449,7 @@ const VendorDashboard = () => {
             {[
               { v: "deals",        icon: Flame,         label: "Deals",     color: "bg-orange-50 text-orange-600"  },
               { v: "engagement",   icon: BarChart3,     label: "Insights",  color: "bg-blue-50 text-blue-600"    },
+              { v: "analytics",    icon: TrendingUp,    label: "Analytics", color: "bg-teal-50 text-teal-600"    },
               { v: "store",        icon: Crown,         label: "Store",     color: "bg-amber-50 text-amber-600"   },
               { v: "testimonials", icon: MessageSquare, label: "Reviews",   color: "bg-pink-50 text-pink-600"    },
               { v: "verify",       icon: ShieldCheck,   label: vendor.is_verified ? "Verified ✅" : "Verify", color: "bg-green-50 text-green-600" },
