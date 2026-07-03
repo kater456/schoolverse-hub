@@ -70,12 +70,18 @@ export const trackEvent = async (
       } as any);
     }
 
-    // 3. Upsert into vendor_customers
-    // We only upsert if we have a userId (authenticated) or a visitorId (anonymous)
-    // To prevent redundant rows for anonymous users due to unique(vendor_id, buyer_id),
-    // we only update if buyer_id is NOT null OR we use a different approach.
-    // Given the unique constraint UNIQUE(vendor_id, buyer_id), we should only upsert for authenticated users.
-    if (userId) {
+    // 3. Upsert into vendor_customers via RPC for CRM tracking
+    if (eventType === 'message_sent' || eventType === 'inquiry_click') {
+      await supabase.rpc('track_vendor_customer', {
+        p_vendor_id: vendorId,
+        p_buyer_id: userId,
+        p_visitor_id: visitorId,
+        p_is_order: false,
+        p_amount: 0, // Tracker doesn't know the amount, Paystack webhook handles that
+        p_is_inquiry: true,
+      });
+    } else if (userId) {
+      // For other events, we still want to link the visitor_id to the buyer_id if authenticated
       await supabase.from("vendor_customers").upsert({
         vendor_id: vendorId,
         buyer_id: userId,
@@ -85,9 +91,6 @@ export const trackEvent = async (
         onConflict: 'vendor_id, buyer_id'
       });
     }
-    // For anonymous tracking of "customers", we might need another table or
-    // a unique constraint that includes visitor_id.
-    // The current requirement didn't specify anonymous CRM tracking in detail.
 
   } catch (e) {
     console.error("Failed to track event:", e);
