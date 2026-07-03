@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useMarketplaceTracker } from "@/hooks/useMarketplaceTracker";
+import { trackEvent as trackVendorEvent } from "@/lib/tracker";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { Badge } from "@/components/ui/badge";
@@ -114,6 +115,7 @@ const StorePage = () => {
             campusName: vendorRes.data.campus_locations?.name,
             vendorCategory: vendorRes.data.category
           });
+          trackVendorEvent(vendorId, 'view');
         }
         setProducts(productsRes.data || []);
       } catch (err) {
@@ -561,6 +563,7 @@ const StorePage = () => {
                 accentColor={accentColor}
                 index={i}
                 viewMode="grid"
+                onView={() => trackVendorEvent(vendor.id, 'view', product.id)}
               />
             ))}
           </div>
@@ -578,6 +581,7 @@ const StorePage = () => {
                 accentColor={accentColor}
                 index={i}
                 viewMode="list"
+                onView={() => trackVendorEvent(vendor.id, 'view', product.id)}
               />
             ))}
           </div>
@@ -633,6 +637,7 @@ const ProductCard = ({
   accentColor,
   index,
   viewMode,
+  onView,
 }: {
   product: Product;
   vendor: any;
@@ -640,8 +645,14 @@ const ProductCard = ({
   accentColor: string | null;
   index: number;
   viewMode: "grid" | "list";
+  onView?: () => void;
 }) => {
   const { trackEvent } = useMarketplaceTracker();
+
+  useEffect(() => {
+    if (onView) onView();
+  }, [onView]);
+
   const priceColor = accentColor || themeColor || undefined;
   const delay = `${Math.min(index * 50, 400)}ms`;
 
@@ -698,6 +709,7 @@ const ProductCard = ({
             <ContactVendorButton
               vendorId={vendor.id}
               vendorUserId={vendor.user_id}
+              productId={product.id}
               variant="outline"
               className="h-7 text-xs px-2.5 rounded-lg"
               label="Buy"
@@ -738,6 +750,7 @@ const ProductCard = ({
           <ContactVendorButton
             vendorId={vendor.id}
             vendorUserId={vendor.user_id}
+            productId={product.id}
             variant="default"
             className="w-full h-8 text-xs rounded-lg font-medium"
             label="💬 Message to Buy"
