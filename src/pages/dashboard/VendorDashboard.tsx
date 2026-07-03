@@ -1045,6 +1045,12 @@ const VendorDashboard = () => {
                 </div>
               </TabsContent>
 
+              <TabsContent value="analytics">
+                <VendorAnalytics />
+              </TabsContent>
+
+
+
               <TabsContent value="verify">
                 <div className="space-y-6 max-w-xl">
                   {vendor.is_verified ? (
