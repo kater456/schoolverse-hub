@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { isRealtimeSafe } from "@/lib/safeStorage";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { trackEvent as trackVendorEvent } from "@/lib/tracker";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -223,6 +224,9 @@ const ChatPage: React.FC = () => {
       toast({ title: "Failed to send message", variant: "destructive" });
       setInputText(text); // restore
     } else {
+      if (!iAmVendor && conversation?.vendor_id) {
+        trackVendorEvent(conversation.vendor_id, 'message_sent');
+      }
       // Update conversation last_message and increment other party's unread
       const otherUnreadField = iAmVendor ? "buyer_unread" : "vendor_unread";
       await (supabase as any).from("conversations").update({

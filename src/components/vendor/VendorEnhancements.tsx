@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { trackEvent as trackVendorEvent } from "@/lib/tracker";
 import { toast } from "sonner";
 import {
   Heart, ShoppingCart, CalendarClock, HelpCircle, Share2,
@@ -219,6 +220,7 @@ export const QuickCartSheet = ({
       const cart = JSON.parse(safeLocalStorage.getItem(key) || "[]");
       cart.push({ ...p, vendor_id: vendorId, vendor_name: vendorName, qty: 1 });
       safeLocalStorage.setItem(key, JSON.stringify(cart));
+      trackVendorEvent(vendorId, 'order_started', p.id);
       toast.success(`${p.name} added to cart`);
     } catch {
       toast.error("Couldn't add to cart");
@@ -282,6 +284,7 @@ export const SchedulePickupSheet = ({
     });
     setSaving(false);
     if (error) { toast.error(error.message); return; }
+    trackVendorEvent(vendorId, 'order_started');
     toast.success("Pickup scheduled ✅");
     onOpenChange(false);
     setWhen(""); setNote("");

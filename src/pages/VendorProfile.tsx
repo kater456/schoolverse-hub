@@ -4,6 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useMarketplaceTracker } from "@/hooks/useMarketplaceTracker";
+import { trackEvent as trackVendorEvent } from "@/lib/tracker";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { Badge } from "@/components/ui/badge";
@@ -198,6 +199,7 @@ const VendorProfile = () => {
             campusName: data.campus_locations?.name,
             vendorCategory: data.category
           });
+          trackVendorEvent(id, 'view');
         }
 
         // Run ALL secondary queries in parallel

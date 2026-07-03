@@ -3,12 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { trackEvent as trackVendorEvent } from "@/lib/tracker";
 import { Button } from "@/components/ui/button";
 import { MessageCircle, Loader2 } from "lucide-react";
 
 interface Props {
   vendorId: string;
   vendorUserId: string;
+  productId?: string;
   variant?: "default" | "outline";
   className?: string;
   label?: string;
@@ -17,6 +19,7 @@ interface Props {
 const ContactVendorButton = ({
   vendorId,
   vendorUserId,
+  productId,
   variant = "default",
   className = "",
   label = "Message Vendor",
@@ -40,6 +43,12 @@ const ContactVendorButton = ({
     }
 
     setLoading(true);
+    trackVendorEvent(vendorId, 'inquiry_click', productId);
+
+    // If it's a "Buy" or "Order" button, track order_started
+    if (label.toLowerCase().includes('buy') || label.toLowerCase().includes('order')) {
+      trackVendorEvent(vendorId, 'order_started', productId);
+    }
 
     // Check if conversation already exists
     const { data: existing } = await (supabase as any)
@@ -74,6 +83,7 @@ const ContactVendorButton = ({
       return;
     }
 
+    trackVendorEvent(vendorId, 'message_sent', productId);
     navigate(`/chat/${conv.id}`);
     setLoading(false);
   };
