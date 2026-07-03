@@ -39,6 +39,7 @@ import VendorLiveLocation from "@/components/vendor/VendorLiveLocation";
 import VendorLocationSettings from "@/components/vendor/VendorLocationSettings";
 import { resolvePlan, SUBSCRIPTION_PLAN_CODES, isSubscriptionActive, hasPlan, daysRemaining } from "@/lib/pricing";
 import VendorAnalytics from "@/components/vendor/VendorAnalytics";
+import VendorCustomerList from "@/components/vendor/VendorCustomerList";
 
 const VendorDashboard = () => {
   const { user, signOut } = useAuth();
@@ -776,6 +777,7 @@ const VendorDashboard = () => {
                 { v: "products", icon: Package,     label: "Products"       },
                 { v: "reels",    icon: Film,        label: "Reels & Videos" },
                 { v: "orders",   icon: ShoppingBag, label: "Orders"         },
+                { v: "customers",icon: Users,       label: "Customers"      },
                 { v: "deals",    icon: Flame,       label: "Deals"          },
               ].map(({ v, icon: Icon, label }) => (
                 <TabsTrigger key={v} value={v}
@@ -838,6 +840,19 @@ const VendorDashboard = () => {
             <div className="flex-1 min-w-0">
               <TabsContent value="products">
                 <VendorProductManager vendorId={vendor.id} schoolId={vendor.school_id} />
+              </TabsContent>
+
+              <TabsContent value="customers">
+                <Card className="border-border/50">
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Users className="h-4 w-4" /> Customer CRM
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <VendorCustomerList vendorId={vendor.id} />
+                  </CardContent>
+                </Card>
               </TabsContent>
 
               <TabsContent value="reels">
@@ -1258,6 +1273,18 @@ const VendorDashboard = () => {
             <TabsContent value="products">
               <VendorProductManager vendorId={vendor.id} schoolId={vendor.school_id} />
             </TabsContent>
+            <TabsContent value="customers">
+              <Card className="border-border/50">
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Users className="h-4 w-4" /> Customers
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <VendorCustomerList vendorId={vendor.id} />
+                </CardContent>
+              </Card>
+            </TabsContent>
             <TabsContent value="reels">
               <ProFeatureGate vendor={vendor} feature="AI Video Generator & Reels" description="Create cinematic product videos and publish them as reels on your store profile." icon="🎬" onUpgradeSuccess={(v) => setVendor(v)}>
                 <div className="space-y-6">
@@ -1447,6 +1474,7 @@ const VendorDashboard = () => {
           <div className="w-8 h-1 bg-muted rounded-full mx-auto mb-4" />
           <div className="grid grid-cols-3 gap-3">
             {[
+              { v: "customers",    icon: Users,         label: "Customers", color: "bg-indigo-50 text-indigo-600" },
               { v: "deals",        icon: Flame,         label: "Deals",     color: "bg-orange-50 text-orange-600"  },
               { v: "engagement",   icon: BarChart3,     label: "Insights",  color: "bg-blue-50 text-blue-600"    },
               { v: "analytics",    icon: TrendingUp,    label: "Analytics", color: "bg-teal-50 text-teal-600"    },
