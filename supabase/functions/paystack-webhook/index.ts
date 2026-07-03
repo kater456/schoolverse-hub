@@ -108,7 +108,6 @@ serve(async (req) => {
 
   // ── Track order_completed if it's a customer order ──
   if (event === "charge.success" && data?.metadata?.vendor_id && data?.metadata?.order_id) {
-    // 1. Log event
     await supabase.from("vendor_events").insert({
       vendor_id: data.metadata.vendor_id,
       product_id: data.metadata.product_id || null,
@@ -116,26 +115,6 @@ serve(async (req) => {
       visitor_id: data.metadata.visitor_id || 'webhook',
       session_id: data.metadata.session_id || '00000000-0000-0000-0000-000000000000',
     } as any);
-
-    // 2. Upsert into vendor_customers via RPC
-    let buyerId = data.metadata.buyer_id;
-    if (!buyerId && data.customer?.email) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("user_id")
-        .eq("email", data.customer.email)
-        .maybeSingle();
-      buyerId = profile?.user_id || null;
-    }
-
-    await supabase.rpc('track_vendor_customer', {
-      p_vendor_id: data.metadata.vendor_id,
-      p_buyer_id: buyerId || null,
-      p_visitor_id: data.metadata.visitor_id || null,
-      p_is_order: true,
-      p_amount: (data.amount || 0) / 100, // Convert kobo to NGN
-      p_is_inquiry: false,
-    });
   }
 
   // ── charge.success ─────────────────────────────────────────────────

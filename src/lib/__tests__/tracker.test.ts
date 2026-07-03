@@ -37,25 +37,27 @@ describe('trackEvent', () => {
 
     expect(supabase.rpc).toHaveBeenCalledWith('track_vendor_customer', expect.objectContaining({
       p_vendor_id: 'vendor-123',
-      p_is_order: false,
+      p_is_inquiry: true,
     }));
   });
 
-  it('should NOT call track_vendor_customer RPC for order_completed event (webhook handles it)', async () => {
+  it('should NOT call track_vendor_customer RPC for order_completed event', async () => {
     await trackEvent('vendor-123', 'order_completed');
 
     expect(supabase.rpc).not.toHaveBeenCalledWith('track_vendor_customer', expect.anything());
   });
 
-  it('should upsert into vendor_customers for view event when authenticated', async () => {
+  it('should call track_vendor_customer RPC for view event when authenticated', async () => {
     (supabase.auth.getSession as any).mockResolvedValue({
       data: { session: { user: { id: 'user-456' } } }
     });
 
     await trackEvent('vendor-123', 'view');
 
-    expect(supabase.from).toHaveBeenCalledWith('vendor_customers');
-    // Check if upsert was called (supabase.from('vendor_customers').upsert(...))
-    // Our mock is a bit simple, but we can verify the 'from' call
+    expect(supabase.rpc).toHaveBeenCalledWith('track_vendor_customer', expect.objectContaining({
+      p_vendor_id: 'vendor-123',
+      p_buyer_id: 'user-456',
+      p_is_inquiry: false,
+    }));
   });
 });

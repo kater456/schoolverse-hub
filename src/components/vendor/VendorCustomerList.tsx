@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Users, Search, Calendar, ShoppingBag,
+  Users, Search, Calendar,
   MessageSquare, Edit3, Save, X, Loader2, User
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
@@ -19,8 +19,7 @@ interface Customer {
   visitor_id: string | null;
   first_seen: string;
   last_seen: string;
-  total_orders: number;
-  total_spent: number;
+  inquiry_count: number;
   has_inquired?: boolean;
   notes: string | null;
   profiles?: {
@@ -93,10 +92,7 @@ export const VendorCustomerList = ({ vendorId }: { vendorId: string }) => {
   });
 
   const getBadge = (c: Customer) => {
-    if (c.total_orders >= 2) return <Badge className="bg-primary/20 text-primary border-primary/30">Repeat buyer</Badge>;
-    if (c.total_orders === 0 && c.has_inquired) {
-        return <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50">Inquired, no purchase</Badge>;
-    }
+    if (c.inquiry_count >= 2) return <Badge className="bg-primary/20 text-primary border-primary/30">Frequent Inquirer</Badge>;
     return <Badge variant="secondary">New</Badge>;
   };
 
@@ -156,11 +152,8 @@ export const VendorCustomerList = ({ vendorId }: { vendorId: string }) => {
                       </p>
                       <div className="flex items-center gap-4 mt-3">
                         <div className="flex items-center gap-1.5">
-                          <ShoppingBag className="h-3.5 w-3.5 text-muted-foreground" />
-                          <span className="text-sm font-semibold">{c.total_orders} orders</span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-sm font-bold text-accent">₦{Number(c.total_spent).toLocaleString()}</span>
+                          <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span className="text-sm font-semibold">{c.inquiry_count} {c.inquiry_count === 1 ? 'inquiry' : 'inquiries'}</span>
                         </div>
                       </div>
                     </div>

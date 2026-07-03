@@ -1,5 +1,10 @@
 
--- Add has_inquired column to vendor_customers
+-- Clean up old columns we shouldn't be using for CRM if buyers and vendors transact off-platform
+ALTER TABLE public.vendor_customers DROP COLUMN IF EXISTS total_orders;
+ALTER TABLE public.vendor_customers DROP COLUMN IF EXISTS total_spent;
+
+-- Add inquiry_count column
+ALTER TABLE public.vendor_customers ADD COLUMN IF NOT EXISTS inquiry_count INTEGER DEFAULT 0;
 ALTER TABLE public.vendor_customers ADD COLUMN IF NOT EXISTS has_inquired BOOLEAN DEFAULT FALSE;
 
 -- Add unique index for anonymous visitors
@@ -16,8 +21,6 @@ CREATE OR REPLACE FUNCTION public.track_vendor_customer(
   p_vendor_id UUID,
   p_buyer_id UUID DEFAULT NULL,
   p_visitor_id TEXT DEFAULT NULL,
-  p_is_order BOOLEAN DEFAULT FALSE,
-  p_amount NUMERIC DEFAULT 0,
   p_is_inquiry BOOLEAN DEFAULT FALSE
 ) RETURNS VOID AS $$
 DECLARE
@@ -33,8 +36,7 @@ BEGIN
       SET
         last_seen = now(),
         visitor_id = COALESCE(p_visitor_id, visitor_id),
-        total_orders = total_orders + CASE WHEN p_is_order THEN 1 ELSE 0 END,
-        total_spent = total_spent + CASE WHEN p_is_order THEN p_amount ELSE 0 END,
+        inquiry_count = inquiry_count + CASE WHEN p_is_inquiry THEN 1 ELSE 0 END,
         has_inquired = has_inquired OR p_is_inquiry
       WHERE id = v_customer_id;
       RETURN;
@@ -50,8 +52,7 @@ BEGIN
          SET
            buyer_id = p_buyer_id,
            last_seen = now(),
-           total_orders = total_orders + CASE WHEN p_is_order THEN 1 ELSE 0 END,
-           total_spent = total_spent + CASE WHEN p_is_order THEN p_amount ELSE 0 END,
+           inquiry_count = inquiry_count + CASE WHEN p_is_inquiry THEN 1 ELSE 0 END,
            has_inquired = has_inquired OR p_is_inquiry
          WHERE id = v_customer_id;
          RETURN;
@@ -64,8 +65,7 @@ BEGIN
       buyer_id,
       visitor_id,
       last_seen,
-      total_orders,
-      total_spent,
+      inquiry_count,
       has_inquired
     )
     VALUES (
@@ -73,8 +73,7 @@ BEGIN
       p_buyer_id,
       p_visitor_id,
       now(),
-      CASE WHEN p_is_order THEN 1 ELSE 0 END,
-      CASE WHEN p_is_order THEN p_amount ELSE 0 END,
+      CASE WHEN p_is_inquiry THEN 1 ELSE 0 END,
       p_is_inquiry
     );
 
@@ -87,8 +86,7 @@ BEGIN
       UPDATE public.vendor_customers
       SET
         last_seen = now(),
-        total_orders = total_orders + CASE WHEN p_is_order THEN 1 ELSE 0 END,
-        total_spent = total_spent + CASE WHEN p_is_order THEN p_amount ELSE 0 END,
+        inquiry_count = inquiry_count + CASE WHEN p_is_inquiry THEN 1 ELSE 0 END,
         has_inquired = has_inquired OR p_is_inquiry
       WHERE id = v_customer_id;
     ELSE
@@ -97,16 +95,14 @@ BEGIN
         vendor_id,
         visitor_id,
         last_seen,
-        total_orders,
-        total_spent,
+        inquiry_count,
         has_inquired
       )
       VALUES (
         p_vendor_id,
         p_visitor_id,
         now(),
-        CASE WHEN p_is_order THEN 1 ELSE 0 END,
-        CASE WHEN p_is_order THEN p_amount ELSE 0 END,
+        CASE WHEN p_is_inquiry THEN 1 ELSE 0 END,
         p_is_inquiry
       );
     END IF;

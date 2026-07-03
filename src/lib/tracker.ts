@@ -71,24 +71,13 @@ export const trackEvent = async (
     }
 
     // 3. Upsert into vendor_customers via RPC for CRM tracking
-    if (eventType === 'message_sent' || eventType === 'inquiry_click') {
+    // We track engagement: views, inquiry clicks, and sent messages.
+    if (['view', 'inquiry_click', 'message_sent'].includes(eventType)) {
       await supabase.rpc('track_vendor_customer', {
         p_vendor_id: vendorId,
         p_buyer_id: userId,
         p_visitor_id: visitorId,
-        p_is_order: false,
-        p_amount: 0, // Tracker doesn't know the amount, Paystack webhook handles that
-        p_is_inquiry: true,
-      });
-    } else if (userId) {
-      // For other events, we still want to link the visitor_id to the buyer_id if authenticated
-      await supabase.from("vendor_customers").upsert({
-        vendor_id: vendorId,
-        buyer_id: userId,
-        visitor_id: visitorId,
-        last_seen: new Date().toISOString(),
-      } as any, {
-        onConflict: 'vendor_id, buyer_id'
+        p_is_inquiry: eventType === 'message_sent' || eventType === 'inquiry_click',
       });
     }
 
