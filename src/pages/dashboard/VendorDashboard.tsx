@@ -1335,6 +1335,9 @@ const VendorDashboard = () => {
                 </CardContent>
               </Card>
             </TabsContent>
+            <TabsContent value="analytics">
+              <VendorAnalytics />
+            </TabsContent>
             <TabsContent value="store">
               <ProFeatureGate vendor={vendor} feature="Store Designer" description="Customize your store with a banner, brand colors, and a premium layout." icon="🏪" onUpgradeSuccess={(v) => setVendor(v)}>
                 <VendorStoreUpgrade vendor={vendor} onUpdate={(v) => setVendor((prev: any) => ({ ...prev, ...v }))} />
