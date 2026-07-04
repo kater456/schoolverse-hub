@@ -206,6 +206,7 @@ const VendorProfile = () => {
         const [
           viewsRes, likesRes, userLike, commentsRes, ratingsRes,
           txnRes, dealsRes, productsRes, presenceRes, profileRes,
+          msgRes, waRes,
         ] = await Promise.all([
           supabase.from("vendor_views").select("id", { count: "exact", head: true }).eq("vendor_id", id),
           supabase.from("vendor_likes").select("id", { count: "exact", head: true }).eq("vendor_id", id),
@@ -217,6 +218,8 @@ const VendorProfile = () => {
           (supabase as any).from("vendor_products").select("*").eq("vendor_id", id).eq("is_active", true).order("display_order", { ascending: true }),
           (supabase as any).from("vendor_presence").select("is_online, last_seen, live_location_on, live_location_lat, live_location_lng, live_location_label").eq("vendor_id", id).maybeSingle(),
           user ? supabase.from("profiles").select("is_user_verified").eq("user_id", user.id).maybeSingle() : Promise.resolve({ data: null }),
+          user ? supabase.from("conversations").select("id").eq("vendor_id", id).eq("buyer_id", user.id).not("last_message_at", "is", null).limit(1) : Promise.resolve({ data: [] }),
+          user ? supabase.from("marketplace_analytics" as any).select("id").eq("vendor_id", id).eq("user_id", user.id).eq("event_type", "click").eq("event_source", "whatsapp").limit(1) : Promise.resolve({ data: [] }),
         ]);
 
         setViewCount(viewsRes.count || 0);
@@ -236,7 +239,11 @@ const VendorProfile = () => {
         if (user) {
           const userR = allRatings.find((r: any) => r.user_id === user.id);
           if (userR) { setUserRating(userR.rating); setUserReview(userR.review || ""); setHasRated(true); }
-          setCanRate(!!(txnRes as any).data && (txnRes as any).data.length > 0);
+          setCanRate(
+            (!!(txnRes as any).data && (txnRes as any).data.length > 0) ||
+            (!!(msgRes as any).data && (msgRes as any).data.length > 0) ||
+            (!!(waRes as any).data && (waRes as any).data.length > 0)
+          );
         }
 
         setActiveDeals(dealsRes.data || []);
@@ -699,10 +706,10 @@ const VendorProfile = () => {
                   )}
                   {user && !canRate && !hasRated && (
                     <p className="text-xs text-muted-foreground border-t border-border/50 pt-3">
-                      💡 Complete a transaction with this vendor to leave a rating.
+                      💡 Message this vendor to unlock the ability to leave a rating.
                     </p>
                   )}
-                  {!user && <p className="text-xs text-muted-foreground border-t border-border/50 pt-3">Sign in and complete a transaction to leave a rating.</p>}
+                  {!user && <p className="text-xs text-muted-foreground border-t border-border/50 pt-3">Sign in and message this vendor to leave a rating.</p>}
                 </CardContent>
               </Card>
 
@@ -1066,32 +1073,34 @@ const VendorProfile = () => {
               <VendorTestimonialsDisplay vendorId={vendor.id} />
 
               {/* Comments */}
-              <Card className="border-border/50">
-                <CardContent className="p-4">
-                  <h3 className="font-semibold text-sm mb-3">Comments ({comments.length})</h3>
-                  <div className="flex gap-2 mb-4">
-                    <Input placeholder={user ? "Write a comment..." : "Sign in to comment"} value={commentText}
-                      onChange={(e) => setCommentText(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && submitComment()} className="h-9 text-sm" />
-                    <Button size="sm" onClick={submitComment} disabled={!commentText.trim()}><Send className="h-4 w-4" /></Button>
-                  </div>
-                  <div className="space-y-3 max-h-64 overflow-y-auto">
-                    {comments.length === 0 ? (
-                      <p className="text-xs text-muted-foreground text-center py-2">No comments yet</p>
-                    ) : comments.map((c: any) => (
-                      <div key={c.id} className="border-b border-border/30 pb-2 last:border-0">
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <span className="text-xs font-medium text-foreground">
-                            {(c.profiles as any)?.first_name || "User"} {(c.profiles as any)?.last_name || ""}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground">{new Date(c.created_at).toLocaleDateString()}</span>
+              {vendor.comments_enabled !== false && (
+                <Card className="border-border/50">
+                  <CardContent className="p-4">
+                    <h3 className="font-semibold text-sm mb-3">Comments ({comments.length})</h3>
+                    <div className="flex gap-2 mb-4">
+                      <Input placeholder={user ? "Write a comment..." : "Sign in to comment"} value={commentText}
+                        onChange={(e) => setCommentText(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && submitComment()} className="h-9 text-sm" />
+                      <Button size="sm" onClick={submitComment} disabled={!commentText.trim()}><Send className="h-4 w-4" /></Button>
+                    </div>
+                    <div className="space-y-3 max-h-64 overflow-y-auto">
+                      {comments.length === 0 ? (
+                        <p className="text-xs text-muted-foreground text-center py-2">No comments yet</p>
+                      ) : comments.map((c: any) => (
+                        <div key={c.id} className="border-b border-border/30 pb-2 last:border-0">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span className="text-xs font-medium text-foreground">
+                              {(c.profiles as any)?.first_name || "User"} {(c.profiles as any)?.last_name || ""}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground">{new Date(c.created_at).toLocaleDateString()}</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">{c.content}</p>
                         </div>
-                        <p className="text-xs text-muted-foreground">{c.content}</p>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </div>
         </div>
