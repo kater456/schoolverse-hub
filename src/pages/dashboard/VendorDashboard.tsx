@@ -445,8 +445,7 @@ const VendorDashboard = () => {
   }
 
   if (!vendor.is_approved) {
-    const vendorCountry = vendor.country || "Nigeria";
-    const isPendingPayment = vendorCountry === "Nigeria" && vendor.payment_status === "unpaid";
+    const isPendingPayment = signupPaymentEnabled && vendor.payment_status === "unpaid";
 
     const retryPayment = async () => {
       if (!(window as any).PaystackPop) {
@@ -495,11 +494,11 @@ const VendorDashboard = () => {
           </div>
           <h2 className="text-xl font-semibold">Your account is pending approval</h2>
           <p className="text-muted-foreground">
-            {vendorCountry === "Ghana"
-              ? "Your registration is being reviewed by the campus admin. You'll get access once approved."
-              : "Please complete payment to gain access to your vendor dashboard. Your account activates automatically once payment clears."}
+            {signupPaymentEnabled
+              ? "Please complete payment to gain access to your vendor dashboard. Your account activates automatically once payment clears."
+              : "Your registration is being reviewed by the campus admin. You'll get access once approved."}
           </p>
-          {isPendingPayment && (
+          {signupPaymentEnabled && isPendingPayment && (
             <div className="bg-muted/50 p-4 rounded-lg text-left space-y-3">
               <p className="text-sm font-medium">Payment Details:</p>
               <p className="text-sm text-muted-foreground">
@@ -517,6 +516,7 @@ const VendorDashboard = () => {
       </div>
     );
   }
+
 
   const statCards = [
     { title: "Profile Views",  value: stats.views,    icon: Eye,           gradient: "from-violet-500/20 to-blue-500/20",   accent: "text-violet-400",  border: "border-violet-500/20", live: true },
