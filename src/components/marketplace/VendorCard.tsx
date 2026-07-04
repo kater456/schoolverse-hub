@@ -55,7 +55,7 @@ const VendorCard = ({ vendor, index = 0 }: VendorCardProps) => {
       ref={cardRef}
       style={{
         opacity:    visible ? 1 : 0,
-        transform:  visible ? "translateY(0)" : "translateY(24px)",
+        transform:  visible ? "translateY(0)" : "translateY(8px)",
         transition: `opacity 0.45s ease ${index * 0.06}s, transform 0.45s ease ${index * 0.06}s`,
       }}
     >
