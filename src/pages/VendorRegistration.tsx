@@ -475,7 +475,13 @@ const VendorRegistration = () => {
                           {productImages.length > 0 ? `${productImages.length} photo(s) selected` : "Upload product photos"}
                         </span>
                         <input type="file" accept="image/*" multiple className="hidden"
-                          onChange={(e) => setProductImages(Array.from(e.target.files || []))} />
+  onChange={(e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length > 3) {
+      toast({ title: "Limit reached", description: "You can upload up to 3 product photos. Only the first 3 were selected.", variant: "destructive" });
+    }
+    setProductImages(files.slice(0, 3));
+  }} />
                       </label>
                     </div>
                     {productImages.length > 0 && (
