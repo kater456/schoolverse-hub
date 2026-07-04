@@ -1069,6 +1069,48 @@ export type Database = {
           },
         ]
       }
+      store_visits: {
+        Row: {
+          created_at: string | null
+          id: string
+          product_id: string | null
+          session_id: string
+          vendor_id: string
+          visitor_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          product_id?: string | null
+          session_id: string
+          vendor_id: string
+          visitor_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          product_id?: string | null
+          session_id?: string
+          vendor_id?: string
+          visitor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_visits_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_visits_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscription_events: {
         Row: {
           amount_ngn: number | null
@@ -1491,6 +1533,50 @@ export type Database = {
           },
         ]
       }
+      vendor_customers: {
+        Row: {
+          buyer_id: string | null
+          first_seen: string | null
+          id: string
+          last_seen: string | null
+          notes: string | null
+          total_orders: number | null
+          total_spent: number | null
+          vendor_id: string
+          visitor_id: string | null
+        }
+        Insert: {
+          buyer_id?: string | null
+          first_seen?: string | null
+          id?: string
+          last_seen?: string | null
+          notes?: string | null
+          total_orders?: number | null
+          total_spent?: number | null
+          vendor_id: string
+          visitor_id?: string | null
+        }
+        Update: {
+          buyer_id?: string | null
+          first_seen?: string | null
+          id?: string
+          last_seen?: string | null
+          notes?: string | null
+          total_orders?: number | null
+          total_spent?: number | null
+          vendor_id?: string
+          visitor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_customers_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vendor_deals: {
         Row: {
           created_at: string | null
@@ -1531,6 +1617,51 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "vendor_deals_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendor_events: {
+        Row: {
+          created_at: string | null
+          event_type: string
+          id: string
+          product_id: string | null
+          session_id: string
+          vendor_id: string
+          visitor_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          event_type: string
+          id?: string
+          product_id?: string | null
+          session_id: string
+          vendor_id: string
+          visitor_id: string
+        }
+        Update: {
+          created_at?: string | null
+          event_type?: string
+          id?: string
+          product_id?: string | null
+          session_id?: string
+          vendor_id?: string
+          visitor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_events_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_events_vendor_id_fkey"
             columns: ["vendor_id"]
             isOneToOne: false
             referencedRelation: "vendors"
