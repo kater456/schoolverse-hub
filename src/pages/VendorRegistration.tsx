@@ -239,10 +239,18 @@ const VendorRegistration = () => {
       if (privateError) throw privateError;
 
       for (let i = 0; i < productImages.length; i++) {
-        const url = await uploadFile(productImages[i], `${user.id}/product-${Date.now()}-${i}`);
-        await supabase.from("vendor_images").insert({
-          vendor_id: vendor.id, image_url: url, is_primary: i === 0, display_order: i,
-        });
+        try {
+          const url = await uploadFile(productImages[i], `${user.id}/product-${Date.now()}-${i}`);
+          await supabase.from("vendor_images").insert({
+            vendor_id: vendor.id, image_url: url, is_primary: i === 0, display_order: i,
+          });
+        } catch (err) {
+          toast({
+            title: `Photo ${i + 1} couldn't be uploaded`,
+            description: "Skipped — you can add it later from your dashboard.",
+            variant: "destructive"
+          });
+        }
       }
 
       await supabase.from("user_roles").upsert({

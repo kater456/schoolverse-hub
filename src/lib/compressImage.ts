@@ -40,7 +40,7 @@ export async function compressImage(
         quality
       );
     };
-    img.onerror = reject;
+    img.onerror = () => reject(new Error("Unsupported image format — please use JPG or PNG"));
     img.src = url;
   });
 }
