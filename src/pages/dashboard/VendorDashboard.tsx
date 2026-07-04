@@ -17,7 +17,7 @@ import {
   BarChart3, Star, LogOut, Film, Loader2, CreditCard, CheckCircle, Package,
   User, Camera, Save, Share2, ShieldCheck, Copy, Crown,
   Instagram, Twitter, Music2, FileCheck, Upload, ToggleLeft, Flame,
-  TrendingUp, Settings, MessageCircle, Bell, Sparkles, Users,
+  TrendingUp, Settings, MessageCircle, Bell, Sparkles, Users, Trash2, AlertTriangle,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import VendorProductManager from "@/components/vendor/VendorProductManager";
@@ -40,10 +40,23 @@ import VendorLocationSettings from "@/components/vendor/VendorLocationSettings";
 import { resolvePlan, SUBSCRIPTION_PLAN_CODES, isSubscriptionActive, hasPlan, daysRemaining } from "@/lib/pricing";
 import VendorAnalytics from "@/components/vendor/VendorAnalytics";
 import VendorCustomerList from "@/components/vendor/VendorCustomerList";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useNavigate } from "react-router-dom";
 
 const VendorDashboard = () => {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [vendor, setVendor] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("products");
   const [stats, setStats] = useState({ views: 0, likes: 0, comments: 0, contacts: 0 });
@@ -68,6 +81,7 @@ const VendorDashboard = () => {
   const [payingVerif,   setPayingVerif]   = useState(false);
   const [payingUpgrade, setPayingUpgrade] = useState(false);
   const [signupPaymentEnabled, setSignupPaymentEnabled] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
 
   const fetchVendorData = async () => {
@@ -415,6 +429,23 @@ const VendorDashboard = () => {
       setVendor((v: any) => ({ ...v, subscription_status: "cancelled" }));
     } catch (err: any) {
       toast({ title: "Cancellation failed", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setIsDeletingAccount(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("delete-vendor-account", {});
+      if (error || !data?.success) {
+        throw new Error(error?.message || data?.message || "Could not delete account.");
+      }
+      toast({ title: "Account deleted" });
+      await signOut();
+      navigate("/");
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setIsDeletingAccount(false);
     }
   };
 
@@ -1196,7 +1227,7 @@ const VendorDashboard = () => {
                         { field: "accepts_orders",      label: "Accept Orders",       desc: "Allow customers to place orders",           onMsg: "Orders enabled ✅",        offMsg: "Orders disabled" },
                         { field: "messaging_enabled",   label: "Messaging",           desc: "Allow customers to send you messages",      onMsg: "Messaging enabled ✅",     offMsg: "Messaging disabled" },
                         { field: "delivery_available",  label: "Delivery Available",  desc: "Show delivery badge on your profile",       onMsg: "Delivery badge shown ✅",  offMsg: "Delivery badge hidden" },
-                        { field: "ratings_enabled",     label: "Customer Ratings",    desc: "Allow customers to rate and review your store", onMsg: "Ratings enabled ✅",  offMsg: "Ratings disabled" },
+                        { field: "comments_enabled",    label: "Allow comments on my profile", desc: "Show or hide the comments section on your profile", onMsg: "Comments enabled ✅", offMsg: "Comments disabled" },
                       ].map(({ field, label, desc, onMsg, offMsg }, i, arr) => (
                         <div key={field} className={`flex items-center justify-between py-2 ${i < arr.length - 1 ? "border-b border-border/40" : ""}`}>
                           <div>
@@ -1267,9 +1298,44 @@ const VendorDashboard = () => {
 
                   <Card className="border-destructive/20">
                     <CardHeader><CardTitle className="text-base text-destructive flex items-center gap-2"><LogOut className="h-4 w-4" /> Danger Zone</CardTitle></CardHeader>
-                    <CardContent className="space-y-2">
-                      <p className="text-xs text-muted-foreground">Logging out ends your session. Your store and data remain safe.</p>
-                      <Button variant="destructive" size="sm" onClick={signOut} className="gap-2"><LogOut className="h-4 w-4" /> Sign Out</Button>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <p className="text-xs text-muted-foreground font-medium">Account Session</p>
+                        <p className="text-xs text-muted-foreground">Logging out ends your session. Your store and data remain safe.</p>
+                        <Button variant="outline" size="sm" onClick={signOut} className="gap-2 border-destructive/20 text-destructive hover:bg-destructive/10"><LogOut className="h-4 w-4" /> Sign Out</Button>
+                      </div>
+
+                      <div className="pt-4 border-t border-destructive/10 space-y-2">
+                        <p className="text-xs text-destructive font-medium">Permanent Actions</p>
+                        <p className="text-xs text-muted-foreground">Permanently delete your store, products, messages, ratings, and comments. This cannot be undone.</p>
+
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="destructive" size="sm" disabled={isDeletingAccount} className="gap-2">
+                              {isDeletingAccount ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                              Delete Account
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+                                <AlertTriangle className="h-5 w-5" /> Are you absolutely sure?
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This action cannot be undone. This will permanently delete your business listing,
+                                all uploaded products, your message history, and all customer ratings and comments.
+                                Your account will be completely removed from Campus Market.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={handleDeleteAccount} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                Delete Account
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </CardContent>
                   </Card>
                 </div>
@@ -1434,9 +1500,42 @@ const VendorDashboard = () => {
                 <VendorLiveLocation vendor={vendor} userId={user!.id} />
                 <Card className="border-destructive/20">
                   <CardHeader><CardTitle className="text-base text-destructive flex items-center gap-2"><LogOut className="h-4 w-4" /> Danger Zone</CardTitle></CardHeader>
-                  <CardContent className="space-y-2">
-                    <p className="text-xs text-muted-foreground">Logging out ends your session. Your store and data remain safe.</p>
-                    <Button variant="destructive" size="sm" onClick={signOut} className="gap-2"><LogOut className="h-4 w-4" /> Sign Out</Button>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground font-medium">Account Session</p>
+                      <p className="text-xs text-muted-foreground">Logging out ends your session. Your store and data remain safe.</p>
+                      <Button variant="outline" size="sm" onClick={signOut} className="gap-2 border-destructive/20 text-destructive hover:bg-destructive/10"><LogOut className="h-4 w-4" /> Sign Out</Button>
+                    </div>
+
+                    <div className="pt-4 border-t border-destructive/10 space-y-2">
+                      <p className="text-xs text-destructive font-medium">Permanent Actions</p>
+                      <p className="text-xs text-muted-foreground text-[11px]">Permanently delete your store and all data. Cannot be undone.</p>
+
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="destructive" size="sm" disabled={isDeletingAccount} className="gap-2">
+                            {isDeletingAccount ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                            Delete Account
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent className="w-[90vw] max-w-md rounded-2xl">
+                          <AlertDialogHeader>
+                            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+                              <AlertTriangle className="h-5 w-5" /> Delete Account?
+                            </AlertDialogTitle>
+                            <AlertDialogDescription className="text-sm">
+                              This will permanently delete your business, products, and messages. This cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                            <AlertDialogCancel className="sm:flex-1 rounded-xl">Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleDeleteAccount} className="sm:flex-1 rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   </CardContent>
                 </Card>
               </div>

@@ -186,6 +186,8 @@ const VendorRegistration = () => {
     }
 
     setIsSubmitting(true);
+    let createdVendor: any = null;
+
     try {
       const finalCategory = isOtherServices
         ? `Other: ${otherServiceSpec.trim()}` : data.category;
@@ -221,6 +223,8 @@ const VendorRegistration = () => {
         throw vendorError;
       }
 
+      createdVendor = vendor;
+
       let vendorPhotoUrl = null;
       if (vendorPhoto) vendorPhotoUrl = await uploadFile(vendorPhoto, `${user.id}/vendor-photo-${Date.now()}`);
 
@@ -250,13 +254,17 @@ const VendorRegistration = () => {
       if (showPayment) {
         // Admin has payment ON — open Paystack popup
         setPaymentPending(true);
-        openPaystackPopup(vendor.id);
+        openPaystackPopup(createdVendor.id);
       } else {
         // Admin has payment OFF — go straight to pending screen
         setHasExistingApplication(true);
         toast({ title: "Application submitted!", description: "Your vendor application is pending admin approval." });
       }
     } catch (error: any) {
+      if (createdVendor?.id) {
+        // Roll back the partially-created vendor row so the user can retry cleanly
+        await supabase.from("vendors").delete().eq("id", createdVendor.id);
+      }
       toast({ title: "Error", description: error.message, variant: "destructive" });
       setIsSubmitting(false);
     }
