@@ -67,6 +67,8 @@ const VendorDashboard = () => {
   const [uploadingId,   setUploadingId]   = useState(false);
   const [payingVerif,   setPayingVerif]   = useState(false);
   const [payingUpgrade, setPayingUpgrade] = useState(false);
+  const [signupPaymentEnabled, setSignupPaymentEnabled] = useState(false);
+
 
   const fetchVendorData = async () => {
     if (!user) return;
