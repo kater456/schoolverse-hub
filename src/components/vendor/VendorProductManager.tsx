@@ -76,18 +76,23 @@ const VendorProductManager = ({ vendorId, schoolId }: VendorProductManagerProps)
   };
 
   const uploadProductImage = async (file: File) => {
-    setUploading(true);
-    const compressed = await compressImage(file, 800);
-    const path = `${vendorId}/products/${Date.now()}.jpg`;
-    const { error: uploadError } = await supabase.storage.from("vendor-media").upload(path, compressed);
-    if (uploadError) {
-      toast({ title: "Upload failed", description: uploadError.message, variant: "destructive" });
+    try {
+      setUploading(true);
+      const compressed = await compressImage(file, 800);
+      const path = `${vendorId}/products/${Date.now()}.jpg`;
+      const { error: uploadError } = await supabase.storage.from("vendor-media").upload(path, compressed);
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from("vendor-media").getPublicUrl(path);
+      setForm((f) => ({ ...f, image_url: urlData.publicUrl }));
+    } catch (err: any) {
+      toast({
+        title: "Upload failed",
+        description: err.message || "Try a different photo (JPG or PNG works best).",
+        variant: "destructive"
+      });
+    } finally {
       setUploading(false);
-      return;
     }
-    const { data: urlData } = supabase.storage.from("vendor-media").getPublicUrl(path);
-    setForm((f) => ({ ...f, image_url: urlData.publicUrl }));
-    setUploading(false);
   };
 
   const saveProduct = async () => {
