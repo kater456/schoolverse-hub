@@ -31,13 +31,18 @@ const VendorCard = ({ vendor, index = 0 }: VendorCardProps) => {
 
   const isLive = !!(vendor as any).live_location_on;
 
-  // Intersection Observer for fade-in / fade-out on scroll
+  // Intersection Observer for scroll-reveal animation (fire once per card)
   useEffect(() => {
     const el = cardRef.current;
     if (!el) return;
 
     const observer = new IntersectionObserver(
-      ([entry]) => setVisible(entry.isIntersecting),
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          observer.disconnect();
+        }
+      },
       { threshold: 0.12, rootMargin: "0px 0px -40px 0px" }
     );
 
