@@ -80,6 +80,13 @@ const VendorDashboard = () => {
 
     if (!v) { setIsLoading(false); return; }
     setVendor(v);
+
+    const { data: settings } = await (supabase as any)
+      .from("platform_settings")
+      .select("verification_payment_enabled")
+      .maybeSingle();
+    setSignupPaymentEnabled(!!settings?.verification_payment_enabled);
+
     setEditContact(v.contact_number || "");
     setSocialInstagram(v.social_instagram || "");
     setSocialTiktok(v.social_tiktok || "");
