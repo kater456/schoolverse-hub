@@ -72,7 +72,7 @@ export const trackEvent = async (
 
     // 3. Upsert into vendor_customers via RPC for CRM tracking
     if (eventType === 'message_sent' || eventType === 'inquiry_click') {
-      await supabase.rpc('track_vendor_customer', {
+      await (supabase.rpc as any)('track_vendor_customer', {
         p_vendor_id: vendorId,
         p_buyer_id: userId,
         p_visitor_id: visitorId,
