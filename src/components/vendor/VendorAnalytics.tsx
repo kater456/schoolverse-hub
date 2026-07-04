@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Eye, MessageSquare, ShoppingBag, TrendingUp, ArrowRight, Loader2 } from "lucide-react";
+import { Eye, MessageSquare, TrendingUp, ArrowRight, Loader2, Users } from "lucide-react";
 import {
   ResponsiveContainer,
   LineChart,
@@ -22,7 +22,6 @@ interface DailyStat {
   date: string;
   views: number;
   inquiries: number;
-  orders: number;
 }
 
 const pct = (a: number, b: number) => (b === 0 ? 0 : Math.round((a / b) * 100));
@@ -51,12 +50,12 @@ const VendorAnalytics = ({ vendorId }: Props) => {
         // Process data into daily buckets
         const dailyMap: Record<string, DailyStat> = {};
 
-        // Initialize all 30 days with zeros (use full ISO for sorting, MM-DD for display)
+        // Initialize all 30 days with zeros
         for (let i = 0; i < 30; i++) {
           const d = new Date();
           d.setDate(d.getDate() - i);
           const key = d.toISOString().split('T')[0]; // YYYY-MM-DD
-          dailyMap[key] = { date: key, views: 0, inquiries: 0, orders: 0 };
+          dailyMap[key] = { date: key, views: 0, inquiries: 0 };
         }
 
         (events || []).forEach((event) => {
@@ -64,7 +63,6 @@ const VendorAnalytics = ({ vendorId }: Props) => {
           if (dailyMap[key]) {
             if (event.event_type === 'view') dailyMap[key].views++;
             else if (event.event_type === 'inquiry_click' || event.event_type === 'message_sent') dailyMap[key].inquiries++;
-            else if (event.event_type === 'order_completed') dailyMap[key].orders++;
           }
         });
 
@@ -88,18 +86,16 @@ const VendorAnalytics = ({ vendorId }: Props) => {
       (acc, d) => ({
         views: acc.views + d.views,
         inquiries: acc.inquiries + d.inquiries,
-        orders: acc.orders + d.orders,
       }),
-      { views: 0, inquiries: 0, orders: 0 }
+      { views: 0, inquiries: 0 }
     );
   }, [data]);
 
   const inquiryRate = pct(totals.inquiries, totals.views);
-  const orderRate = pct(totals.orders, totals.inquiries);
 
   const stats = [
     {
-      title: "Views",
+      title: "Profile Views",
       value: totals.views,
       icon: Eye,
       accent: "text-sky-500",
@@ -112,15 +108,15 @@ const VendorAnalytics = ({ vendorId }: Props) => {
       icon: MessageSquare,
       accent: "text-amber-500",
       bg: "bg-amber-500/10",
-      sub: `${inquiryRate}% of views`,
+      sub: `${inquiryRate}% conversion`,
     },
     {
-      title: "Orders",
-      value: totals.orders,
-      icon: ShoppingBag,
+      title: "Engagement",
+      value: totals.views + totals.inquiries,
+      icon: Users,
       accent: "text-emerald-500",
       bg: "bg-emerald-500/10",
-      sub: `${orderRate}% of inquiries`,
+      sub: `Total interactions`,
     },
   ];
 
@@ -139,10 +135,10 @@ const VendorAnalytics = ({ vendorId }: Props) => {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-accent" /> Analytics
+            <TrendingUp className="h-5 w-5 text-accent" /> Engagement
           </h2>
           <p className="text-xs text-muted-foreground">
-            Visitor funnel over the last 30 days
+            Visitor interactions over the last 30 days
           </p>
         </div>
         <Badge variant="outline" className="text-[10px] bg-emerald-500/5 text-emerald-600 border-emerald-500/20">
@@ -169,60 +165,80 @@ const VendorAnalytics = ({ vendorId }: Props) => {
       </div>
 
       {/* Funnel */}
-      <Card className="border-border/50">
+      <Card className="border-border/50 shadow-sm">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Conversion Funnel</CardTitle>
+          <CardTitle className="text-base font-bold">Inquiry Funnel</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-            <FunnelStage label="Views" value={totals.views} color="bg-sky-500" widthPct={100} />
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 mt-2">
+            <FunnelStage label="Total Views" value={totals.views} color="bg-sky-500" widthPct={100} />
             <FunnelArrow rate={inquiryRate} />
             <FunnelStage
-              label="Inquiries"
+              label="Buyer Inquiries"
               value={totals.inquiries}
               color="bg-amber-500"
               widthPct={Math.max(15, inquiryRate)}
             />
-            <FunnelArrow rate={orderRate} />
-            <FunnelStage
-              label="Orders"
-              value={totals.orders}
-              color="bg-emerald-500"
-              widthPct={Math.max(10, pct(totals.orders, totals.views))}
-            />
           </div>
-          <p className="text-xs text-muted-foreground mt-4">
-            Views <span className="font-medium text-foreground">{totals.views}</span> → Inquiries{" "}
-            <span className="font-medium text-foreground">{totals.inquiries}</span> ({inquiryRate}%) →
-            Orders <span className="font-medium text-foreground">{totals.orders}</span> ({orderRate}%)
-          </p>
+          <div className="mt-6 p-3 bg-muted/40 rounded-xl border border-border/40">
+            <p className="text-xs text-muted-foreground text-center">
+              Your overall conversion rate from View to Inquiry is <span className="font-bold text-foreground">{inquiryRate}%</span>
+            </p>
+          </div>
         </CardContent>
       </Card>
 
       {/* Trend chart */}
-      <Card className="border-border/50">
+      <Card className="border-border/50 shadow-sm">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Daily Trend</CardTitle>
+          <CardTitle className="text-base font-bold">Daily Engagement</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="w-full h-64">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={data} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-border/40" />
-                <XAxis dataKey="date" tick={{ fontSize: 10 }} interval={4} />
-                <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
+                <CartesianGrid strokeDasharray="3 3" className="stroke-border/40" vertical={false} />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 10 }}
+                  interval={4}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fontSize: 10 }}
+                  allowDecimals={false}
+                  axisLine={false}
+                  tickLine={false}
+                />
                 <Tooltip
                   contentStyle={{
                     background: "hsl(var(--card))",
                     border: "1px solid hsl(var(--border))",
-                    borderRadius: 8,
+                    borderRadius: 12,
                     fontSize: 12,
                   }}
                 />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Line type="monotone" dataKey="views" stroke="#0ea5e9" strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey="inquiries" stroke="#f59e0b" strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey="orders" stroke="#10b981" strokeWidth={2} dot={false} />
+                <Legend
+                  wrapperStyle={{ fontSize: 11, paddingTop: 10 }}
+                  iconType="circle"
+                />
+                <Line
+                  name="Views"
+                  type="monotone"
+                  dataKey="views"
+                  stroke="#0ea5e9"
+                  strokeWidth={2.5}
+                  dot={false}
+                />
+                <Line
+                  name="Inquiries"
+                  type="monotone"
+                  dataKey="inquiries"
+                  stroke="#f59e0b"
+                  strokeWidth={2.5}
+                  dot={false}
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -244,13 +260,13 @@ const FunnelStage = ({
   widthPct: number;
 }) => (
   <div className="flex-1 min-w-0">
-    <div className="flex items-baseline justify-between mb-1">
-      <span className="text-xs font-medium text-muted-foreground">{label}</span>
-      <span className="text-sm font-bold">{value.toLocaleString()}</span>
+    <div className="flex items-baseline justify-between mb-2">
+      <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{label}</span>
+      <span className="text-sm font-black">{value.toLocaleString()}</span>
     </div>
-    <div className="h-3 bg-muted rounded-full overflow-hidden">
+    <div className="h-4 bg-muted rounded-full overflow-hidden shadow-inner">
       <div
-        className={`h-full ${color} rounded-full transition-all`}
+        className={`h-full ${color} rounded-full transition-all duration-700 ease-out`}
         style={{ width: `${widthPct}%` }}
       />
     </div>
@@ -258,9 +274,9 @@ const FunnelStage = ({
 );
 
 const FunnelArrow = ({ rate }: { rate: number }) => (
-  <div className="flex sm:flex-col items-center justify-center text-muted-foreground shrink-0 gap-1">
+  <div className="flex sm:flex-col items-center justify-center text-muted-foreground shrink-0 gap-1 opacity-60">
     <ArrowRight className="h-4 w-4 sm:rotate-0 rotate-90" />
-    <span className="text-[10px] font-medium">{rate}%</span>
+    <span className="text-[10px] font-bold">{rate}%</span>
   </div>
 );
 

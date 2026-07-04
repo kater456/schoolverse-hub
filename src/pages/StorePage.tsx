@@ -650,8 +650,11 @@ const ProductCard = ({
   const { trackEvent } = useMarketplaceTracker();
 
   useEffect(() => {
-    if (onView) onView();
-  }, [onView]);
+    // Only track view once per mount
+    if (onView) {
+      onView();
+    }
+  }, []);
 
   const priceColor = accentColor || themeColor || undefined;
   const delay = `${Math.min(index * 50, 400)}ms`;

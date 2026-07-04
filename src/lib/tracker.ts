@@ -6,7 +6,7 @@ const SESSION_ID_KEY = "campus_market_session_id";
 const SESSION_EXPIRY_KEY = "campus_market_session_expiry";
 const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 
-export type TrackerEventType = 'view' | 'inquiry_click' | 'message_sent' | 'order_started' | 'order_completed';
+export type TrackerEventType = 'view' | 'inquiry_click' | 'message_sent' | 'order_started';
 
 const generateUUID = () => {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -81,18 +81,35 @@ export const trackEvent = async (
       } as any);
     }
 
-    // 3. Upsert into vendor_customers
-    // We only upsert if we have a userId (authenticated) or a visitorId (anonymous)
-    // To prevent redundant rows for anonymous users due to unique(vendor_id, buyer_id),
-    // we only update if buyer_id is NOT null OR we use a different approach.
-    // Given the unique constraint UNIQUE(vendor_id, buyer_id), we should only upsert for authenticated users.
+    // 3. Upsert into vendor_customers for engagement tracking
     if (userId) {
-      await supabase.from("vendor_customers").upsert({
+      const updates: any = {
         vendor_id: vendorId,
         buyer_id: userId,
         visitor_id: visitorId,
         last_seen: new Date().toISOString(),
-      } as any, {
+      };
+
+      // Increment counts based on event type
+      if (eventType === 'inquiry_click') {
+        const { data: existing } = await supabase
+          .from("vendor_customers")
+          .select("inquiry_count")
+          .eq("vendor_id", vendorId)
+          .eq("buyer_id", userId)
+          .maybeSingle();
+        updates.inquiry_count = (existing?.inquiry_count || 0) + 1;
+      } else if (eventType === 'message_sent') {
+        const { data: existing } = await supabase
+          .from("vendor_customers")
+          .select("message_count")
+          .eq("vendor_id", vendorId)
+          .eq("buyer_id", userId)
+          .maybeSingle();
+        updates.message_count = (existing?.message_count || 0) + 1;
+      }
+
+      await supabase.from("vendor_customers").upsert(updates, {
         onConflict: 'vendor_id, buyer_id'
       });
     }

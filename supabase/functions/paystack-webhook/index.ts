@@ -106,17 +106,6 @@ serve(async (req) => {
 
   console.log("Paystack webhook received:", event);
 
-  // ── Track order_completed if it's a customer order ──
-  if (event === "charge.success" && data?.metadata?.vendor_id && data?.metadata?.order_id) {
-    await supabase.from("vendor_events").insert({
-      vendor_id: data.metadata.vendor_id,
-      product_id: data.metadata.product_id || null,
-      event_type: 'order_completed',
-      visitor_id: data.metadata.visitor_id || 'webhook',
-      session_id: data.metadata.session_id || '00000000-0000-0000-0000-000000000000',
-    } as any);
-  }
-
   // ── charge.success ─────────────────────────────────────────────────
   // Fires on first payment AND every monthly renewal
   if (event === "charge.success") {
@@ -153,10 +142,6 @@ serve(async (req) => {
 
     await logEvent(vendor.id, "charge.success", payload, { plan });
     console.log(`Subscription renewed for vendor ${vendor.id} — plan: ${plan}`);
-
-    // If it's a known payment for a specific order (not subscription), we'd track order_completed here.
-    // However, this webhook currently handles subscriptions.
-    // If the system handles products orders with Paystack, we should track it here too.
   }
 
   // ── subscription.create ────────────────────────────────────────────

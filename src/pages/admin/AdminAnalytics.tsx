@@ -42,29 +42,46 @@ const AdminAnalytics = () => {
   }, []);
 
   const fetchAnalytics = async () => {
-    const [visits, views, contacts, vendors, schools] = await Promise.all([
-      supabase.from("site_visits").select("id, school_id, page_path", { count: "exact" }),
-      supabase.from("vendor_views").select("id, vendor_id, school_id", { count: "exact" }),
-      supabase.from("vendor_contacts").select("id, vendor_id, school_id", { count: "exact" }),
-      supabase.from("vendors").select("id, school_id, business_name, is_vendor_of_week, vendor_of_week_expires_at").eq("is_approved", true),
-      supabase.from("schools").select("id, name"),
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const thirtyDaysStr = thirtyDaysAgo.toISOString();
+
+    // We now use vendor_events for Business Views and Contacts for consistency
+    // Use .gte filter to prevent over-fetching as the database grows
+    const [visitsRes, eventsRes, vendorsRes, schoolsRes] = await Promise.all([
+      supabase.from("site_visits")
+        .select("id, school_id, page_path", { count: "exact" })
+        .gte("created_at", thirtyDaysStr),
+      supabase.from("vendor_events")
+        .select("event_type, vendor_id")
+        .gte("created_at", thirtyDaysStr),
+      supabase.from("vendors")
+        .select("id, school_id, business_name, is_vendor_of_week, vendor_of_week_expires_at")
+        .eq("is_approved", true),
+      supabase.from("schools")
+        .select("id, name"),
     ]);
 
-    const bounceCount = visits.data?.filter((v: any) => v.page_path === "/").length || 0;
+    const visits = visitsRes.data || [];
+    const bounceCount = visits.filter((v: any) => v.page_path === "/").length;
+
+    const eventData = eventsRes.data || [];
+    const businessViews = eventData.filter(e => e.event_type === 'view').length;
+    const contactEvents = eventData.filter(e => e.event_type === 'inquiry_click' || e.event_type === 'message_sent').length;
 
     setStats({
-      totalVisitors: visits.count || 0,
-      totalPageViews: visits.count || 0,
-      totalBusinessViews: views.count || 0,
-      totalContacts: contacts.count || 0,
-      totalVendors: vendors.data?.length || 0,
+      totalVisitors: visitsRes.count || 0,
+      totalPageViews: visitsRes.count || 0,
+      totalBusinessViews: businessViews,
+      totalContacts: contactEvents,
+      totalVendors: vendorsRes.data?.length || 0,
       bounceCount,
     });
 
-    setAllVendors(vendors.data || []);
+    setAllVendors(vendorsRes.data || []);
 
     // Find current vendor of the week
-    const currentVotw = (vendors.data || []).find(
+    const currentVotw = (vendorsRes.data || []).find(
       (v: any) => v.is_vendor_of_week && v.vendor_of_week_expires_at && new Date(v.vendor_of_week_expires_at) > new Date()
     );
     setVotw(currentVotw || null);
@@ -72,31 +89,60 @@ const AdminAnalytics = () => {
     // School breakdown
     const schoolMap = new Map<string, number>();
     const schoolNames = new Map<string, string>();
-    schools.data?.forEach((s: any) => { schoolMap.set(s.id, 0); schoolNames.set(s.id, s.name); });
-    visits.data?.forEach((v: any) => {
-      if (v.school_id && schoolMap.has(v.school_id))
+    schoolsRes.data?.forEach((s: any) => { schoolMap.set(s.id, 0); schoolNames.set(s.id, s.name); });
+
+    // Fix: Use total visits with matched school_id to calculate percentages correctly if some are null
+    let matchedVisitsTotal = 0;
+    visits.forEach((v: any) => {
+      if (v.school_id && schoolMap.has(v.school_id)) {
         schoolMap.set(v.school_id, (schoolMap.get(v.school_id) || 0) + 1);
+        matchedVisitsTotal++;
+      }
     });
-    const total = visits.count || 1;
+
     const schoolArr: SchoolVisitorStat[] = [];
     schoolMap.forEach((count, id) => {
-      schoolArr.push({ name: schoolNames.get(id) || "Unknown", count, percentage: Math.round((count / total) * 100) });
+      schoolArr.push({
+        name: schoolNames.get(id) || "Unknown",
+        count,
+        percentage: matchedVisitsTotal > 0 ? Math.round((count / matchedVisitsTotal) * 100) : 0
+      });
     });
     setSchoolStats(schoolArr.sort((a, b) => b.count - a.count));
 
     // Campus performance
     const campusMap = new Map<string, CampusPerformance>();
-    schools.data?.forEach((s: any) => campusMap.set(s.id, { id: s.id, name: s.name, vendorCount: 0, views: 0, contacts: 0 }));
-    vendors.data?.forEach((v: any) => { const cp = campusMap.get(v.school_id); if (cp) cp.vendorCount++; });
-    views.data?.forEach((v: any)   => { if (v.school_id) { const cp = campusMap.get(v.school_id); if (cp) cp.views++; } });
-    contacts.data?.forEach((c: any) => { if (c.school_id) { const cp = campusMap.get(c.school_id); if (cp) cp.contacts++; } });
+    const vendorSchoolMap = new Map<string, string>(); // vendor_id -> school_id
+
+    schoolsRes.data?.forEach((s: any) => campusMap.set(s.id, { id: s.id, name: s.name, vendorCount: 0, views: 0, contacts: 0 }));
+    vendorsRes.data?.forEach((v: any) => {
+      const cp = campusMap.get(v.school_id);
+      if (cp) cp.vendorCount++;
+      vendorSchoolMap.set(v.id, v.school_id);
+    });
+
+    eventData.forEach((e: any) => {
+      const schoolId = vendorSchoolMap.get(e.vendor_id);
+      if (schoolId) {
+        const cp = campusMap.get(schoolId);
+        if (cp) {
+          if (e.event_type === 'view') cp.views++;
+          else if (e.event_type === 'inquiry_click' || e.event_type === 'message_sent') cp.contacts++;
+        }
+      }
+    });
     setCampusPerformance(Array.from(campusMap.values()).sort((a, b) => b.views - a.views));
 
     // Per-vendor stats
     const viewCounts    = new Map<string, number>();
     const contactCounts = new Map<string, number>();
-    views.data?.forEach((v: any)    => viewCounts.set(v.vendor_id,    (viewCounts.get(v.vendor_id)    || 0) + 1));
-    contacts.data?.forEach((c: any) => contactCounts.set(c.vendor_id, (contactCounts.get(c.vendor_id) || 0) + 1));
+    eventData.forEach((e: any) => {
+      if (e.event_type === 'view') {
+        viewCounts.set(e.vendor_id, (viewCounts.get(e.vendor_id) || 0) + 1);
+      } else if (e.event_type === 'inquiry_click' || e.event_type === 'message_sent') {
+        contactCounts.set(e.vendor_id, (contactCounts.get(e.vendor_id) || 0) + 1);
+      }
+    });
 
     const allVendorNames = new Map((vendors.data || []).map((v: any) => [v.id, v.business_name]));
 

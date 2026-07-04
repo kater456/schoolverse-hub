@@ -32,13 +32,14 @@ import VendorStoreUpgrade from "@/components/vendor/VendorStoreUpgrade";
 import VendorTestimonialManager from "@/components/vendor/VendorTestimonialManager";
 import VendorAIAdvisor from "@/components/vendor/VendorAiAdvisor";
 import VendorCommunity from "@/components/vendor/VendorCommunity";
-import VendorAnalytics from "@/components/vendor/VendorAnalytics";
 import { TrustScoreBreakdown } from "@/components/guarantee/TrustScore";
 import ExitPortfolio from "@/components/vendor/ExitPortfolio";
 import ProFeatureGate from "@/components/vendor/ProFeatureGate";
 import VendorLiveLocation from "@/components/vendor/VendorLiveLocation";
 import VendorLocationSettings from "@/components/vendor/VendorLocationSettings";
 import { resolvePlan, SUBSCRIPTION_PLAN_CODES, isSubscriptionActive, hasPlan, daysRemaining } from "@/lib/pricing";
+import VendorAnalytics from "@/components/vendor/VendorAnalytics";
+import VendorCustomerList from "@/components/vendor/VendorCustomerList";
 
 const VendorDashboard = () => {
   const { user, signOut } = useAuth();
@@ -776,6 +777,7 @@ const VendorDashboard = () => {
                 { v: "products", icon: Package,     label: "Products"       },
                 { v: "reels",    icon: Film,        label: "Reels & Videos" },
                 { v: "orders",   icon: ShoppingBag, label: "Orders"         },
+                { v: "customers",icon: Users,       label: "Customers"      },
                 { v: "deals",    icon: Flame,       label: "Deals"          },
               ].map(({ v, icon: Icon, label }) => (
                 <TabsTrigger key={v} value={v}
@@ -791,6 +793,7 @@ const VendorDashboard = () => {
                 { v: "verify",       icon: ShieldCheck,   label: vendor.is_verified ? "Verified ✅" : "Get Verified" },
                 { v: "testimonials", icon: MessageSquare, label: "Reviews"                                  },
                 { v: "engagement",   icon: BarChart3,     label: "Insights"                                 },
+                { v: "analytics",    icon: TrendingUp,    label: "Analytics"                                },
               ].map(({ v, icon: Icon, label }) => (
                 <TabsTrigger key={v} value={v}
                   className="w-full justify-start gap-2.5 px-3 h-9 text-sm rounded-xl border-0 bg-transparent data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm font-medium">
@@ -837,6 +840,19 @@ const VendorDashboard = () => {
             <div className="flex-1 min-w-0">
               <TabsContent value="products">
                 <VendorProductManager vendorId={vendor.id} schoolId={vendor.school_id} />
+              </TabsContent>
+
+              <TabsContent value="customers">
+                <Card className="border-border/50">
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Users className="h-4 w-4" /> Customer CRM
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <VendorCustomerList vendorId={vendor.id} />
+                  </CardContent>
+                </Card>
               </TabsContent>
 
               <TabsContent value="reels">
@@ -989,8 +1005,7 @@ const VendorDashboard = () => {
                 </Card>
               </TabsContent>
 
-              <TabsContent value="engagement" className="space-y-6">
-                <VendorAnalytics vendorId={vendor.id} />
+              <TabsContent value="engagement">
                 <div className="grid lg:grid-cols-2 gap-6">
                   <Card className="border-border/50">
                     <CardHeader><CardTitle className="text-base flex items-center gap-2"><MessageSquare className="h-4 w-4" /> Recent Comments</CardTitle></CardHeader>
@@ -1044,6 +1059,12 @@ const VendorDashboard = () => {
                   </Card>
                 </div>
               </TabsContent>
+
+              <TabsContent value="analytics">
+                <VendorAnalytics />
+              </TabsContent>
+
+
 
               <TabsContent value="verify">
                 <div className="space-y-6 max-w-xl">
@@ -1252,6 +1273,18 @@ const VendorDashboard = () => {
             <TabsContent value="products">
               <VendorProductManager vendorId={vendor.id} schoolId={vendor.school_id} />
             </TabsContent>
+            <TabsContent value="customers">
+              <Card className="border-border/50">
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Users className="h-4 w-4" /> Customers
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <VendorCustomerList vendorId={vendor.id} />
+                </CardContent>
+              </Card>
+            </TabsContent>
             <TabsContent value="reels">
               <ProFeatureGate vendor={vendor} feature="AI Video Generator & Reels" description="Create cinematic product videos and publish them as reels on your store profile." icon="🎬" onUpgradeSuccess={(v) => setVendor(v)}>
                 <div className="space-y-6">
@@ -1313,8 +1346,7 @@ const VendorDashboard = () => {
               </Card>
             </TabsContent>
             <TabsContent value="deals"><VendorDealManager vendorId={vendor.id} /></TabsContent>
-            <TabsContent value="engagement" className="space-y-4">
-              <VendorAnalytics vendorId={vendor.id} />
+            <TabsContent value="engagement">
               <Card className="border-border/50">
                 <CardHeader><CardTitle className="text-base flex items-center gap-2"><BarChart3 className="h-4 w-4" /> Business Visibility</CardTitle></CardHeader>
                 <CardContent className="space-y-2">
@@ -1329,6 +1361,9 @@ const VendorDashboard = () => {
                   })}
                 </CardContent>
               </Card>
+            </TabsContent>
+            <TabsContent value="analytics">
+              <VendorAnalytics />
             </TabsContent>
             <TabsContent value="store">
               <ProFeatureGate vendor={vendor} feature="Store Designer" description="Customize your store with a banner, brand colors, and a premium layout." icon="🏪" onUpgradeSuccess={(v) => setVendor(v)}>
@@ -1439,8 +1474,10 @@ const VendorDashboard = () => {
           <div className="w-8 h-1 bg-muted rounded-full mx-auto mb-4" />
           <div className="grid grid-cols-3 gap-3">
             {[
+              { v: "customers",    icon: Users,         label: "Customers", color: "bg-indigo-50 text-indigo-600" },
               { v: "deals",        icon: Flame,         label: "Deals",     color: "bg-orange-50 text-orange-600"  },
               { v: "engagement",   icon: BarChart3,     label: "Insights",  color: "bg-blue-50 text-blue-600"    },
+              { v: "analytics",    icon: TrendingUp,    label: "Analytics", color: "bg-teal-50 text-teal-600"    },
               { v: "store",        icon: Crown,         label: "Store",     color: "bg-amber-50 text-amber-600"   },
               { v: "testimonials", icon: MessageSquare, label: "Reviews",   color: "bg-pink-50 text-pink-600"    },
               { v: "verify",       icon: ShieldCheck,   label: vendor.is_verified ? "Verified ✅" : "Verify", color: "bg-green-50 text-green-600" },
