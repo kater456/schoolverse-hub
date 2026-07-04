@@ -205,8 +205,7 @@ const VendorProfile = () => {
         // Run ALL secondary queries in parallel
         const [
           viewsRes, likesRes, userLike, commentsRes, ratingsRes,
-          txnRes, dealsRes, productsRes, presenceRes, profileRes,
-          msgRes, waRes,
+          txnRes, msgRes, waRes, dealsRes, productsRes, presenceRes, profileRes,
         ] = await Promise.all([
           supabase.from("vendor_views").select("id", { count: "exact", head: true }).eq("vendor_id", id),
           supabase.from("vendor_likes").select("id", { count: "exact", head: true }).eq("vendor_id", id),
@@ -214,6 +213,8 @@ const VendorProfile = () => {
           supabase.from("vendor_comments").select("*, profiles:user_id(first_name, last_name)").eq("vendor_id", id).order("created_at", { ascending: false }).limit(20),
           supabase.from("vendor_ratings").select("*").eq("vendor_id", id),
           user ? supabase.from("transactions").select("id").eq("vendor_id", id).eq("user_id", user.id).eq("status", "completed").limit(1) : Promise.resolve({ data: [] }),
+          user ? supabase.from("conversations").select("id").eq("vendor_id", id).eq("buyer_id", user.id).not("last_message_at", "is", null).limit(1) : Promise.resolve({ data: [] }),
+          user ? supabase.from("marketplace_analytics" as any).select("id").eq("vendor_id", id).eq("user_id", user.id).eq("event_type", "click").eq("event_source", "whatsapp").limit(1) : Promise.resolve({ data: [] }),
           supabase.from("vendor_deals").select("*").eq("vendor_id", id).eq("is_active", true).gt("expires_at", new Date().toISOString()).order("expires_at", { ascending: true }),
           (supabase as any).from("vendor_products").select("*").eq("vendor_id", id).eq("is_active", true).order("display_order", { ascending: true }),
           (supabase as any).from("vendor_presence").select("is_online, last_seen, live_location_on, live_location_lat, live_location_lng, live_location_label").eq("vendor_id", id).maybeSingle(),
