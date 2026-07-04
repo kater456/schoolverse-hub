@@ -57,7 +57,7 @@ export const VendorCustomerList = ({ vendorId }: { vendorId: string }) => {
       console.error("Error fetching customers:", error);
       toast.error("Failed to load customers");
     } else {
-      setCustomers(data || []);
+      setCustomers((data as any) || []);
     }
     setLoading(false);
   };
