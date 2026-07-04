@@ -1196,7 +1196,7 @@ const VendorDashboard = () => {
                         { field: "accepts_orders",      label: "Accept Orders",       desc: "Allow customers to place orders",           onMsg: "Orders enabled ✅",        offMsg: "Orders disabled" },
                         { field: "messaging_enabled",   label: "Messaging",           desc: "Allow customers to send you messages",      onMsg: "Messaging enabled ✅",     offMsg: "Messaging disabled" },
                         { field: "delivery_available",  label: "Delivery Available",  desc: "Show delivery badge on your profile",       onMsg: "Delivery badge shown ✅",  offMsg: "Delivery badge hidden" },
-                        { field: "ratings_enabled",     label: "Customer Ratings",    desc: "Allow customers to rate and review your store", onMsg: "Ratings enabled ✅",  offMsg: "Ratings disabled" },
+                        { field: "comments_enabled",    label: "Allow comments on my profile", desc: "Allow customers to leave comments on your store profile", onMsg: "Comments enabled ✅", offMsg: "Comments disabled" },
                       ].map(({ field, label, desc, onMsg, offMsg }, i, arr) => (
                         <div key={field} className={`flex items-center justify-between py-2 ${i < arr.length - 1 ? "border-b border-border/40" : ""}`}>
                           <div>
