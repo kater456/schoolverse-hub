@@ -219,6 +219,8 @@ const VendorProfile = () => {
           (supabase as any).from("vendor_products").select("*").eq("vendor_id", id).eq("is_active", true).order("display_order", { ascending: true }),
           (supabase as any).from("vendor_presence").select("is_online, last_seen, live_location_on, live_location_lat, live_location_lng, live_location_label").eq("vendor_id", id).maybeSingle(),
           user ? supabase.from("profiles").select("is_user_verified").eq("user_id", user.id).maybeSingle() : Promise.resolve({ data: null }),
+          user ? supabase.from("conversations").select("id").eq("vendor_id", id).eq("buyer_id", user.id).not("last_message_at", "is", null).limit(1) : Promise.resolve({ data: [] }),
+          user ? supabase.from("marketplace_analytics" as any).select("id").eq("vendor_id", id).eq("user_id", user.id).eq("event_type", "click").eq("event_source", "whatsapp").limit(1) : Promise.resolve({ data: [] }),
         ]);
 
         setViewCount(viewsRes.count || 0);
