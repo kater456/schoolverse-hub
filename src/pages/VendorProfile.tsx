@@ -306,30 +306,20 @@ const VendorProfile = () => {
     if (!commentText.trim()) return;
     const { data, error } = await supabase.from("vendor_comments")
       .insert({ vendor_id: id!, user_id: user!.id, content: commentText.trim() } as any)
-      .select("*, profiles:user_id(first_name, last_name)").single();
-    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
-    else {
-      setComments((prev) => [data, ...prev]);
-      setCommentText("");
-      // Professional notification to vendor
-    const { data, error } = await supabase.from("vendor_comments")
-      .insert({ vendor_id: id!, user_id: user!.id, content: commentText.trim() } as any)
       .select("*").single();
-    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
-    else {
-      const { data: prof } = await supabase.from("profiles").select("first_name, last_name").eq("user_id", user!.id).maybeSingle();
-      const enriched = { ...data, profiles: prof || null };
-      setComments((prev) => [enriched, ...prev]);
-      setCommentText("");
-      const senderName = prof
-        ? `${(prof as any).first_name || ""} ${(prof as any).last_name || ""}`.trim()
-        : undefined;
-      notify.newComment({
-        vendorId: id!,
-        senderName,
-        preview: commentText.trim().slice(0, 60),
-      });
-    }
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    const { data: prof } = await supabase.from("profiles").select("first_name, last_name").eq("user_id", user!.id).maybeSingle();
+    const enriched = { ...data, profiles: prof || null };
+    setComments((prev) => [enriched, ...prev]);
+    setCommentText("");
+    const senderName = prof
+      ? `${(prof as any).first_name || ""} ${(prof as any).last_name || ""}`.trim()
+      : undefined;
+    notify.newComment({
+      vendorId: id!,
+      senderName,
+      preview: commentText.trim().slice(0, 60),
+    });
   };
 
   const submitRating = async () => {
