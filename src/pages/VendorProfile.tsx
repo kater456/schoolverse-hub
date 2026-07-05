@@ -210,7 +210,7 @@ const VendorProfile = () => {
           supabase.from("vendor_views").select("id", { count: "exact", head: true }).eq("vendor_id", id),
           supabase.from("vendor_likes").select("id", { count: "exact", head: true }).eq("vendor_id", id),
           user ? supabase.from("vendor_likes").select("id").eq("vendor_id", id).eq("user_id", user.id) : Promise.resolve({ data: [] }),
-          supabase.from("vendor_comments").select("*, profiles:user_id(first_name, last_name)").eq("vendor_id", id).order("created_at", { ascending: false }).limit(20),
+          supabase.from("vendor_comments").select("*").eq("vendor_id", id).order("created_at", { ascending: false }).limit(20),
           supabase.from("vendor_ratings").select("*").eq("vendor_id", id),
           user ? supabase.from("transactions").select("id").eq("vendor_id", id).eq("user_id", user.id).eq("status", "completed").limit(1) : Promise.resolve({ data: [] }),
           user ? supabase.from("conversations").select("id").eq("vendor_id", id).eq("buyer_id", user.id).not("last_message_at", "is", null).limit(1) : Promise.resolve({ data: [] }),
