@@ -210,7 +210,7 @@ const VendorProfile = () => {
           supabase.from("vendor_views").select("id", { count: "exact", head: true }).eq("vendor_id", id),
           supabase.from("vendor_likes").select("id", { count: "exact", head: true }).eq("vendor_id", id),
           user ? supabase.from("vendor_likes").select("id").eq("vendor_id", id).eq("user_id", user.id) : Promise.resolve({ data: [] }),
-          supabase.from("vendor_comments").select("*, profiles:user_id(first_name, last_name)").eq("vendor_id", id).order("created_at", { ascending: false }).limit(20),
+          supabase.from("vendor_comments").select("*").eq("vendor_id", id).order("created_at", { ascending: false }).limit(20),
           supabase.from("vendor_ratings").select("*").eq("vendor_id", id),
           user ? supabase.from("transactions").select("id").eq("vendor_id", id).eq("user_id", user.id).eq("status", "completed").limit(1) : Promise.resolve({ data: [] }),
           user ? supabase.from("conversations").select("id").eq("vendor_id", id).eq("buyer_id", user.id).not("last_message_at", "is", null).limit(1) : Promise.resolve({ data: [] }),
@@ -226,7 +226,15 @@ const VendorProfile = () => {
         setViewCount(viewsRes.count || 0);
         setLikeCount(likesRes.count || 0);
         setLiked((userLike as any).data?.length > 0);
-        setComments(commentsRes.data || []);
+        const commentsData = commentsRes.data || [];
+        if (commentsData.length > 0) {
+          const userIds = [...new Set(commentsData.map((c: any) => c.user_id))];
+          const { data: profs } = await supabase.from("profiles").select("user_id, first_name, last_name").in("user_id", userIds);
+          const profMap = new Map((profs || []).map((p: any) => [p.user_id, p]));
+          setComments(commentsData.map((c: any) => ({ ...c, profiles: profMap.get(c.user_id) || null })));
+        } else {
+          setComments([]);
+        }
 
         const allRatings = ratingsRes.data || [];
         setRatings(allRatings);
@@ -298,21 +306,20 @@ const VendorProfile = () => {
     if (!commentText.trim()) return;
     const { data, error } = await supabase.from("vendor_comments")
       .insert({ vendor_id: id!, user_id: user!.id, content: commentText.trim() } as any)
-      .select("*, profiles:user_id(first_name, last_name)").single();
-    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
-    else {
-      setComments((prev) => [data, ...prev]);
-      setCommentText("");
-      // Professional notification to vendor
-      const senderName = data?.profiles
-        ? `${(data.profiles as any).first_name || ""} ${(data.profiles as any).last_name || ""}`.trim()
-        : undefined;
-      notify.newComment({
-        vendorId: id!,
-        senderName,
-        preview: commentText.trim().slice(0, 60),
-      });
-    }
+      .select("*").single();
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    const { data: prof } = await supabase.from("profiles").select("first_name, last_name").eq("user_id", user!.id).maybeSingle();
+    const enriched = { ...data, profiles: prof || null };
+    setComments((prev) => [enriched, ...prev]);
+    setCommentText("");
+    const senderName = prof
+      ? `${(prof as any).first_name || ""} ${(prof as any).last_name || ""}`.trim()
+      : undefined;
+    notify.newComment({
+      vendorId: id!,
+      senderName,
+      preview: commentText.trim().slice(0, 60),
+    });
   };
 
   const submitRating = async () => {
