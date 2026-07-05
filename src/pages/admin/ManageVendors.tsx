@@ -658,6 +658,7 @@ const ManageVendors = () => {
                   <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 bg-muted/20 rounded-lg p-3 text-muted-foreground">
                     {[
                       ["Business Name",    detailVendor.business_name],
+                      ["Brand Name",       detailVendor.brand_name || "—"],
                       ["Country",          detailVendor.country || "Nigeria"],
                       ["Category",         detailVendor.category],
                       ["Customer Contact", detailVendor.contact_number],
@@ -667,13 +668,14 @@ const ManageVendors = () => {
                       ["Academic Level",   detailVendor.academic_level || "—"],
                       ["Department",       detailVendor.department || "—"],
                       ["Verified",         detailVendor.is_verified ? "✅ Yes" : "❌ No"],
+                      ["Payment Status",   detailVendor.payment_status || "—"],
                       ["Reels Enabled",    detailVendor.reels_enabled ? "✅ Yes" : "❌ No"],
                       ["Store Upgraded",   detailVendor.is_store_upgraded && detailVendor.store_upgrade_expires_at && new Date(detailVendor.store_upgrade_expires_at) > new Date()
                         ? `✅ Until ${new Date(detailVendor.store_upgrade_expires_at).toLocaleDateString()}`
                         : "❌ No"],
                       ["Registered",       new Date(detailVendor.created_at).toLocaleDateString()],
                     ].map(([label, value]) => (
-                      <p key={label}><strong className="text-foreground">{label}:</strong> {value}</p>
+                      <p key={label as string}><strong className="text-foreground">{label}:</strong> {value as any}</p>
                     ))}
                     {detailVendor.description && (
                       <p className="col-span-2"><strong className="text-foreground">Description:</strong> {detailVendor.description}</p>
@@ -681,6 +683,58 @@ const ManageVendors = () => {
                   </div>
                 )}
               </div>
+
+              {/* ── Business Operations (from signup / control center) ── */}
+              <div>
+                <h4 className="font-semibold mb-2 text-foreground pb-1 border-b border-border/50">⚙️ Business Operations</h4>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 bg-muted/20 rounded-lg p-3 text-muted-foreground text-sm">
+                  {[
+                    ["Business Status",   detailVendor.is_open ? "🟢 Open" : "⚫ Closed"],
+                    ["Stock Status",      detailVendor.stock_status || "—"],
+                    ["Accepts Orders",    detailVendor.accepts_orders ? "✅ Yes" : "❌ No"],
+                    ["Delivery Available",detailVendor.delivery_available ? "✅ Yes" : "❌ No"],
+                    ["WhatsApp Orders",   detailVendor.whatsapp_orders ? "✅ Yes" : "❌ No"],
+                    ["Messaging Enabled", detailVendor.messaging_enabled ? "✅ Yes" : "❌ No"],
+                    ["Active",            detailVendor.is_active ? "✅ Yes" : "❌ No"],
+                    ["Suspended",         detailVendor.is_suspended ? "⚠️ Yes" : "No"],
+                  ].map(([label, value]) => (
+                    <p key={label as string}><strong className="text-foreground">{label}:</strong> {value as any}</p>
+                  ))}
+                  {detailVendor.status_message && (
+                    <p className="col-span-2"><strong className="text-foreground">Status Message:</strong> "{detailVendor.status_message}"</p>
+                  )}
+                </div>
+              </div>
+
+              {/* ── Social Links ── */}
+              {(detailVendor.social_instagram || detailVendor.social_tiktok || detailVendor.social_twitter) && (
+                <div>
+                  <h4 className="font-semibold mb-2 text-foreground pb-1 border-b border-border/50">🔗 Social Links</h4>
+                  <div className="space-y-1.5 bg-muted/20 rounded-lg p-3 text-muted-foreground text-sm">
+                    {detailVendor.social_instagram && (
+                      <p><strong className="text-foreground">Instagram:</strong>{" "}
+                        <a href={`https://instagram.com/${detailVendor.social_instagram.replace(/^@/, "")}`} target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                          @{detailVendor.social_instagram.replace(/^@/, "")}
+                        </a>
+                      </p>
+                    )}
+                    {detailVendor.social_tiktok && (
+                      <p><strong className="text-foreground">TikTok:</strong>{" "}
+                        <a href={`https://tiktok.com/@${detailVendor.social_tiktok.replace(/^@/, "")}`} target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                          @{detailVendor.social_tiktok.replace(/^@/, "")}
+                        </a>
+                      </p>
+                    )}
+                    {detailVendor.social_twitter && (
+                      <p><strong className="text-foreground">Twitter/X:</strong>{" "}
+                        <a href={`https://twitter.com/${detailVendor.social_twitter.replace(/^@/, "")}`} target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                          @{detailVendor.social_twitter.replace(/^@/, "")}
+                        </a>
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* ── Private info ── */}
               {pd || detailVendor.address ? (
