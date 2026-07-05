@@ -91,19 +91,25 @@ const ManageVendors = () => {
     });
   }, []);
 
-  // Fetch signup email when detail dialog opens
+  // Fetch signup email + profile name when detail dialog opens
   const openDetail = async (v: any) => {
-    setDetailVendor({ ...v, _signup_email: "Loading..." });
+    setDetailVendor({ ...v, _signup_email: "Loading...", _profile: null });
     setSelectedSchoolId(v.school_id || "");
     try {
-      const { data } = await supabase.functions.invoke("get-user-email", {
-        body: { user_id: v.user_id },
-      });
-      setDetailVendor((prev: any) => prev ? { ...prev, _signup_email: data?.email || "—" } : prev);
+      const [{ data: emailData }, { data: profileData }] = await Promise.all([
+        supabase.functions.invoke("get-user-email", { body: { user_id: v.user_id } }),
+        supabase.from("profiles").select("first_name,last_name,email").eq("user_id", v.user_id).maybeSingle(),
+      ]);
+      setDetailVendor((prev: any) => prev ? {
+        ...prev,
+        _signup_email: emailData?.email || profileData?.email || "—",
+        _profile: profileData || null,
+      } : prev);
     } catch {
       setDetailVendor((prev: any) => prev ? { ...prev, _signup_email: "—" } : prev);
     }
   };
+
 
   // Change vendor school
   const changeSchool = async () => {
