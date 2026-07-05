@@ -226,7 +226,15 @@ const VendorProfile = () => {
         setViewCount(viewsRes.count || 0);
         setLikeCount(likesRes.count || 0);
         setLiked((userLike as any).data?.length > 0);
-        setComments(commentsRes.data || []);
+        const commentsData = commentsRes.data || [];
+        if (commentsData.length > 0) {
+          const userIds = [...new Set(commentsData.map((c: any) => c.user_id))];
+          const { data: profs } = await supabase.from("profiles").select("user_id, first_name, last_name").in("user_id", userIds);
+          const profMap = new Map((profs || []).map((p: any) => [p.user_id, p]));
+          setComments(commentsData.map((c: any) => ({ ...c, profiles: profMap.get(c.user_id) || null })));
+        } else {
+          setComments([]);
+        }
 
         const allRatings = ratingsRes.data || [];
         setRatings(allRatings);
