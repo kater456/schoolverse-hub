@@ -207,7 +207,7 @@ const VendorProfile = () => {
           viewsRes, likesRes, userLike, commentsRes, ratingsRes,
           txnRes, msgRes, waRes, dealsRes, productsRes, presenceRes, profileRes,
         ] = await Promise.all([
-          supabase.from("vendor_views").select("id", { count: "exact", head: true }).eq("vendor_id", id),
+          supabase.rpc("get_vendor_view_count", { p_vendor_id: id }),
           supabase.from("vendor_likes").select("id", { count: "exact", head: true }).eq("vendor_id", id),
           user ? supabase.from("vendor_likes").select("id").eq("vendor_id", id).eq("user_id", user.id) : Promise.resolve({ data: [] }),
           supabase.from("vendor_comments").select("*").eq("vendor_id", id).order("created_at", { ascending: false }).limit(20),
@@ -223,7 +223,7 @@ const VendorProfile = () => {
           user ? supabase.from("marketplace_analytics" as any).select("id").eq("vendor_id", id).eq("user_id", user.id).eq("event_type", "click").eq("event_source", "whatsapp").limit(1) : Promise.resolve({ data: [] }),
         ]);
 
-        setViewCount(viewsRes.count || 0);
+        setViewCount(viewsRes.data || 0);
         setLikeCount(likesRes.count || 0);
         setLiked((userLike as any).data?.length > 0);
         const commentsData = commentsRes.data || [];
