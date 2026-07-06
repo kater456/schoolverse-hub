@@ -27,6 +27,17 @@ serve(async (req) => {
       );
     }
 
+    // ── Authenticate caller & verify they own this vendor ─────────────
+    const token = req.headers.get("Authorization")?.replace("Bearer ", "");
+    const { data: userData } = token
+      ? await supabase.auth.getUser(token)
+      : ({ data: { user: null } } as any);
+    if (!userData?.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Get vendor + user email
     const { data: vendor, error: vendorError } = await supabase
       .from("vendors")
@@ -40,6 +51,14 @@ serve(async (req) => {
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    if (vendor.user_id !== userData.user.id) {
+      return new Response(
+        JSON.stringify({ error: "Forbidden" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
 
     // Get email from profiles
     const { data: profile } = await supabase

@@ -150,6 +150,20 @@ serve(async (req) => {
       return new Response("OK", { status: 200 });
     }
 
+    // ── Idempotency: skip if this exact event was already processed ────
+    const chargeRef = data?.reference;
+    if (chargeRef) {
+      const { data: existingCharge } = await supabase
+        .from("subscription_events")
+        .select("id")
+        .eq("paystack_ref", chargeRef)
+        .eq("event_type", "charge.success")
+        .maybeSingle();
+      if (existingCharge) {
+        return new Response("OK", { status: 200 });
+      }
+    }
+
     const plan = resolvePlanName(planCode);
     const vendor = await findVendorByEmail(customerEmail);
 
@@ -188,6 +202,19 @@ serve(async (req) => {
     const customerEmail = data?.customer?.email;
     const planCode = data?.plan?.plan_code;
     const plan = resolvePlanName(planCode);
+
+    // ── Idempotency: skip if this exact subscription was already created ──
+    if (subscriptionCode) {
+      const { data: existingSub } = await supabase
+        .from("subscription_events")
+        .select("id")
+        .eq("subscription_code", subscriptionCode)
+        .eq("event_type", "subscription.create")
+        .maybeSingle();
+      if (existingSub) {
+        return new Response("OK", { status: 200 });
+      }
+    }
 
     const vendor = await findVendorByEmail(customerEmail);
     if (!vendor) {
