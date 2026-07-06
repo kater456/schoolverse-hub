@@ -52,6 +52,14 @@ serve(async (req) => {
       );
     }
 
+    if (vendor.user_id !== userData.user.id) {
+      return new Response(
+        JSON.stringify({ error: "Forbidden" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+
     // Get email from profiles
     const { data: profile } = await supabase
       .from("profiles")
