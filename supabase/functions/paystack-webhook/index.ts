@@ -203,6 +203,19 @@ serve(async (req) => {
     const planCode = data?.plan?.plan_code;
     const plan = resolvePlanName(planCode);
 
+    // ── Idempotency: skip if this exact subscription was already created ──
+    if (subscriptionCode) {
+      const { data: existingSub } = await supabase
+        .from("subscription_events")
+        .select("id")
+        .eq("subscription_code", subscriptionCode)
+        .eq("event_type", "subscription.create")
+        .maybeSingle();
+      if (existingSub) {
+        return new Response("OK", { status: 200 });
+      }
+    }
+
     const vendor = await findVendorByEmail(customerEmail);
     if (!vendor) {
       await logEvent(null, "subscription.create.no_vendor", payload, { plan });
