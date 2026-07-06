@@ -1537,6 +1537,7 @@ export type Database = {
         Row: {
           buyer_id: string | null
           first_seen: string | null
+          has_inquired: boolean | null
           id: string
           last_seen: string | null
           notes: string | null
@@ -1548,6 +1549,7 @@ export type Database = {
         Insert: {
           buyer_id?: string | null
           first_seen?: string | null
+          has_inquired?: boolean | null
           id?: string
           last_seen?: string | null
           notes?: string | null
@@ -1559,6 +1561,7 @@ export type Database = {
         Update: {
           buyer_id?: string | null
           first_seen?: string | null
+          has_inquired?: boolean | null
           id?: string
           last_seen?: string | null
           notes?: string | null
@@ -2461,6 +2464,7 @@ export type Database = {
         Returns: Database["public"]["Enums"]["app_role"]
       }
       get_user_school_id: { Args: { _user_id?: string }; Returns: string }
+      get_vendor_view_count: { Args: { p_vendor_id: string }; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -2485,6 +2489,17 @@ export type Database = {
       is_trial_active: { Args: { _user_id: string }; Returns: boolean }
       is_vendor_featured: { Args: { _vendor_id: string }; Returns: boolean }
       notify_expiring_deals: { Args: never; Returns: undefined }
+      track_vendor_customer: {
+        Args: {
+          p_amount?: number
+          p_buyer_id?: string
+          p_is_inquiry?: boolean
+          p_is_order?: boolean
+          p_vendor_id: string
+          p_visitor_id?: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role:
