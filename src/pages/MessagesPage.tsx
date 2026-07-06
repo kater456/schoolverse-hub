@@ -40,8 +40,7 @@ const MessagesPage = () => {
       .from("conversations")
       .select(`
         *,
-        vendors(id, business_name, is_verified, user_id, vendor_images(image_url, is_primary)),
-        buyer:buyer_id(id)
+        vendors!left(id, business_name, is_verified, user_id, vendor_images(image_url, is_primary))
       `)
       .order("last_message_at", { ascending: false });
 
