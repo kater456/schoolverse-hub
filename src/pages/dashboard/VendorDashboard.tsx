@@ -321,7 +321,7 @@ const VendorDashboard = () => {
     const PaystackPop = (window as any).PaystackPop;
     const ref = `verif_${vendor.id}_${Date.now()}`;
     const handler = PaystackPop.setup({
-      key: "pk_live_86d78a3f9090b60d4d45f2ee1caf54dda3198ad5",
+      key: (import.meta.env.VITE_PAYSTACK_PUBLIC_KEY as string),
       email: user!.email,
       amount: plan.amountSubunits,
       currency: plan.currency,
@@ -374,7 +374,7 @@ const VendorDashboard = () => {
       const PaystackPop = (window as any).PaystackPop;
       const ref = `sub_${plan}_${vendor.id}_${Date.now()}`;
       const handler = PaystackPop.setup({
-        key: "pk_live_86d78a3f9090b60d4d45f2ee1caf54dda3198ad5",
+        key: (import.meta.env.VITE_PAYSTACK_PUBLIC_KEY as string),
         email: user.email,
         amount: resolvedPlan.amountSubunits,
         currency: resolvedPlan.currency,
@@ -493,7 +493,7 @@ const VendorDashboard = () => {
       const PaystackPop = (window as any).PaystackPop;
       const ref = `vr_${vendor.id}_${Date.now()}`;
       const handler = PaystackPop.setup({
-        key: "pk_live_86d78a3f9090b60d4d45f2ee1caf54dda3198ad5",
+        key: (import.meta.env.VITE_PAYSTACK_PUBLIC_KEY as string),
         email: user!.email,
         amount: plan.amountSubunits,
         currency: plan.currency,
