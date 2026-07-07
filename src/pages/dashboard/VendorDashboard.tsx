@@ -376,7 +376,6 @@ const VendorDashboard = () => {
       const handler = PaystackPop.setup({
         key: (import.meta.env.VITE_PAYSTACK_PUBLIC_KEY as string),
         email: user.email,
-        amount: resolvedPlan.amountSubunits,
         currency: resolvedPlan.currency,
         ref,
         plan: SUBSCRIPTION_PLAN_CODES[plan],
