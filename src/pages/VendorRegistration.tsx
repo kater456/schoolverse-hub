@@ -19,7 +19,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { CATEGORIES } from "@/lib/constants";
 import { Loader2, Upload, FileCheck, ShieldCheck, CheckCircle2, CreditCard, PenLine } from "lucide-react";
 import { resolvePlan } from "@/lib/pricing";
-import { compressImage } from "@/lib/compressImage";
+import { compressVendorImage } from "@/lib/vendorImageCompression";
+import { Progress } from "@/components/ui/progress";
 
 const vendorSchema = z.object({
   business_name: z.string().min(2, "Business name is required").max(100),
@@ -54,6 +55,7 @@ const VendorRegistration = () => {
   const [productImages, setProductImages]   = useState<File[]>([]);
   const [vendorPhoto, setVendorPhoto]       = useState<File | null>(null);
   const [idDocument, setIdDocument]         = useState<File | null>(null);
+  const [compressionProgress, setCompressionProgress] = useState<Record<string, number>>({});
   const [paymentPending, setPaymentPending] = useState(false);
   const [otherServiceSpec, setOtherServiceSpec] = useState("");
 
@@ -110,10 +112,13 @@ const VendorRegistration = () => {
   useEffect(() => { setSelectedSchoolId(watchSchool); }, [watchSchool]);
 
   // ── Upload helper (compressed) ────────────────────────────────────────────
-  const uploadFile = async (file: File, path: string) => {
-    const compressed = await compressImage(file);
+  const uploadFile = async (file: File, path: string, fieldId: string) => {
+    setCompressionProgress(prev => ({ ...prev, [fieldId]: 0 }));
+    const compressed = await compressVendorImage(file, (p) => {
+      setCompressionProgress(prev => ({ ...prev, [fieldId]: p }));
+    });
     const { data, error } = await supabase.storage
-      .from("vendor-media").upload(path, compressed, { upsert: true });
+      .from("vendor-media").upload(path.replace(/\.[^.]+$/, ".webp"), compressed, { upsert: true });
     if (error) throw error;
     const { data: urlData } = supabase.storage.from("vendor-media").getPublicUrl(data.path);
     return urlData.publicUrl;
@@ -226,10 +231,10 @@ const VendorRegistration = () => {
       createdVendor = vendor;
 
       let vendorPhotoUrl = null;
-      if (vendorPhoto) vendorPhotoUrl = await uploadFile(vendorPhoto, `${user.id}/vendor-photo-${Date.now()}`);
+      if (vendorPhoto) vendorPhotoUrl = await uploadFile(vendorPhoto, `${user.id}/vendor-photo-${Date.now()}`, 'vendorPhoto');
 
       let idDocumentUrl = null;
-      if (idDocument) idDocumentUrl = await uploadFile(idDocument, `${user.id}/id-document-${Date.now()}`);
+      if (idDocument) idDocumentUrl = await uploadFile(idDocument, `${user.id}/id-document-${Date.now()}`, 'idDocument');
 
       const { error: privateError } = await supabase.from("vendor_private_details").insert({
         vendor_id: vendor.id, full_name: data.full_name,
@@ -240,7 +245,7 @@ const VendorRegistration = () => {
 
       for (let i = 0; i < productImages.length; i++) {
         try {
-          const url = await uploadFile(productImages[i], `${user.id}/product-${Date.now()}-${i}`);
+          const url = await uploadFile(productImages[i], `${user.id}/product-${Date.now()}-${i}`, `product-${i}`);
           await supabase.from("vendor_images").insert({
             vendor_id: vendor.id, image_url: url, is_primary: i === 0, display_order: i,
           });
@@ -468,6 +473,17 @@ const VendorRegistration = () => {
 
                   <div>
                     <Label>Product Photos</Label>
+                    {productImages.length > 0 && productImages.some((_, i) => compressionProgress[`product-${i}`] !== undefined && compressionProgress[`product-${i}`] < 100) && (
+                      <div className="mt-2 space-y-1">
+                        <p className="text-[10px] text-muted-foreground italic">Compressing products...</p>
+                        <Progress
+                          value={
+                            productImages.reduce((acc, _, i) => acc + (compressionProgress[`product-${i}`] || 0), 0) / productImages.length
+                          }
+                          className="h-1"
+                        />
+                      </div>
+                    )}
                     <div className="mt-2">
                       <label className="flex items-center justify-center gap-2 border-2 border-dashed border-border rounded-lg p-6 cursor-pointer hover:border-accent transition-colors">
                         <Upload className="h-5 w-5 text-muted-foreground" />
@@ -536,6 +552,15 @@ const VendorRegistration = () => {
 
                   <div>
                     <Label>Your Photo</Label>
+                    {compressionProgress['vendorPhoto'] !== undefined && compressionProgress['vendorPhoto'] < 100 && (
+                      <div className="mt-2 space-y-1">
+                        <div className="flex justify-between text-[10px]">
+                          <span className="italic">Compressing photo...</span>
+                          <span>{compressionProgress['vendorPhoto']}%</span>
+                        </div>
+                        <Progress value={compressionProgress['vendorPhoto']} className="h-1" />
+                      </div>
+                    )}
                     <div className="mt-2">
                       <label className="flex items-center justify-center gap-2 border-2 border-dashed border-border rounded-lg p-4 cursor-pointer hover:border-accent transition-colors">
                         <Upload className="h-4 w-4 text-muted-foreground" />
@@ -555,6 +580,15 @@ const VendorRegistration = () => {
                     <p className="text-xs text-muted-foreground mb-2">
                       Upload a clear photo of your student ID, national ID, or any government-issued ID (max {MAX_ID_SIZE_MB}MB)
                     </p>
+                    {compressionProgress['idDocument'] !== undefined && compressionProgress['idDocument'] < 100 && (
+                      <div className="space-y-1 mb-2">
+                        <div className="flex justify-between text-[10px]">
+                          <span className="italic">Compressing ID...</span>
+                          <span>{compressionProgress['idDocument']}%</span>
+                        </div>
+                        <Progress value={compressionProgress['idDocument']} className="h-1" />
+                      </div>
+                    )}
                     <label className={`flex items-center justify-center gap-2 border-2 border-dashed rounded-lg p-4 cursor-pointer transition-colors ${
                       idDocument ? "border-success bg-success/5" : "border-border hover:border-accent"
                     }`}>

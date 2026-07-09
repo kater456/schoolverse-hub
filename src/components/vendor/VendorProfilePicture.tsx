@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Loader2, Upload, User, Trash2 } from "lucide-react";
-import { compressImage } from "@/lib/compressImage";
+import { compressVendorImage } from "@/lib/vendorImageCompression";
+import { Progress } from "@/components/ui/progress";
 
 interface Props {
   vendor: any;
@@ -15,15 +16,17 @@ interface Props {
 const VendorProfilePicture = ({ vendor, onUpdate }: Props) => {
   const { toast } = useToast();
   const [uploading, setUploading] = useState(false);
+  const [compressionProgress, setCompressionProgress] = useState(0);
   const [url, setUrl] = useState<string | null>(vendor.profile_image_url || null);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
+    setCompressionProgress(0);
     try {
-      const compressed = await compressImage(file, 600, 0.85);
-      const path = `${vendor.id}/profile-${Date.now()}.jpg`;
+      const compressed = await compressVendorImage(file, (p) => setCompressionProgress(p));
+      const path = `${vendor.id}/profile-${Date.now()}.webp`;
       const { error: upErr } = await supabase.storage
         .from("vendor-media")
         .upload(path, compressed, { upsert: true });
@@ -45,6 +48,7 @@ const VendorProfilePicture = ({ vendor, onUpdate }: Props) => {
       toast({ title: "Upload failed", description: err.message, variant: "destructive" });
     }
     setUploading(false);
+    setCompressionProgress(0);
   };
 
   const handleRemove = async () => {
@@ -83,6 +87,15 @@ const VendorProfilePicture = ({ vendor, onUpdate }: Props) => {
           </Avatar>
 
           <div className="flex flex-col gap-2 flex-1">
+            {uploading && compressionProgress < 100 && (
+              <div className="space-y-1 mb-1">
+                <div className="flex justify-between text-[10px]">
+                  <span>Compressing photo...</span>
+                  <span>{compressionProgress}%</span>
+                </div>
+                <Progress value={compressionProgress} className="h-1" />
+              </div>
+            )}
             <label className="cursor-pointer">
               <input
                 type="file"
@@ -94,7 +107,7 @@ const VendorProfilePicture = ({ vendor, onUpdate }: Props) => {
               <Button asChild disabled={uploading} variant="default" size="sm">
                 <span>
                   {uploading ? (
-                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Uploading…</>
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> {compressionProgress < 100 ? "Compressing..." : "Uploading..."}</>
                   ) : (
                     <><Upload className="h-4 w-4 mr-2" />{url ? "Change" : "Upload"} Picture</>
                   )}
