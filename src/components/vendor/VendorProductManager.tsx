@@ -9,7 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Plus, Edit2, Trash2, Package, Loader2, Image as ImageIcon, DollarSign, ExternalLink } from "lucide-react";
-import { compressImage } from "@/lib/compressImage";
+import { compressVendorImage } from "@/lib/vendorImageCompression";
+import { Progress } from "@/components/ui/progress";
 
 interface VendorProductManagerProps {
   vendorId: string;
@@ -35,6 +36,7 @@ const VendorProductManager = ({ vendorId, schoolId }: VendorProductManagerProps)
   const [showDialog, setShowDialog] = useState(false);
   const [editingProduct, setEditingProduct] = useState<VendorProduct | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [compressionProgress, setCompressionProgress] = useState(0);
   const [saving, setSaving] = useState(false);
 
   const [form, setForm] = useState({
@@ -78,8 +80,9 @@ const VendorProductManager = ({ vendorId, schoolId }: VendorProductManagerProps)
   const uploadProductImage = async (file: File) => {
     try {
       setUploading(true);
-      const compressed = await compressImage(file, 800);
-      const path = `${vendorId}/products/${Date.now()}.jpg`;
+      setCompressionProgress(0);
+      const compressed = await compressVendorImage(file, (p) => setCompressionProgress(p));
+      const path = `${vendorId}/products/${Date.now()}.webp`;
       const { error: uploadError } = await supabase.storage.from("vendor-media").upload(path, compressed);
       if (uploadError) throw uploadError;
       const { data: urlData } = supabase.storage.from("vendor-media").getPublicUrl(path);
@@ -92,6 +95,7 @@ const VendorProductManager = ({ vendorId, schoolId }: VendorProductManagerProps)
       });
     } finally {
       setUploading(false);
+      setCompressionProgress(0);
     }
   };
 
@@ -151,25 +155,32 @@ const VendorProductManager = ({ vendorId, schoolId }: VendorProductManagerProps)
 
   // Legacy image upload (for gallery images without prices)
   const uploadGalleryImage = async (file: File) => {
-    setUploading(true);
-    const compressed = await compressImage(file, 800);
-    const path = `${vendorId}/${Date.now()}.jpg`;
-    const { error: uploadError } = await supabase.storage.from("vendor-media").upload(path, compressed);
-    if (uploadError) {
-      toast({ title: "Upload failed", description: uploadError.message, variant: "destructive" });
-      setUploading(false);
-      return;
-    }
-    const { data: urlData } = supabase.storage.from("vendor-media").getPublicUrl(path);
+    try {
+      setUploading(true);
+      setCompressionProgress(0);
+      const compressed = await compressVendorImage(file, (p) => setCompressionProgress(p));
+      const path = `${vendorId}/${Date.now()}.webp`;
+      const { error: uploadError } = await supabase.storage.from("vendor-media").upload(path, compressed);
+      if (uploadError) {
+        toast({ title: "Upload failed", description: uploadError.message, variant: "destructive" });
+        setUploading(false);
+        return;
+      }
+      const { data: urlData } = supabase.storage.from("vendor-media").getPublicUrl(path);
     await supabase.from("vendor_images").insert({
       vendor_id: vendorId,
       image_url: urlData.publicUrl,
       is_primary: images.length === 0,
       display_order: images.length,
     } as any);
-    toast({ title: "Image uploaded!" });
-    fetchData();
-    setUploading(false);
+      toast({ title: "Image uploaded!" });
+      fetchData();
+    } catch (err: any) {
+      toast({ title: "Upload failed", description: err.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+      setCompressionProgress(0);
+    }
   };
 
   const deleteImage = async (id: string) => {
@@ -260,7 +271,18 @@ const VendorProductManager = ({ vendorId, schoolId }: VendorProductManagerProps)
           <label className="cursor-pointer">
             <Button size="sm" variant="outline" disabled={uploading} asChild>
               <span>
-                {uploading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Plus className="h-4 w-4 mr-1" />}
+                {uploading ? (
+                  compressionProgress < 100 ? (
+                    <span className="flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      {compressionProgress}%
+                    </span>
+                  ) : (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  )
+                ) : (
+                  <Plus className="h-4 w-4 mr-1" />
+                )}
                 Add Image
               </span>
             </Button>
@@ -324,9 +346,18 @@ const VendorProductManager = ({ vendorId, schoolId }: VendorProductManagerProps)
             <div className="space-y-1.5">
               <Label>Product Image</Label>
               {form.image_url && <img src={form.image_url} alt="" className="w-full h-32 object-cover rounded-lg mb-2" />}
+              {uploading && compressionProgress < 100 && (
+                <div className="space-y-1 mb-2">
+                  <div className="flex justify-between text-[10px]">
+                    <span>Compressing image...</span>
+                    <span>{compressionProgress}%</span>
+                  </div>
+                  <Progress value={compressionProgress} className="h-1" />
+                </div>
+              )}
               <label className="cursor-pointer">
                 <Button variant="outline" className="w-full" disabled={uploading} asChild>
-                  <span>{uploading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Uploading...</> : <><ImageIcon className="h-4 w-4 mr-2" /> {form.image_url ? "Change Image" : "Upload Image"}</>}</span>
+                  <span>{uploading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> {compressionProgress < 100 ? "Compressing..." : "Uploading..."}</> : <><ImageIcon className="h-4 w-4 mr-2" /> {form.image_url ? "Change Image" : "Upload Image"}</>}</span>
                 </Button>
                 <input type="file" accept="image/*" className="hidden" onChange={(e) => {
                   const file = e.target.files?.[0];

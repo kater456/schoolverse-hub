@@ -24,7 +24,8 @@ import VendorProductManager from "@/components/vendor/VendorProductManager";
 import VendorVideoManager from "@/components/vendor/VendorVideoManager";
 import VendorAdStudio from "@/components/vendor/VendorAdStudio";
 import ThemeToggle from "@/components/ThemeToggle";
-import { compressImage } from "@/lib/compressImage";
+import { compressVendorImage } from "@/lib/vendorImageCompression";
+import { Progress } from "@/components/ui/progress";
 import VendorControlCenter from "@/components/vendor/VendorControlCenter";
 import VendorProfilePicture from "@/components/vendor/VendorProfilePicture";
 import VendorDealManager from "@/components/vendor/VendorDealManager";
@@ -67,6 +68,7 @@ const VendorDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarCompressionProgress, setAvatarCompressionProgress] = useState(0);
   const [editContact, setEditContact] = useState("");
   const [contactEditsThisMonth, setContactEditsThisMonth] = useState(0);
   const [savingContact, setSavingContact] = useState(false);
@@ -78,6 +80,7 @@ const VendorDashboard = () => {
 
   const [verifIdUrl,    setVerifIdUrl]    = useState<string | null>(null);
   const [uploadingId,   setUploadingId]   = useState(false);
+  const [idCompressionProgress, setIdCompressionProgress] = useState(0);
   const [payingVerif,   setPayingVerif]   = useState(false);
   const [payingUpgrade, setPayingUpgrade] = useState(false);
   const [signupPaymentEnabled, setSignupPaymentEnabled] = useState(false);
@@ -216,9 +219,11 @@ const VendorDashboard = () => {
     const file = e.target.files?.[0];
     if (!file || !vendor) return;
     setUploadingAvatar(true);
-    const compressed = await compressImage(file, 600);
-    const path = `avatars/${vendor.id}.jpg`;
-    await supabase.storage.from("vendor-media").upload(path, compressed, { upsert: true });
+    setAvatarCompressionProgress(0);
+    try {
+      const compressed = await compressVendorImage(file, (p) => setAvatarCompressionProgress(p));
+      const path = `${vendor.id}/avatar.webp`;
+      await supabase.storage.from("vendor-media").upload(path, compressed, { upsert: true });
     const { data: urlData } = supabase.storage.from("vendor-media").getPublicUrl(path);
     const { data: existing } = await supabase.from("vendor_images").select("id").eq("vendor_id", vendor.id).eq("is_primary", true).maybeSingle();
     if (existing) {
@@ -226,9 +231,14 @@ const VendorDashboard = () => {
     } else {
       await supabase.from("vendor_images").insert({ vendor_id: vendor.id, image_url: urlData.publicUrl, is_primary: true } as any);
     }
-    setAvatarUrl(urlData.publicUrl + "?t=" + Date.now());
-    setUploadingAvatar(false);
-    toast({ title: "Profile photo updated!" });
+      setAvatarUrl(urlData.publicUrl + "?t=" + Date.now());
+      toast({ title: "Profile photo updated!" });
+    } catch (err: any) {
+      toast({ title: "Upload failed", description: err.message, variant: "destructive" });
+    } finally {
+      setUploadingAvatar(false);
+      setAvatarCompressionProgress(0);
+    }
   };
 
   const saveContact = async () => {
@@ -272,9 +282,11 @@ const VendorDashboard = () => {
     const file = e.target.files?.[0];
     if (!file || !vendor) return;
     setUploadingId(true);
-    const compressed = await compressImage(file, 1200);
-    const path = `${vendor.id}/verification-id-${Date.now()}.jpg`;
-    const { data, error } = await supabase.storage.from("vendor-media").upload(path, compressed, { upsert: true });
+    setIdCompressionProgress(0);
+    try {
+      const compressed = await compressVendorImage(file, (p) => setIdCompressionProgress(p));
+      const path = `${vendor.id}/verification-id-${Date.now()}.webp`;
+      const { data, error } = await supabase.storage.from("vendor-media").upload(path, compressed, { upsert: true });
     if (!error && data) {
       const { data: urlData } = supabase.storage.from("vendor-media").getPublicUrl(data.path);
       await supabase.from("vendor_private_details").upsert(
@@ -283,10 +295,15 @@ const VendorDashboard = () => {
       );
       setVerifIdUrl(urlData.publicUrl);
       toast({ title: "ID uploaded ✅" });
-    } else {
-      toast({ title: "Upload failed", variant: "destructive" });
+      } else {
+        toast({ title: "Upload failed", variant: "destructive" });
+      }
+    } catch (err: any) {
+      toast({ title: "Upload failed", description: err.message, variant: "destructive" });
+    } finally {
+      setUploadingId(false);
+      setIdCompressionProgress(0);
     }
-    setUploadingId(false);
   };
 
   useEffect(() => {
@@ -592,8 +609,19 @@ const VendorDashboard = () => {
                     {vendor.business_name?.charAt(0) || "V"}
                   </AvatarFallback>
                 </Avatar>
-                <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                  {uploadingAvatar ? <Loader2 className="h-5 w-5 text-white animate-spin" /> : <Camera className="h-5 w-5 text-white" />}
+                <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer overflow-hidden">
+                  <div className="flex flex-col items-center gap-1">
+                    {uploadingAvatar ? (
+                      <>
+                        <Loader2 className="h-5 w-5 text-white animate-spin" />
+                        {avatarCompressionProgress < 100 && (
+                          <span className="text-[8px] text-white font-bold">{avatarCompressionProgress}%</span>
+                        )}
+                      </>
+                    ) : (
+                      <Camera className="h-5 w-5 text-white" />
+                    )}
+                  </div>
                   <input type="file" accept="image/*" className="hidden" onChange={uploadAvatar} disabled={uploadingAvatar} />
                 </label>
                 <span className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-background" />
@@ -1158,9 +1186,18 @@ const VendorDashboard = () => {
                         <div id="id-upload-area" className="space-y-2">
                           <Label className="text-sm font-medium flex items-center gap-1.5"><FileCheck className="h-4 w-4" /> Upload Your ID</Label>
                           <p className="text-xs text-muted-foreground">Student ID, national ID, or any government-issued ID (image or PDF, max 5MB)</p>
+                        {uploadingId && idCompressionProgress < 100 && (
+                          <div className="space-y-1 mb-2">
+                            <div className="flex justify-between text-[10px]">
+                              <span>Compressing ID...</span>
+                              <span>{idCompressionProgress}%</span>
+                            </div>
+                            <Progress value={idCompressionProgress} className="h-1" />
+                          </div>
+                        )}
                           <label className={`flex items-center justify-center gap-2 border-2 border-dashed rounded-lg p-4 cursor-pointer transition-colors ${verifIdUrl ? "border-success bg-success/5" : "border-border hover:border-primary"}`}>
                             {uploadingId ? (
-                              <><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /><span className="text-sm text-muted-foreground">Uploading…</span></>
+                            <><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /><span className="text-sm text-muted-foreground">{idCompressionProgress < 100 ? "Compressing..." : "Uploading..."}</span></>
                             ) : verifIdUrl ? (
                               <><CheckCircle className="h-5 w-5 text-success" /><span className="text-sm text-success font-medium">ID Uploaded Successfully ✅</span></>
                             ) : (
@@ -1463,8 +1500,17 @@ const VendorDashboard = () => {
                     <CardContent className="space-y-5">
                       <div id="id-upload-area" className="space-y-2">
                         <Label className="text-sm font-medium flex items-center gap-1.5"><FileCheck className="h-4 w-4" /> Upload Your ID</Label>
+                        {uploadingId && idCompressionProgress < 100 && (
+                          <div className="space-y-1 mb-2">
+                            <div className="flex justify-between text-[10px]">
+                              <span>Compressing ID...</span>
+                              <span>{idCompressionProgress}%</span>
+                            </div>
+                            <Progress value={idCompressionProgress} className="h-1" />
+                          </div>
+                        )}
                         <label className={`flex items-center justify-center gap-2 border-2 border-dashed rounded-lg p-4 cursor-pointer ${verifIdUrl ? "border-success bg-success/5" : "border-border hover:border-primary"}`}>
-                          {uploadingId ? <><Loader2 className="h-4 w-4 animate-spin" /><span className="text-sm text-muted-foreground">Uploading…</span></> :
+                          {uploadingId ? <><Loader2 className="h-4 w-4 animate-spin" /><span className="text-sm text-muted-foreground">{idCompressionProgress < 100 ? "Compressing..." : "Uploading..."}</span></> :
                             verifIdUrl ? <><CheckCircle className="h-5 w-5 text-success" /><span className="text-sm text-success font-medium">ID Uploaded ✅</span></> :
                             <><Upload className="h-4 w-4 text-muted-foreground" /><span className="text-sm text-muted-foreground">Tap to upload your ID</span></>}
                           <input type="file" accept="image/*,.pdf" className="hidden" onChange={uploadVerifId} disabled={uploadingId} />

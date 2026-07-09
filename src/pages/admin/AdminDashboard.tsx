@@ -13,7 +13,7 @@ import {
   Activity, CreditCard, UserPlus, Wrench, Film, Settings, MessageSquare,
   Check, X, AlertTriangle, ArrowRight, BarChart3, Building2, MapPin,
   Megaphone, ShieldCheck, Zap, Globe, Trophy, Crown, Eye,
-  ChevronRight, RefreshCw, CircleCheck, CircleX, Loader2, Bell,
+  ChevronRight, RefreshCw, CircleCheck, CircleX, Loader2, Bell, HardDrive, Search as SearchIcon,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -103,6 +103,18 @@ const AdminDashboard = () => {
 
   // Queues
   const [pendingVendors,    setPendingVendors]    = useState<any[]>([]);
+
+  // Storage usage
+  const [storageData, setStorageData] = useState<{
+    total_used_mb: number;
+    total_limit_mb: number;
+    percent_used: number;
+    vendors: { vendor_id: string; vendor_name: string; storage_mb: number; image_count: number }[];
+  } | null>(null);
+  const [storageLoading, setStorageLoading] = useState(true);
+  const [storageSearch, setStorageSearch] = useState("");
+  const [sortField, setSortField] = useState<"storage_mb" | "image_count" | "vendor_name">("storage_mb");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [votwNominations,   setVotwNominations]   = useState<any[]>([]);
   const [activityFeed,      setActivityFeed]      = useState<any[]>([]);
   const [approvingId,       setApprovingId]       = useState<string | null>(null);
@@ -117,7 +129,22 @@ const AdminDashboard = () => {
     featured_reels_enabled: false,
   });
 
+  const fetchStorage = useCallback(async () => {
+    setStorageLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-storage-usage");
+      if (error) throw error;
+      setStorageData(data);
+    } catch (err: any) {
+      console.error("Failed to fetch storage usage:", err);
+      toast({ title: "Storage error", description: "Failed to load storage usage data.", variant: "destructive" });
+    } finally {
+      setStorageLoading(false);
+    }
+  }, []);
+
   const fetchAll = useCallback(async () => {
+    fetchStorage();
     const [
       vendors, pending, pendingList, featured, profiles,
       activityLog, platformSettings, messages, flagged,
@@ -293,6 +320,26 @@ const AdminDashboard = () => {
     { key: "maintenance_mode" as const,       icon: Wrench,     label: "Maintenance Mode",    desc: "Show maintenance notice to all visitors",  color: "text-orange-500" },
     { key: "featured_reels_enabled" as const, icon: Film,       label: "Featured Reels",      desc: "Show Reels section on Browse page",        color: "text-accent" },
   ];
+
+  const sortedVendors = (storageData?.vendors || [])
+    .filter(v => v.vendor_name.toLowerCase().includes(storageSearch.toLowerCase()))
+    .sort((a, b) => {
+      const valA = a[sortField];
+      const valB = b[sortField];
+      if (typeof valA === "string" && typeof valB === "string") {
+        return sortDirection === "asc" ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      }
+      return sortDirection === "asc" ? (valA as number) - (valB as number) : (valB as number) - (valA as number);
+    });
+
+  const handleSort = (field: typeof sortField) => {
+    if (sortField === field) {
+      setSortDirection(prev => prev === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("desc");
+    }
+  };
 
   const getStatusBadge = (action: string) => {
     if (action.toLowerCase().includes("approv"))  return <Badge className="bg-success/20 text-success text-[10px]">Approved</Badge>;
@@ -577,6 +624,106 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* ── Storage Usage Panel ── */}
+      <Card className="border-border/50 mb-6">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <HardDrive className="h-4 w-4 text-primary" /> Storage Usage
+            </CardTitle>
+            {storageData && (
+              <Badge variant={storageData.percent_used > 90 ? "destructive" : storageData.percent_used > 70 ? "secondary" : "outline"} className="text-[10px]">
+                {storageData.total_used_mb} MB / {storageData.total_limit_mb} MB ({storageData.percent_used}%)
+              </Badge>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {storageLoading ? (
+            <div className="space-y-4">
+              <div className="h-2 bg-muted animate-pulse rounded-full" />
+              <div className="grid grid-cols-4 gap-4">
+                {[1, 2, 3, 4].map(i => <div key={i} className="h-8 bg-muted animate-pulse rounded" />)}
+              </div>
+            </div>
+          ) : !storageData ? (
+            <div className="text-center py-6 border-2 border-dashed border-border rounded-xl">
+              <AlertTriangle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">Could not load storage data</p>
+              <Button variant="outline" size="sm" onClick={fetchStorage} className="mt-2">Try Again</Button>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Progress Bar */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-[10px] font-medium">
+                  <span className="text-muted-foreground">Overall Capacity</span>
+                  <span className={storageData.percent_used > 90 ? "text-red-500" : storageData.percent_used > 70 ? "text-yellow-500" : "text-green-500"}>
+                    {storageData.percent_used}% Used
+                  </span>
+                </div>
+                <Progress
+                  value={storageData.percent_used}
+                  className={`h-2 ${
+                    storageData.percent_used > 90 ? "[&>div]:bg-red-500" :
+                    storageData.percent_used > 70 ? "[&>div]:bg-yellow-500" :
+                    "[&>div]:bg-green-500"
+                  }`}
+                />
+              </div>
+
+              {/* Vendor Table */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input
+                      placeholder="Search vendor storage..."
+                      className="pl-8 h-8 text-xs bg-muted/30 border-border/50"
+                      value={storageSearch}
+                      onChange={(e) => setStorageSearch(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-border/50 overflow-hidden">
+                  <table className="w-full text-xs text-left">
+                    <thead className="bg-muted/50 text-muted-foreground font-medium border-b border-border/50">
+                      <tr>
+                        <th className="px-4 py-2 cursor-pointer hover:text-foreground transition-colors" onClick={() => handleSort("vendor_name")}>
+                          Vendor Name {sortField === "vendor_name" && (sortDirection === "asc" ? "↑" : "↓")}
+                        </th>
+                        <th className="px-4 py-2 cursor-pointer hover:text-foreground transition-colors text-right" onClick={() => handleSort("storage_mb")}>
+                          Storage (MB) {sortField === "storage_mb" && (sortDirection === "asc" ? "↑" : "↓")}
+                        </th>
+                        <th className="px-4 py-2 cursor-pointer hover:text-foreground transition-colors text-right" onClick={() => handleSort("image_count")}>
+                          Images {sortField === "image_count" && (sortDirection === "asc" ? "↑" : "↓")}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/50">
+                      {sortedVendors.length === 0 ? (
+                        <tr>
+                          <td colSpan={3} className="px-4 py-8 text-center text-muted-foreground">No matching vendors found</td>
+                        </tr>
+                      ) : (
+                        sortedVendors.map((v) => (
+                          <tr key={v.vendor_id} className="hover:bg-muted/20 transition-colors">
+                            <td className="px-4 py-2.5 font-medium">{v.vendor_name}</td>
+                            <td className="px-4 py-2.5 text-right">{v.storage_mb.toFixed(2)} MB</td>
+                            <td className="px-4 py-2.5 text-right font-mono">{v.image_count}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* ── Bottom row: Categories + Activity ── */}
       <div className="grid lg:grid-cols-2 gap-5">

@@ -13,7 +13,8 @@ import {
   Image as ImageIcon, GripVertical, Eye, Layers, Box,
   AlertTriangle, Save, RotateCcw, ShoppingBag, Tag,
 } from "lucide-react";
-import { compressImage } from "@/lib/compressImage";
+import { compressVendorImage } from "@/lib/vendorImageCompression";
+import { Progress } from "@/components/ui/progress";
 
 interface VendorStoreUpgradeProps {
   vendor: any;
@@ -179,6 +180,7 @@ const VendorStoreUpgrade = ({ vendor, onUpdate }: VendorStoreUpgradeProps) => {
   const [showRefInput,    setShowRefInput]    = useState(false);
   const [manualRef,       setManualRef]       = useState("");
   const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [compressionProgress, setCompressionProgress] = useState(0);
   const [savingDesign,    setSavingDesign]    = useState(false);
   const [designSaveCount, setDesignSaveCount] = useState(0);
   const [products,        setProducts]        = useState<any[]>([]);
@@ -263,17 +265,24 @@ const VendorStoreUpgrade = ({ vendor, onUpdate }: VendorStoreUpgradeProps) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploadingBanner(true);
-    const compressed = await compressImage(file, 1400);
-    const path = `${vendor.id}/store-banner-${Date.now()}.jpg`;
-    const { error } = await supabase.storage.from("vendor-media").upload(path, compressed, { upsert: true });
-    if (!error) {
-      const { data: urlData } = supabase.storage.from("vendor-media").getPublicUrl(path);
-      setBannerUrl(urlData.publicUrl);
-      await (supabase as any).from("vendors").update({ banner_url: urlData.publicUrl }).eq("id", vendor.id);
-      onUpdate({ ...vendor, banner_url: urlData.publicUrl });
-      toast({ title: "Banner uploaded! 🎨" });
+    setCompressionProgress(0);
+    try {
+      const compressed = await compressVendorImage(file, (p) => setCompressionProgress(p));
+      const path = `${vendor.id}/store-banner-${Date.now()}.webp`;
+      const { error } = await supabase.storage.from("vendor-media").upload(path, compressed, { upsert: true });
+      if (!error) {
+        const { data: urlData } = supabase.storage.from("vendor-media").getPublicUrl(path);
+        setBannerUrl(urlData.publicUrl);
+        await (supabase as any).from("vendors").update({ banner_url: urlData.publicUrl }).eq("id", vendor.id);
+        onUpdate({ ...vendor, banner_url: urlData.publicUrl });
+        toast({ title: "Banner uploaded! 🎨" });
+      }
+    } catch (err: any) {
+      toast({ title: "Upload failed", description: err.message, variant: "destructive" });
+    } finally {
+      setUploadingBanner(false);
+      setCompressionProgress(0);
     }
-    setUploadingBanner(false);
   };
 
   // ── Save full store design ────────────────────────────────────────────────
@@ -691,11 +700,20 @@ const VendorStoreUpgrade = ({ vendor, onUpdate }: VendorStoreUpgradeProps) => {
                     </div>
                   </div>
                 )}
+                {uploadingBanner && compressionProgress < 100 && (
+                  <div className="space-y-1 mb-2">
+                    <div className="flex justify-between text-[10px]">
+                      <span>Compressing banner...</span>
+                      <span>{compressionProgress}%</span>
+                    </div>
+                    <Progress value={compressionProgress} className="h-1" />
+                  </div>
+                )}
                 <label className="cursor-pointer block">
                   <Button variant="outline" className="w-full" disabled={uploadingBanner} asChild>
                     <span>
                       {uploadingBanner
-                        ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Uploading...</>
+                        ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> {compressionProgress < 100 ? "Compressing..." : "Uploading..."}</>
                         : <><Upload className="h-4 w-4 mr-2" /> {bannerUrl ? "Change Banner" : "Upload Banner"}</>}
                     </span>
                   </Button>
