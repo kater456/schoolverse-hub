@@ -1,0 +1,20 @@
+5da223a WIP on jules-6912591581671425609-29d7a8ed: c9ff048 Added platform toggle check
+4cca235 index on jules-6912591581671425609-29d7a8ed: c9ff048 Added platform toggle check
+3f865c9 Merge pull request #16 from kater456/unlock-ratings-vendor-comments-toggle-5855757545438558887
+3ebbd85 Unlock ratings via contact and add vendor comments toggle
+c9ff048 Added platform toggle check
+b41cf83 Finalize visitor tracking and fix admin dashboard bugs
+8523c50 feat: implement interaction-based Buyer CRM for vendors
+7df9fdb fix: allow all Paystack checkout origins in CSP
+d0a079b fix: update CSP to allow Supabase Realtime and Paystack checkout
+a049805 fix: prevent duplicate vendor applications with DB unique constraint and UI guard
+95c7b05 feat: trigger push notifications for vendor approval, messages, and milestones
+42329d5 fix: wire up real password reset flow (was previously a non-functional mock)
+14294e7 fix: iOS Safari private mode crash (storage + WebSocket guards)
+e69742a fix: resolve unresponsive UI in VendorDashboard mobile and fix upgrade button state
+46a256b feat: marketplace analytics, privacy hardening, onboarding & mobile fix
+bcfc2fc Implement vendor data privacy and behavioral analytics system
+36a2814 feat: integrate Physiology CBT and fix Safari compatibility
+14a005a Install Vercel Web Analytics
+1841b70 Install Vercel Web Analytics
+6276253 Fix payment system, implement platform controls, and add notification system
