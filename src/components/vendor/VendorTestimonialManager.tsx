@@ -11,6 +11,8 @@ import {
   MessageSquare, Upload, Star, Trash2, Pin, PinOff,
   Loader2, CheckCircle, Clock, XCircle, Image, Type,
 } from "lucide-react";
+import { compressVendorImage } from "@/lib/vendorImageCompression";
+import { Progress } from "@/components/ui/progress";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type TestimonialSource = "whatsapp" | "instagram" | "telegram" | "inperson" | "sms";
@@ -70,6 +72,7 @@ export default function VendorTestimonialManager({ vendorId }: Props) {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageFile, setImageFile]       = useState<File | null>(null);
   const [uploadingImg, setUploadingImg] = useState(false);
+  const [compressionProgress, setCompressionProgress] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // ── Fetch testimonials ─────────────────────────────────────────────────────
@@ -109,20 +112,32 @@ export default function VendorTestimonialManager({ vendorId }: Props) {
 
     if (mode === "image" && imageFile) {
       setUploadingImg(true);
-      const path = `testimonials/${vendorId}/${Date.now()}.jpg`;
-      const { data: uploadData, error: uploadErr } = await supabase.storage
-        .from("vendor-media")
-        .upload(path, imageFile, { upsert: true });
+      setCompressionProgress(0);
+      try {
+        const compressed = await compressVendorImage(imageFile, (p) => setCompressionProgress(p));
+        const path = `${vendorId}/testimonials/${Date.now()}.webp`;
+        const { data: uploadData, error: uploadErr } = await supabase.storage
+          .from("vendor-media")
+          .upload(path, compressed, { upsert: true });
 
-      if (uploadErr || !uploadData) {
-        toast({ title: "Image upload failed", description: uploadErr?.message, variant: "destructive" });
+        if (uploadErr || !uploadData) {
+          toast({ title: "Image upload failed", description: uploadErr?.message, variant: "destructive" });
+          setSubmitting(false);
+          setUploadingImg(false);
+          setCompressionProgress(0);
+          return;
+        }
+        const { data: urlData } = supabase.storage.from("vendor-media").getPublicUrl(uploadData.path);
+        screenshotUrl = urlData.publicUrl;
+      } catch (err: any) {
+        toast({ title: "Upload failed", description: err.message, variant: "destructive" });
         setSubmitting(false);
         setUploadingImg(false);
+        setCompressionProgress(0);
         return;
       }
-      const { data: urlData } = supabase.storage.from("vendor-media").getPublicUrl(uploadData.path);
-      screenshotUrl = urlData.publicUrl;
       setUploadingImg(false);
+      setCompressionProgress(0);
     }
 
     const { error } = await (supabase as any)
@@ -292,6 +307,15 @@ export default function VendorTestimonialManager({ vendorId }: Props) {
             {mode === "image" && (
               <div>
                 <Label className="text-xs mb-1.5 block">Upload screenshot *</Label>
+                {uploadingImg && compressionProgress < 100 && (
+                  <div className="space-y-1 mb-2">
+                    <div className="flex justify-between text-[10px]">
+                      <span>Compressing screenshot...</span>
+                      <span>{compressionProgress}%</span>
+                    </div>
+                    <Progress value={compressionProgress} className="h-1" />
+                  </div>
+                )}
                 <div
                   onClick={() => fileRef.current?.click()}
                   className={`border-2 border-dashed rounded-lg p-5 text-center cursor-pointer transition-colors ${
