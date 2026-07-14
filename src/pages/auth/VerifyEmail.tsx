@@ -1,19 +1,89 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { GraduationCap, Mail, ArrowRight, Loader2, CheckCircle2 } from "lucide-react";
+import { safeSessionStorage } from "@/lib/safeStorage";
+import { GraduationCap, Mail, ArrowRight, Loader2, CheckCircle2, Edit2, Check } from "lucide-react";
 
 const VerifyEmail = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const searchParams = new URLSearchParams(location.search);
+  const queryEmail = searchParams.get("email");
+  const stateEmail = location.state?.email;
+
+  // Cascading fallback to resolve and persist email state
+  const [email, setEmail] = useState(() => {
+    const initial = stateEmail || queryEmail || safeSessionStorage.getItem("verify_email_temp") || "";
+    return initial;
+  });
+
+  const [isEditingEmail, setIsEditingEmail] = useState(!email);
+  const [tempEmail, setTempEmail] = useState(email);
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isResending, setIsResending] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
-  const { toast } = useToast();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const email = location.state?.email || "your email";
+
+  // Synchronize and persist email to sessionStorage
+  useEffect(() => {
+    if (email) {
+      safeSessionStorage.setItem("verify_email_temp", email);
+      setTempEmail(email);
+    }
+  }, [email]);
+
+  // Listen for Supabase session changes (e.g. if the email confirmation link was clicked in another tab or redirects)
+  useEffect(() => {
+    let isSubscribed = true;
+
+    const checkSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user?.email_confirmed_at && isSubscribed) {
+          console.log("Verified session detected via getSession, auto-redirecting.");
+          await handleAutoVerify();
+        }
+      } catch (err) {
+        console.error("Error checking session", err);
+      }
+    };
+
+    checkSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user?.email_confirmed_at && isSubscribed) {
+        console.log(`Verified session detected on event ${event}, auto-redirecting.`);
+        await handleAutoVerify();
+      }
+    });
+
+    return () => {
+      isSubscribed = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const handleAutoVerify = async () => {
+    setIsVerified(true);
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn("Sign out during auto-verify failed", e);
+    }
+    toast({
+      title: "Email verified automatically!",
+      description: "We detected your email is confirmed. Redirecting to login...",
+    });
+
+    setTimeout(() => {
+      navigate("/login", { state: { verified: true } });
+    }, 2500);
+  };
 
   const handleOtpChange = (index: number, value: string) => {
     if (value.length > 1) return;
@@ -33,6 +103,24 @@ const VerifyEmail = () => {
     }
   };
 
+  const handleSaveEmail = () => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!tempEmail || !emailRegex.test(tempEmail)) {
+      toast({
+        title: "Invalid email",
+        description: "Please enter a valid email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setEmail(tempEmail);
+    setIsEditingEmail(false);
+    toast({
+      title: "Email updated",
+      description: `Verification email set to ${tempEmail}.`,
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const code = otp.join("");
@@ -41,8 +129,15 @@ const VerifyEmail = () => {
       return;
     }
 
+    if (!email) {
+      toast({ title: "Email required", description: "Please enter your email to complete verification.", variant: "destructive" });
+      setIsEditingEmail(true);
+      return;
+    }
+
     setIsLoading(true);
     try {
+      console.log(`Verifying OTP for email: ${email} with token: ${code}`);
       const { error } = await supabase.auth.verifyOtp({ email, token: code, type: "signup" });
       setIsLoading(false);
 
@@ -52,7 +147,11 @@ const VerifyEmail = () => {
       }
 
       // Sign out so user must login fresh
-      await supabase.auth.signOut();
+      try {
+        await supabase.auth.signOut();
+      } catch (err) {
+        console.warn("Sign out failed on verification submit:", err);
+      }
       setIsVerified(true);
       toast({ title: "Email verified!", description: "Your email has been verified. Please proceed to login." });
 
@@ -66,15 +165,30 @@ const VerifyEmail = () => {
   };
 
   const handleResend = async () => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRegex.test(email)) {
+      toast({
+        title: "Invalid email format",
+        description: "Please specify a valid email address before resending.",
+        variant: "destructive",
+      });
+      setIsEditingEmail(true);
+      return;
+    }
+
+    console.log("Calling supabase.auth.resend with:", email);
+    setIsResending(true);
     try {
       const { error } = await supabase.auth.resend({ type: "signup", email });
+      setIsResending(false);
       if (error) {
         toast({ title: "Error", description: error.message, variant: "destructive" });
       } else {
         toast({ title: "Code resent", description: "A new verification code has been sent to your email." });
       }
-    } catch {
-      toast({ title: "Error", description: "Failed to resend code", variant: "destructive" });
+    } catch (err: any) {
+      setIsResending(false);
+      toast({ title: "Error", description: err.message || "Failed to resend code", variant: "destructive" });
     }
   };
 
@@ -125,10 +239,37 @@ const VerifyEmail = () => {
           <h1 className="font-display text-3xl font-bold text-foreground mb-2">
             Verify your email
           </h1>
-          <p className="text-muted-foreground mb-2">
-            A verification code has been sent to{" "}
-            <span className="font-medium text-foreground">{email}</span>
-          </p>
+
+          <div className="flex flex-col items-center justify-center gap-2 mb-3">
+            {isEditingEmail ? (
+              <div className="flex items-center gap-2 w-full max-w-xs mt-2">
+                <Input
+                  type="email"
+                  placeholder="Enter your email"
+                  value={tempEmail}
+                  onChange={(e) => setTempEmail(e.target.value)}
+                  className="h-10"
+                />
+                <Button size="sm" type="button" onClick={handleSaveEmail} className="h-10 px-3">
+                  <Check className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <p className="text-muted-foreground flex items-center justify-center gap-2">
+                A verification code has been sent to{" "}
+                <span className="font-medium text-foreground">{email}</span>
+                <button
+                  type="button"
+                  onClick={() => setIsEditingEmail(true)}
+                  className="p-1 text-primary hover:text-primary/80 transition-colors"
+                  title="Edit email"
+                >
+                  <Edit2 className="h-3.5 w-3.5" />
+                </button>
+              </p>
+            )}
+          </div>
+
           <p className="text-sm text-primary font-medium">
             📧 Please check your email inbox (and spam folder) for the 6-digit code, then enter it below.
           </p>
@@ -164,8 +305,13 @@ const VerifyEmail = () => {
         <div className="mt-6 text-center">
           <p className="text-sm text-muted-foreground">
             Didn't receive the code?{" "}
-            <button type="button" onClick={handleResend} className="font-semibold text-primary hover:underline">
-              Resend
+            <button
+              type="button"
+              onClick={handleResend}
+              disabled={isResending}
+              className="font-semibold text-primary hover:underline disabled:opacity-50"
+            >
+              {isResending ? "Resending..." : "Resend"}
             </button>
           </p>
         </div>

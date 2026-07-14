@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { GraduationCap, Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
+import { GraduationCap, Eye, EyeOff, ArrowRight, Loader2, Check, X } from "lucide-react";
 
 // ── Inline Google icon ───────────────────────────────────────────────────────
 const GoogleIcon = () => (
@@ -27,6 +27,16 @@ const SignUp = () => {
   const [googleLoading, setGoogleLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Real-time password validation checks
+  const passwordRules = {
+    length: formData.password.length >= 8,
+    number: /\d/.test(formData.password),
+    specialChar: /[!@#$%^&*(),.?":{}|<>_]/.test(formData.password),
+    uppercase: /[A-Z]/.test(formData.password),
+  };
+
+  const isPasswordValid = Object.values(passwordRules).every(Boolean);
 
   // ── Google OAuth ────────────────────────────────────────────────────────
   const handleGoogleSignUp = async () => {
@@ -55,18 +65,24 @@ const SignUp = () => {
       toast({ title: "Password mismatch", description: "Passwords do not match.", variant: "destructive" });
       return;
     }
-    if (formData.password.length < 8) {
-      toast({ title: "Password too short", description: "Password must be at least 8 characters.", variant: "destructive" });
+
+    if (!isPasswordValid) {
+      toast({
+        title: "Weak password",
+        description: "Please satisfy all password requirements: at least 8 characters, 1 number, 1 uppercase letter, and 1 special character.",
+        variant: "destructive",
+      });
       return;
     }
 
     setIsLoading(true);
     try {
+      console.log(`Signing up user with email: ${formData.email}`);
       const { data, error } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
-          emailRedirectTo: window.location.origin,
+          emailRedirectTo: `${window.location.origin}/verify-email`,
           data: { first_name: formData.firstName, last_name: formData.lastName },
         },
       });
@@ -160,7 +176,45 @@ const SignUp = () => {
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
-              <p className="text-xs text-muted-foreground">Must be at least 8 characters</p>
+
+              {/* Proactive password requirements checklist */}
+              <div className="p-3 bg-muted/40 rounded-lg space-y-1.5 border border-border mt-1">
+                <p className="text-xs font-semibold text-muted-foreground">Password requirements:</p>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                  <div className="flex items-center gap-1.5">
+                    {passwordRules.length ? (
+                      <Check className="h-3.5 w-3.5 text-success font-bold" />
+                    ) : (
+                      <X className="h-3.5 w-3.5 text-muted-foreground" />
+                    )}
+                    <span className={passwordRules.length ? "text-success font-medium" : "text-muted-foreground"}>Min. 8 characters</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    {passwordRules.uppercase ? (
+                      <Check className="h-3.5 w-3.5 text-success font-bold" />
+                    ) : (
+                      <X className="h-3.5 w-3.5 text-muted-foreground" />
+                    )}
+                    <span className={passwordRules.uppercase ? "text-success font-medium" : "text-muted-foreground"}>At least 1 uppercase</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    {passwordRules.number ? (
+                      <Check className="h-3.5 w-3.5 text-success font-bold" />
+                    ) : (
+                      <X className="h-3.5 w-3.5 text-muted-foreground" />
+                    )}
+                    <span className={passwordRules.number ? "text-success font-medium" : "text-muted-foreground"}>At least 1 number</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    {passwordRules.specialChar ? (
+                      <Check className="h-3.5 w-3.5 text-success font-bold" />
+                    ) : (
+                      <X className="h-3.5 w-3.5 text-muted-foreground" />
+                    )}
+                    <span className={passwordRules.specialChar ? "text-success font-medium" : "text-muted-foreground"}>At least 1 special char</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="space-y-2">
