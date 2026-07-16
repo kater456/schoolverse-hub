@@ -15,10 +15,17 @@ const VerifyEmail = () => {
   const searchParams = new URLSearchParams(location.search);
   const queryEmail = searchParams.get("email");
   const stateEmail = location.state?.email;
+  const stateUserId = location.state?.userId;
 
   // Cascading fallback to resolve and persist email state
   const [email, setEmail] = useState(() => {
     const initial = stateEmail || queryEmail || safeSessionStorage.getItem("verify_email_temp") || "";
+    return initial;
+  });
+
+  // Cascading fallback to resolve and persist userId state
+  const [userId, setUserId] = useState(() => {
+    const initial = stateUserId || safeSessionStorage.getItem("verify_user_id_temp") || "";
     return initial;
   });
 
@@ -36,6 +43,13 @@ const VerifyEmail = () => {
       setTempEmail(email);
     }
   }, [email]);
+
+  // Synchronize and persist userId to sessionStorage
+  useEffect(() => {
+    if (userId) {
+      safeSessionStorage.setItem("verify_user_id_temp", userId);
+    }
+  }, [userId]);
 
   // Listen for Supabase session changes (e.g. if the email confirmation link was clicked in another tab or redirects)
   useEffect(() => {
@@ -178,11 +192,11 @@ const VerifyEmail = () => {
       return;
     }
 
-    console.log("Calling send-verification-code with:", email);
+    console.log("Calling send-verification-code with:", email, "userId:", userId);
     setIsResending(true);
     try {
       const { data, error } = await supabase.functions.invoke("send-verification-code", {
-        body: { email },
+        body: { email, userId: userId || undefined },
       });
       setIsResending(false);
       if (error) {

@@ -102,7 +102,7 @@ const SignUp = () => {
 
       // Trigger our self-managed resend verification email code
       const { data: verifyCodeData, error: verifyCodeError } = await supabase.functions.invoke("send-verification-code", {
-        body: { email: formData.email },
+        body: { email: formData.email, userId: data.user?.id },
       });
 
       if (verifyCodeError) {
@@ -120,7 +120,7 @@ const SignUp = () => {
         });
       }
 
-      navigate("/verify-email", { state: { email: formData.email } });
+      navigate("/verify-email", { state: { email: formData.email, userId: data.user?.id } });
     } catch (err: any) {
       setIsLoading(false);
       toast({ title: "Sign up failed", description: err.message || "An unexpected error occurred.", variant: "destructive" });

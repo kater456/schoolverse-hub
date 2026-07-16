@@ -17,7 +17,7 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { email } = await req.json();
+    const { email, userId: passedUserId } = await req.json();
     if (!email) {
       return new Response(JSON.stringify({ error: "Email is required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -52,24 +52,62 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Look up user_id from auth.users (public or service_role access)
-    // Note that we must query using the service role admin API
-    const { data: { users }, error: userLookupErr } = await supabase.auth.admin.listUsers();
-    if (userLookupErr) {
-      console.error("User lookup error:", userLookupErr);
-      return new Response(JSON.stringify({ error: "Failed to look up user account" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    let userId = passedUserId;
+
+    if (!userId) {
+      console.log(`userId not passed, looking up user by email in auth.users: ${normalizedEmail}`);
+      // Fallback 1: Direct SQL query on auth.users using schema('auth')
+      try {
+        const { data: authUser, error: authUserErr } = await supabase
+          .schema("auth")
+          .from("users")
+          .select("id")
+          .eq("email", normalizedEmail)
+          .maybeSingle();
+
+        if (authUserErr) {
+          console.error("Direct auth.users query failed:", authUserErr);
+        } else if (authUser?.id) {
+          userId = authUser.id;
+          console.log(`Found userId ${userId} via auth.users schema query.`);
+        }
+      } catch (err) {
+        console.warn("Direct auth.users query exception:", err);
+      }
+
+      // Fallback 2: If Direct SQL query didn't find/work, use listUsers with paging
+      if (!userId) {
+        let page = 1;
+        const perPage = 1000;
+        let hasMore = true;
+        while (hasMore) {
+          const { data: { users }, error: listErr } = await supabase.auth.admin.listUsers({
+            page,
+            perPage
+          });
+          if (listErr) {
+            console.error("listUsers paginated search failed:", listErr);
+            break;
+          }
+          const matchedUser = users.find(u => u.email?.toLowerCase() === normalizedEmail);
+          if (matchedUser) {
+            userId = matchedUser.id;
+            break;
+          }
+          if (users.length < perPage) {
+            hasMore = false;
+          } else {
+            page++;
+          }
+        }
+      }
     }
 
-    const matchedUser = users.find(u => u.email?.toLowerCase() === normalizedEmail);
-    if (!matchedUser) {
+    if (!userId) {
       return new Response(JSON.stringify({ error: "No registered user found with this email" }), {
         status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    const userId = matchedUser.id;
 
     // Generate a secure 6-digit verification code
     const rawCode = Math.floor(100000 + Math.random() * 900000).toString();
