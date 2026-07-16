@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Campus Market <notifications@campusmarketapp.com>",
+        from: "Campus Market <notifications@contact.campusmarketapp.com>",
         to: [SUPER_ADMIN_EMAIL],
         subject,
         html,

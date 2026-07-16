@@ -100,7 +100,7 @@ Deno.serve(async (req) => {
         "Authorization": `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: "Campus Market <notifications@campusmarketapp.com>",
+        from: "Campus Market <notifications@contact.campusmarketapp.com>",
         to: [normalizedEmail],
         subject: `🔑 Your Campus Market Verification Code`,
         html: `
