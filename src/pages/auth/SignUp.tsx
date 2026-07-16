@@ -100,10 +100,26 @@ const SignUp = () => {
         return;
       }
 
-      toast({
-        title: "Verification code sent!",
-        description: "A 6-digit code has been sent to your email. Please check your inbox.",
+      // Trigger our self-managed resend verification email code
+      const { data: verifyCodeData, error: verifyCodeError } = await supabase.functions.invoke("send-verification-code", {
+        body: { email: formData.email },
       });
+
+      if (verifyCodeError) {
+        console.error("Error triggering send-verification-code:", verifyCodeError);
+        // We will show a warning, but let them proceed to /verify-email so they can trigger a resend manually if needed
+        toast({
+          title: "Sign up successful, but code delivery failed",
+          description: verifyCodeError.message || "We had trouble sending your verification email. Please try resending from the next page.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Verification code sent!",
+          description: "A 6-digit code has been sent to your email. Please check your inbox.",
+        });
+      }
+
       navigate("/verify-email", { state: { email: formData.email } });
     } catch (err: any) {
       setIsLoading(false);

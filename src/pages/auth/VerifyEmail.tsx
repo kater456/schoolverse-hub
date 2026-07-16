@@ -137,12 +137,14 @@ const VerifyEmail = () => {
 
     setIsLoading(true);
     try {
-      console.log(`Verifying OTP for email: ${email} with token: ${code}`);
-      const { error } = await supabase.auth.verifyOtp({ email, token: code, type: "signup" });
+      console.log(`Verifying code for email: ${email} with custom verification function`);
+      const { data, error } = await supabase.functions.invoke("verify-code", {
+        body: { email, code },
+      });
       setIsLoading(false);
 
       if (error) {
-        toast({ title: "Verification failed", description: error.message, variant: "destructive" });
+        toast({ title: "Verification failed", description: error.message || "Invalid code", variant: "destructive" });
         return;
       }
 
@@ -176,10 +178,12 @@ const VerifyEmail = () => {
       return;
     }
 
-    console.log("Calling supabase.auth.resend with:", email);
+    console.log("Calling send-verification-code with:", email);
     setIsResending(true);
     try {
-      const { error } = await supabase.auth.resend({ type: "signup", email });
+      const { data, error } = await supabase.functions.invoke("send-verification-code", {
+        body: { email },
+      });
       setIsResending(false);
       if (error) {
         toast({ title: "Error", description: error.message, variant: "destructive" });
