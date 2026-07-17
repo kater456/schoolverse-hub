@@ -101,8 +101,8 @@ const SignUp = () => {
       }
 
       // Trigger our self-managed resend verification email code
-      const { data: verifyCodeData, error: verifyCodeError } = await supabase.functions.invoke("send-verification-code", {
-        body: { email: formData.email },
+     const { data: verifyCodeData, error: verifyCodeError } = await supabase.functions.invoke("send-verification-code", {
+        body: { email: formData.email, userId: data.user?.id },
       });
 
       if (verifyCodeError) {
