@@ -1589,7 +1589,7 @@ const VendorDashboard = () => {
       </main>
 
       {/* ── Mobile bottom nav bar ── */}
-      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-[9998] bg-background/95 backdrop-blur-xl border-t border-border/60 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
+      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-[9998] bg-background/95 backdrop-blur-sm border-t border-border/60 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
         <div className="flex items-center justify-around px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))]">
           {[
             { v: "products",  icon: Package,     label: "Products" },
