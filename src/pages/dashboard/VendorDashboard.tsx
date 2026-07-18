@@ -761,12 +761,10 @@ const VendorDashboard = () => {
 
         {/* ── Active subscription status card ── */}
         {isSubscriptionActive(vendor) && (
-          <div className="relative rounded-2xl overflow-hidden p-px"
+         <div className="relative rounded-2xl overflow-hidden p-px"
             style={{ background: "linear-gradient(135deg, #f59e0b, #8b5cf6, #3b82f6)" }}>
             <div className="rounded-2xl relative overflow-hidden"
               style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)" }}>
-              <div className="absolute inset-0 opacity-30"
-                style={{ background: "radial-gradient(ellipse at 20% 50%, rgba(139,92,246,0.4) 0%, transparent 60%), radial-gradient(ellipse at 80% 50%, rgba(59,130,246,0.4) 0%, transparent 60%)" }} />
               <div className="relative p-4 sm:p-5">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-1.5 bg-gradient-to-r from-amber-400/20 to-amber-400/10 border border-amber-400/30 rounded-full px-2.5 py-1">
