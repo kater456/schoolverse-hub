@@ -231,10 +231,30 @@ const VendorRegistration = () => {
       createdVendor = vendor;
 
       let vendorPhotoUrl = null;
-      if (vendorPhoto) vendorPhotoUrl = await uploadFile(vendorPhoto, `${user.id}/vendor-photo-${Date.now()}`, 'vendorPhoto');
+      if (vendorPhoto) {
+        try {
+          vendorPhotoUrl = await uploadFile(vendorPhoto, `${user.id}/vendor-photo-${Date.now()}`, 'vendorPhoto');
+        } catch (err) {
+          toast({
+            title: "Photo couldn't be uploaded",
+            description: "Skipped — you can add it later from your dashboard.",
+            variant: "destructive"
+          });
+        }
+      }
 
       let idDocumentUrl = null;
-      if (idDocument) idDocumentUrl = await uploadFile(idDocument, `${user.id}/id-document-${Date.now()}`, 'idDocument');
+      if (idDocument) {
+        try {
+          idDocumentUrl = await uploadFile(idDocument, `${user.id}/id-document-${Date.now()}`, 'idDocument');
+        } catch (err) {
+          toast({
+            title: "ID document couldn't be uploaded",
+            description: "Skipped — you can add it later from your dashboard.",
+            variant: "destructive"
+          });
+        }
+      }
 
       const { error: privateError } = await supabase.from("vendor_private_details").insert({
         vendor_id: vendor.id, full_name: data.full_name,
