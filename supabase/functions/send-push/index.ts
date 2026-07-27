@@ -248,15 +248,24 @@ Deno.serve(async (req) => {
       badge: "/pwa-64x64.png",
     });
 
+    let successCount = 0;
+    let failedCount = 0;
     const stale: string[] = [];
+
     await Promise.all((subs || []).map(async (s: any) => {
       try {
         await webpush.sendNotification(
           { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
           payload
         );
+        successCount++;
       } catch (e: any) {
-        if (e?.statusCode === 404 || e?.statusCode === 410) stale.push(s.endpoint);
+        failedCount++;
+        if (e?.statusCode === 404 || e?.statusCode === 410) {
+          stale.push(s.endpoint);
+        } else {
+          console.error("Failed to send notification to endpoint:", s.endpoint, e);
+        }
       }
     }));
 
@@ -265,7 +274,7 @@ Deno.serve(async (req) => {
       await supabase.from("push_subscriptions").delete().in("endpoint", stale);
     }
 
-    const sentCount = (subs?.length || 0) - stale.length;
+    const sentCount = successCount;
 
     // ── Audit log ───────────────────────────────────────────────────────────
     if (sender_id) {
@@ -277,11 +286,12 @@ Deno.serve(async (req) => {
           type, title: resolved.title, body: resolved.body,
           url, school_id, audience, tag, sender_role,
           recipients: sentCount,
+          failed: failedCount,
         },
       });
     }
 
-    return new Response(JSON.stringify({ sent: sentCount, removed: stale.length, type, title: resolved.title }), {
+    return new Response(JSON.stringify({ sent: sentCount, failed: failedCount, removed: stale.length, type, title: resolved.title }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
