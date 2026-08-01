@@ -35,6 +35,8 @@ const ManageAds = () => {
   const [imageFile,      setImageFile]      = useState<File | null>(null);
   const [imagePreview,   setImagePreview]   = useState<string | null>(null);
   const [endsAt,         setEndsAt]         = useState("");
+  const [startsAt,       setStartsAt]       = useState("");
+  const [priority,       setPriority]       = useState("0");
   const [position,       setPosition]       = useState<"popup" | "banner" | "both">("popup");
 
   useEffect(() => { fetchAll(); }, []);
@@ -97,6 +99,8 @@ const ManageAds = () => {
       is_active: true,
       display_position: position,
       ends_at: endsAt ? new Date(endsAt).toISOString() : null,
+      starts_at: startsAt ? new Date(startsAt).toISOString() : new Date().toISOString(),
+      priority: parseInt(priority || "0", 10) || 0,
       click_count: 0,
       view_count: 0,
     } as any);
@@ -108,7 +112,7 @@ const ManageAds = () => {
       // Reset form
       setTitle(""); setDescription(""); setAdvertiserName(""); setLinkUrl("");
       setTargetType("all"); setSelectedSchools([]); setImageFile(null);
-      setImagePreview(null); setEndsAt(""); setPosition("popup");
+      setImagePreview(null); setEndsAt(""); setStartsAt(""); setPriority("0"); setPosition("popup");
       fetchAll();
     }
     setSaving(false);
@@ -290,8 +294,18 @@ const ManageAds = () => {
                 <Input placeholder="https://example.com" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} />
               </div>
               <div className="space-y-1.5">
+                <Label className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> Start Date (optional)</Label>
+                <Input type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />
+                <p className="text-[10px] text-muted-foreground">Leave blank to start immediately.</p>
+              </div>
+              <div className="space-y-1.5">
                 <Label className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> End Date (optional)</Label>
                 <Input type="datetime-local" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Priority</Label>
+                <Input type="number" value={priority} onChange={(e) => setPriority(e.target.value)} placeholder="0" />
+                <p className="text-[10px] text-muted-foreground">Higher numbers show first.</p>
               </div>
             </div>
 
