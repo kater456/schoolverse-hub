@@ -8,6 +8,7 @@ export const CATEGORIES = [
   "Stationery & Printing",
   "Tutoring Services",
   "Online & Digital Services",
+  "Stores",
   "Other Services",
 ] as const;
 
