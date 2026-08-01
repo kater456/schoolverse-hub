@@ -20,6 +20,8 @@ export interface Vendor {
   campus_location_name?: string;
   images?: { id: string; image_url: string; is_primary: boolean }[];
   is_featured?: boolean;
+  is_store_upgraded?: boolean;
+  store_upgrade_expires_at?: string | null;
 }
 
 interface UseVendorsOptions {
