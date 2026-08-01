@@ -718,7 +718,7 @@ const VendorDashboard = () => {
                 </div>
                 <h3 className="font-bold text-foreground text-sm mb-1">Standard Plan</h3>
                 <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
-                  20 products, deals, basic store design, and Ad Studio access.
+                  Turn your listing into a full storefront — organize products into categories, showcase your brand, and manage deals, all from one dashboard..
                 </p>
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-semibold text-primary">₦1,500/month</span>
