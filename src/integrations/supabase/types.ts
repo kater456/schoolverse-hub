@@ -577,7 +577,9 @@ export type Database = {
           link_url: string | null
           media_type: string
           media_url: string | null
+          priority: number
           school_ids: string[] | null
+          starts_at: string
           target_type: string | null
           title: string
           updated_at: string
@@ -597,7 +599,9 @@ export type Database = {
           link_url?: string | null
           media_type?: string
           media_url?: string | null
+          priority?: number
           school_ids?: string[] | null
+          starts_at?: string
           target_type?: string | null
           title?: string
           updated_at?: string
@@ -617,7 +621,9 @@ export type Database = {
           link_url?: string | null
           media_type?: string
           media_url?: string | null
+          priority?: number
           school_ids?: string[] | null
+          starts_at?: string
           target_type?: string | null
           title?: string
           updated_at?: string
@@ -1585,11 +1591,15 @@ export type Database = {
           created_at: string | null
           deal_price: number | null
           description: string | null
+          discount_type: string
+          discount_value: number | null
           expires_at: string
           expiry_notified: boolean
           id: string
+          image_url: string | null
           is_active: boolean | null
           original_price: number | null
+          starts_at: string
           title: string
           vendor_id: string | null
         }
@@ -1597,11 +1607,15 @@ export type Database = {
           created_at?: string | null
           deal_price?: number | null
           description?: string | null
+          discount_type?: string
+          discount_value?: number | null
           expires_at: string
           expiry_notified?: boolean
           id?: string
+          image_url?: string | null
           is_active?: boolean | null
           original_price?: number | null
+          starts_at?: string
           title: string
           vendor_id?: string | null
         }
@@ -1609,11 +1623,15 @@ export type Database = {
           created_at?: string | null
           deal_price?: number | null
           description?: string | null
+          discount_type?: string
+          discount_value?: number | null
           expires_at?: string
           expiry_notified?: boolean
           id?: string
+          image_url?: string | null
           is_active?: boolean | null
           original_price?: number | null
+          starts_at?: string
           title?: string
           vendor_id?: string | null
         }
