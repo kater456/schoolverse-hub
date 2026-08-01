@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import VendorCard from "@/components/marketplace/VendorCard";
+import StoreCard from "@/components/marketplace/StoreCard";
 import { useLiveDeals } from "@/hooks/useLiveDeals";
 import SearchFilters from "@/components/marketplace/SearchFilters";
 import { useVendors } from "@/hooks/useVendors";
@@ -29,24 +30,31 @@ const Browse = () => {
   const { locations }  = useCampusLocations(selectedSchool !== "all" ? selectedSchool : undefined);
   const { vendors, isLoading } = useVendors({
     schoolId:        selectedSchool   !== "all" ? selectedSchool   : undefined,
-    category:        selectedCategory !== "all" ? selectedCategory : undefined,
     campusLocationId:selectedLocation !== "all" ? selectedLocation : undefined,
     searchQuery:     searchQuery || undefined,
   });
 
   useEffect(() => { setSelectedLocation("all"); }, [selectedSchool]);
 
-  // Compute which schools / categories actually have at least one active vendor
+  // Compute which schools / categories actually have at least one active regular vendor
   useEffect(() => {
     (async () => {
       const { data } = await (supabase as any)
         .from("vendors")
-        .select("school_id, category")
+        .select("school_id, category, is_store_upgraded, store_upgrade_expires_at")
         .eq("is_approved", true)
         .eq("is_active", true);
       if (!data) return;
-      setActiveSchoolIds(new Set(data.map((v: any) => v.school_id).filter(Boolean)));
-      setActiveCategories(new Set(data.map((v: any) => v.category).filter(Boolean)));
+
+      const regularVendorsOnly = data.filter((v: any) => {
+        const isStoreUpgraded = v.is_store_upgraded === true && (
+          !v.store_upgrade_expires_at || new Date(v.store_upgrade_expires_at) > new Date()
+        );
+        return !isStoreUpgraded;
+      });
+
+      setActiveSchoolIds(new Set(regularVendorsOnly.map((v: any) => v.school_id).filter(Boolean)));
+      setActiveCategories(new Set(regularVendorsOnly.map((v: any) => v.category).filter(Boolean)));
     })();
   }, []);
 
@@ -66,8 +74,31 @@ const Browse = () => {
     fetchVotw();
   }, []);
 
+  // Separate and client-filter stores vs regular vendors
+  const { activeStores, regularVendors } = useMemo(() => {
+    const stores: any[] = [];
+    const regulars: any[] = [];
+    const now = new Date();
+
+    (vendors || []).forEach((v: any) => {
+      const isStoreUpgraded = v.is_store_upgraded === true && (
+        !v.store_upgrade_expires_at || new Date(v.store_upgrade_expires_at) > now
+      );
+
+      if (isStoreUpgraded) {
+        stores.push(v);
+      } else {
+        if (selectedCategory === "all" || v.category === selectedCategory) {
+          regulars.push(v);
+        }
+      }
+    });
+
+    return { activeStores: stores, regularVendors: regulars };
+  }, [vendors, selectedCategory]);
+
   // Sort: promoted → verified → everyone else
-  const sortedVendors = useMemo(() => {
+  const sortedRegularVendors = useMemo(() => {
     const now = new Date();
     const rank = (v: any) => {
       if (v.is_vendor_of_week && v.vendor_of_week_expires_at && new Date(v.vendor_of_week_expires_at) > now) return 0;
@@ -76,15 +107,31 @@ const Browse = () => {
       if (v.is_verified) return 2;
       return 3;
     };
-    return [...(vendors || [])].sort((a, b) => {
+    return [...regularVendors].sort((a, b) => {
       const diff = rank(a) - rank(b);
       if (diff !== 0) return diff;
       return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
     });
-  }, [vendors]);
+  }, [regularVendors]);
 
-  const promotedCount = sortedVendors.filter((v: any) => v.promoted_until && new Date(v.promoted_until) > new Date()).length;
-  const verifiedCount = sortedVendors.filter((v: any) => v.is_verified).length;
+  const sortedActiveStores = useMemo(() => {
+    const now = new Date();
+    const rank = (v: any) => {
+      if (v.is_vendor_of_week && v.vendor_of_week_expires_at && new Date(v.vendor_of_week_expires_at) > now) return 0;
+      const isPromoted = v.promoted_until && new Date(v.promoted_until) > now;
+      if (isPromoted)    return 1;
+      if (v.is_verified) return 2;
+      return 3;
+    };
+    return [...activeStores].sort((a, b) => {
+      const diff = rank(a) - rank(b);
+      if (diff !== 0) return diff;
+      return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+    });
+  }, [activeStores]);
+
+  const promotedCount = sortedRegularVendors.filter((v: any) => v.promoted_until && new Date(v.promoted_until) > new Date()).length;
+  const verifiedCount = sortedRegularVendors.filter((v: any) => v.is_verified).length;
 
   const votwImage = votw?.vendor_images?.find((i: any) => i.is_primary)?.image_url
     || votw?.vendor_images?.[0]?.image_url;
@@ -196,7 +243,7 @@ const Browse = () => {
             <div className="flex justify-center py-20">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-          ) : sortedVendors.length === 0 ? (
+          ) : sortedActiveStores.length === 0 && sortedRegularVendors.length === 0 ? (
             <div className="text-center py-20">
               <span className="text-5xl mb-4 block">🔍</span>
               <h3 className="text-lg font-semibold mb-2">No vendors found</h3>
@@ -204,48 +251,99 @@ const Browse = () => {
             </div>
           ) : (
             <>
-              {promotedCount > 0 && (
-                <div className="flex items-center gap-2 mt-8 mb-3">
-                  <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
-                  <span className="text-sm font-semibold text-foreground">Featured Vendors</span>
-                  <Badge className="bg-yellow-500/20 text-yellow-700 text-xs">{promotedCount}</Badge>
+              {/* ── Stores Section ── */}
+              {sortedActiveStores.length > 0 && (
+                <div className="mb-10 bg-gradient-to-br from-purple-500/5 via-transparent to-pink-500/5 p-5 sm:p-6 rounded-3xl border border-purple-500/20 relative overflow-hidden shadow-sm">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/5 rounded-full blur-3xl pointer-events-none" />
+                  <div className="absolute bottom-0 left-0 w-64 h-64 bg-pink-500/5 rounded-full blur-3xl pointer-events-none" />
+
+                  <div className="relative flex items-center justify-between gap-2 mb-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">🏪</span>
+                      <div>
+                        <h2 className="text-xl sm:text-2xl font-black bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
+                          Official Stores
+                        </h2>
+                        <p className="text-xs text-muted-foreground">
+                          Browse verified direct campus stores with custom catalogs
+                        </p>
+                      </div>
+                    </div>
+                    <Badge className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white border-0 font-bold px-3 py-1 text-xs shadow-md shadow-purple-500/25">
+                      {sortedActiveStores.length} STORE{sortedActiveStores.length !== 1 ? "S" : ""}
+                    </Badge>
+                  </div>
+
+                  <div className="relative grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {sortedActiveStores.map((store: any, idx: number) => (
+                      <StoreCard key={store.id} vendor={store} index={idx} />
+                    ))}
+                  </div>
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-3 sm:gap-4 mt-2">
-                {sortedVendors.map((vendor: any, index: number) => {
-                  const now         = new Date();
-                  const isPromoted  = vendor.promoted_until && new Date(vendor.promoted_until) > now;
-                  const prevVendor  = sortedVendors[index - 1] as any;
-                  const prevPromoted = prevVendor && prevVendor.promoted_until && new Date(prevVendor.promoted_until) > now;
+              {/* ── Regular Grid ── */}
+              {sortedRegularVendors.length > 0 ? (
+                <>
+                  <div className="border-t border-border/40 my-6 pt-6">
+                    <h2 className="text-xl font-bold text-foreground flex items-center gap-2 mb-1">
+                      💼 Campus Businesses
+                    </h2>
+                    <p className="text-xs text-muted-foreground">
+                      Direct individual listings and services on campus
+                    </p>
+                  </div>
 
-                  const showVerifiedDivider =
-                    vendor.is_verified && !isPromoted &&
-                    (index === 0 || prevPromoted || (prevVendor && !prevVendor.is_verified));
-                  const showAllDivider =
-                    !vendor.is_verified && !isPromoted &&
-                    prevVendor &&
-                    (prevVendor.is_verified || (prevVendor.promoted_until && new Date(prevVendor.promoted_until) > now));
+                  {promotedCount > 0 && (
+                    <div className="flex items-center gap-2 mt-4 mb-3">
+                      <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                      <span className="text-sm font-semibold text-foreground">Featured Vendors</span>
+                      <Badge className="bg-yellow-500/20 text-yellow-700 text-xs">{promotedCount}</Badge>
+                    </div>
+                  )}
 
-                  return (
-                    <>
-                      {showVerifiedDivider && (
-                        <div key={`div-verified-${vendor.id}`} className="col-span-full flex items-center gap-2 mt-4 mb-1">
-                          <ShieldCheck className="h-4 w-4 text-primary" />
-                          <span className="text-sm font-semibold text-foreground">Verified Vendors</span>
-                          <Badge className="bg-primary/10 text-primary text-xs">{verifiedCount}</Badge>
-                        </div>
-                      )}
-                      {showAllDivider && (
-                        <div key={`div-all-${vendor.id}`} className="col-span-full flex items-center gap-2 mt-4 mb-1">
-                          <span className="text-sm font-semibold text-foreground">All Vendors</span>
-                        </div>
-                      )}
-                      <VendorCard key={vendor.id} vendor={vendor} index={index} hasPromo={vendorsWithDeals.has(vendor.id)} />
-                    </>
-                  );
-                })}
-              </div>
+                  <div className="grid grid-cols-2 gap-3 sm:gap-4 mt-2">
+                    {sortedRegularVendors.map((vendor: any, index: number) => {
+                      const now         = new Date();
+                      const isPromoted  = vendor.promoted_until && new Date(vendor.promoted_until) > now;
+                      const prevVendor  = sortedRegularVendors[index - 1] as any;
+                      const prevPromoted = prevVendor && prevVendor.promoted_until && new Date(prevVendor.promoted_until) > now;
+
+                      const showVerifiedDivider =
+                        vendor.is_verified && !isPromoted &&
+                        (index === 0 || prevPromoted || (prevVendor && !prevVendor.is_verified));
+                      const showAllDivider =
+                        !vendor.is_verified && !isPromoted &&
+                        prevVendor &&
+                        (prevVendor.is_verified || (prevVendor.promoted_until && new Date(prevVendor.promoted_until) > now));
+
+                      return (
+                        <>
+                          {showVerifiedDivider && (
+                            <div key={`div-verified-${vendor.id}`} className="col-span-full flex items-center gap-2 mt-4 mb-1">
+                              <ShieldCheck className="h-4 w-4 text-primary" />
+                              <span className="text-sm font-semibold text-foreground">Verified Vendors</span>
+                              <Badge className="bg-primary/10 text-primary text-xs">{verifiedCount}</Badge>
+                            </div>
+                          )}
+                          {showAllDivider && (
+                            <div key={`div-all-${vendor.id}`} className="col-span-full flex items-center gap-2 mt-4 mb-1">
+                              <span className="text-sm font-semibold text-foreground">All Vendors</span>
+                            </div>
+                          )}
+                          <VendorCard key={vendor.id} vendor={vendor} index={index} hasPromo={vendorsWithDeals.has(vendor.id)} />
+                        </>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : (
+                sortedActiveStores.length > 0 && (
+                  <div className="text-center py-10 border-t border-border/40 mt-6">
+                    <p className="text-sm text-muted-foreground">No regular business listings match your current filters.</p>
+                  </div>
+                )
+              )}
             </>
           )}
         </div>
