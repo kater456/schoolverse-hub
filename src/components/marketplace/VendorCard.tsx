@@ -14,9 +14,11 @@ interface VendorCardProps {
     live_location_on?: boolean;
   };
   index?: number;
+  /** True when this vendor has at least one live deal running. */
+  hasPromo?: boolean;
 }
 
-const VendorCard = ({ vendor, index = 0 }: VendorCardProps) => {
+const VendorCard = ({ vendor, index = 0, hasPromo = false }: VendorCardProps) => {
   const primaryImage = vendor.images?.find((img) => img.is_primary) || vendor.images?.[0];
   const cardRef      = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
