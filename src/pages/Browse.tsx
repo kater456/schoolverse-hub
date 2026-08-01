@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const Browse = () => {
   const [searchParams] = useSearchParams();
+  const { vendorsWithDeals } = useLiveDeals();
   const [searchQuery,      setSearchQuery]      = useState("");
   const [selectedSchool,   setSelectedSchool]   = useState(searchParams.get("school") || "all");
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get("category") || "all");
