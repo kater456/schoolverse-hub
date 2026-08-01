@@ -14,6 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import AIChatbox from "@/components/AIChatbox";
 import SplashScreen from "@/components/SplashScreen";
 import CampusSpotlight from "@/components/landing/CampusSpotlight";
+import PromoCarousel from "@/components/promo/PromoCarousel";
 
 const CATEGORY_ICONS: Record<string, string> = {
   "Food & Snacks": "🍔",
