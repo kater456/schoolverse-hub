@@ -95,7 +95,9 @@ const AdPopup = () => {
         .from("platform_ads")
         .select("*")
         .eq("is_active", true)
+        .lte("starts_at", now)
         .or(`ends_at.is.null,ends_at.gt.${now}`)
+        .order("priority", { ascending: false })
         .order("created_at", { ascending: false });
 
       if (error) {
