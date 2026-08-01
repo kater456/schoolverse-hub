@@ -232,6 +232,9 @@ const Index = () => {
           </div>
         </section>
 
+        {/* ── Live deals & promos ── */}
+        <PromoCarousel />
+
         {/* ── Schools ── */}
         <section className="py-16 px-4 bg-muted/30">
           <div className="container mx-auto">
