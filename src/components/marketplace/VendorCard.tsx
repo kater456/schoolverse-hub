@@ -120,6 +120,13 @@ const VendorCard = ({ vendor, index = 0, hasPromo = false }: VendorCardProps) =>
               </div>
             )}
 
+            {/* Live promo badge */}
+            {hasPromo && (
+              <span className="absolute bottom-2 left-2 rounded-full bg-orange-500 text-white text-[10px] font-bold px-2 py-0.5 shadow-md shadow-orange-500/40">
+                🔥 Promo
+              </span>
+            )}
+
             {/* Category — bottom right */}
             {!hasReels && (
               <Badge variant="secondary" className="absolute bottom-2 right-2 text-[10px] px-2 bg-background/80 backdrop-blur-sm">
