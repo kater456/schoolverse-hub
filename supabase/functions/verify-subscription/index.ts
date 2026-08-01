@@ -110,6 +110,7 @@ serve(async (req) => {
         // Carry forward legacy fields so nothing breaks
         is_store_upgraded: plan === "pro" ? true : false,
         store_upgrade_expires_at: plan === "pro" ? expiresAt.toISOString() : null,
+        store_upgrade_source: plan === "pro" ? "paystack" : null,
       })
       .eq("id", vendor_id);
 

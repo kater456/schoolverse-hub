@@ -111,6 +111,7 @@ Deno.serve(async (req) => {
       .update({
         is_store_upgraded: true,
         store_upgrade_expires_at: endsAt.toISOString(),
+        store_upgrade_source: "paystack",
       })
       .eq("id", vendor_id);
     if (updateError) throw updateError;
