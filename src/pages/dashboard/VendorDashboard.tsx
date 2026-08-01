@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { isRealtimeSafe } from "@/lib/safeStorage";
+import { isRealtimeSafe, safeLocalStorage } from "@/lib/safeStorage";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Eye, Heart, MessageSquare, Phone, ShoppingBag,
   BarChart3, Star, LogOut, Film, Loader2, CreditCard, CheckCircle, Package,
-  User, Camera, Save, Share2, ShieldCheck, Copy, Crown,
+  User, Camera, Save, Share2, ShieldCheck, Copy, Crown, X,
   Instagram, Twitter, Music2, FileCheck, Upload, ToggleLeft, Flame,
   TrendingUp, Settings, MessageCircle, Bell, Sparkles, Users, Trash2, AlertTriangle,
 } from "lucide-react";
@@ -60,6 +60,14 @@ const VendorDashboard = () => {
   const navigate = useNavigate();
   const [vendor, setVendor] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("products");
+  const [showUpgradeBanner, setShowUpgradeBanner] = useState(true);
+
+  useEffect(() => {
+    if (vendor?.id) {
+      const dismissed = safeLocalStorage.getItem(`dismissed_store_upgrade_prompt_${vendor.id}`) === "true";
+      setShowUpgradeBanner(!dismissed);
+    }
+  }, [vendor?.id]);
   const [stats, setStats] = useState({ views: 0, likes: 0, comments: 0, contacts: 0 });
   const [liveViews, setLiveViews] = useState(0);
   const [viewsTrend, setViewsTrend] = useState(0);
@@ -565,6 +573,10 @@ const VendorDashboard = () => {
   }
 
 
+  const isStoreUpgraded = vendor?.is_store_upgraded === true && (
+    !vendor?.store_upgrade_expires_at || new Date(vendor.store_upgrade_expires_at) > new Date()
+  );
+
   const statCards = [
     { title: "Profile Views",  value: stats.views,    icon: Eye,           gradient: "from-violet-500/20 to-blue-500/20",   accent: "text-violet-400",  border: "border-violet-500/20", live: true },
     { title: "Total Likes",    value: stats.likes,    icon: Heart,         gradient: "from-rose-500/20 to-pink-500/20",     accent: "text-rose-400",    border: "border-rose-500/20" },
@@ -673,6 +685,48 @@ const VendorDashboard = () => {
             </div>
           ))}
         </div>
+
+        {/* ── Store Upgrade Prompt Banner ── */}
+        {!isStoreUpgraded && showUpgradeBanner && (
+          <div className="relative rounded-2xl border border-amber-300 bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-background p-5 overflow-hidden transition-all duration-300 shadow-sm">
+            {/* Close / Dismiss button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                safeLocalStorage.setItem(`dismissed_store_upgrade_prompt_${vendor.id}`, "true");
+                setShowUpgradeBanner(false);
+                toast({ title: "Prompt dismissed", description: "You can still upgrade anytime from the Store Design tab." });
+              }}
+              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors p-1 rounded-full hover:bg-muted"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-4 pr-8">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/15 flex items-center justify-center shrink-0">
+                <Crown className="h-5 w-5 text-amber-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-bold text-foreground text-sm mb-1">Turn your listing into a Store 🏪</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Showcase multiple products with your own customized storefront page, colors, layouts, and custom order. Upgrade now.
+                </p>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => {
+                  setActiveTab("store");
+                  setTimeout(() => {
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }, 50);
+                }}
+                className="bg-amber-500 text-amber-foreground hover:bg-amber-600 font-semibold text-xs h-9 px-4 shrink-0 shadow-sm"
+              >
+                Upgrade now
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* ── Verified badge CTA (standalone, always shown if not verified) ── */}
         {!vendor.is_verified && (

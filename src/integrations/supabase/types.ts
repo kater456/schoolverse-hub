@@ -2181,6 +2181,7 @@ export type Database = {
           is_approved: boolean | null
           is_open: boolean | null
           is_store_upgraded: boolean | null
+          store_upgrade_source: string | null
           is_suspended: boolean | null
           is_vendor_of_week: boolean | null
           is_verified: boolean | null
@@ -2241,6 +2242,7 @@ export type Database = {
           is_approved?: boolean | null
           is_open?: boolean | null
           is_store_upgraded?: boolean | null
+          store_upgrade_source?: string | null
           is_suspended?: boolean | null
           is_vendor_of_week?: boolean | null
           is_verified?: boolean | null
@@ -2301,6 +2303,7 @@ export type Database = {
           is_approved?: boolean | null
           is_open?: boolean | null
           is_store_upgraded?: boolean | null
+          store_upgrade_source?: string | null
           is_suspended?: boolean | null
           is_vendor_of_week?: boolean | null
           is_verified?: boolean | null

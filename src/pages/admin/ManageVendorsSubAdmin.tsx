@@ -144,20 +144,34 @@ const ManageVendorsSubAdmin = () => {
 
   // ── NEW: Store upgrade & AI video overrides ─────────────────────────────
   const grantStoreUpgrade = (v: any) => run(v.id, () => {
-    const expires = new Date();
-    expires.setDate(expires.getDate() + 30);
+    const isAdmin = userRole?.role === "super_admin" || userRole?.role === "admin" || userRole?.role === "sub_admin";
+    if (!isAdmin) {
+      toast({ title: "Unauthorized", description: "Only administrators can perform this action.", variant: "destructive" });
+      return Promise.resolve(false);
+    }
+    const confirmed = window.confirm(`Grant Store access to ${v.business_name} without payment?`);
+    if (!confirmed) return Promise.resolve(false);
     return patch(v.id, {
       is_store_upgraded: true,
-      store_upgrade_expires_at: expires.toISOString(),
-    }, "Store upgrade granted (30 days) ✅");
+      store_upgrade_source: "admin_grant",
+      store_upgrade_expires_at: null,
+    }, "Store upgrade granted manually ✅");
   });
 
-  const revokeStoreUpgrade = (v: any) => run(v.id, () =>
-    patch(v.id, {
+  const revokeStoreUpgrade = (v: any) => run(v.id, () => {
+    const isAdmin = userRole?.role === "super_admin" || userRole?.role === "admin" || userRole?.role === "sub_admin";
+    if (!isAdmin) {
+      toast({ title: "Unauthorized", description: "Only administrators can perform this action.", variant: "destructive" });
+      return Promise.resolve(false);
+    }
+    const confirmed = window.confirm(`Revoke Store access for ${v.business_name}?`);
+    if (!confirmed) return Promise.resolve(false);
+    return patch(v.id, {
       is_store_upgraded: false,
+      store_upgrade_source: null,
       store_upgrade_expires_at: null,
-    }, "Store upgrade revoked")
-  );
+    }, "Store upgrade revoked");
+  });
 
   const grantAIVideo = (v: any) => run(v.id, () =>
     patch(v.id, { ai_video_enabled: true }, "AI Video access granted ✅")
@@ -500,7 +514,7 @@ const ManageVendorsSubAdmin = () => {
                               disabled={actionLoading === v.id}
                               onClick={() => grantStoreUpgrade(v)}
                             >
-                              <Crown className="h-3 w-3 mr-1" /> Extend 30 Days
+                              <Crown className="h-3 w-3 mr-1" /> Upgrade to Store
                             </Button>
                             <Button
                               size="sm"
@@ -509,7 +523,7 @@ const ManageVendorsSubAdmin = () => {
                               disabled={actionLoading === v.id}
                               onClick={() => revokeStoreUpgrade(v)}
                             >
-                              <X className="h-3 w-3 mr-1" /> Revoke Pro
+                              <X className="h-3 w-3 mr-1" /> Revoke Store Access
                             </Button>
                           </div>
                         </div>
@@ -520,16 +534,16 @@ const ManageVendorsSubAdmin = () => {
               </div>
             )}
 
-            {/* Grant Pro to any vendor */}
+            {/* Grant Store Access to any vendor */}
             <Card className="border-dashed border-amber-200">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
-                  <Zap className="h-4 w-4 text-amber-500" /> Grant Pro Access to Any Vendor
+                  <Zap className="h-4 w-4 text-amber-500" /> Grant Store Access to Any Vendor
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-xs text-muted-foreground mb-3">
-                  Search for a vendor below to manually grant or override Pro access without a payment.
+                  Search for a vendor below to manually grant or override Store access without a payment.
                   Use this for partnerships, compensation, or testing.
                 </p>
                 <div className="space-y-2">
@@ -547,12 +561,12 @@ const ManageVendorsSubAdmin = () => {
                         onClick={() => grantStoreUpgrade(v)}
                       >
                         {actionLoading === v.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Crown className="h-3 w-3" />}
-                        Grant 30 Days
+                        Upgrade to Store
                       </Button>
                     </div>
                   ))}
                   {approvedVendors.filter((v: any) => !isUpgradeActive(v)).length === 0 && (
-                    <p className="text-xs text-muted-foreground text-center py-3">All approved vendors already have Pro access</p>
+                    <p className="text-xs text-muted-foreground text-center py-3">All approved vendors already have Store access</p>
                   )}
                 </div>
               </CardContent>
@@ -621,12 +635,12 @@ const ManageVendorsSubAdmin = () => {
                 {isUpgradeActive(detailVendor) ? (
                   <Button size="sm" variant="outline" className="text-muted-foreground"
                     onClick={() => revokeStoreUpgrade(detailVendor)}>
-                    <Crown className="h-3.5 w-3.5 mr-1 text-amber-500" /> Revoke Pro
+                    <Crown className="h-3.5 w-3.5 mr-1 text-amber-500" /> Revoke Store Access
                   </Button>
                 ) : (
                   <Button size="sm" variant="outline" className="text-amber-600 border-amber-300"
                     onClick={() => grantStoreUpgrade(detailVendor)}>
-                    <Crown className="h-3.5 w-3.5 mr-1" /> Grant Pro (30d)
+                    <Crown className="h-3.5 w-3.5 mr-1" /> Upgrade to Store
                   </Button>
                 )}
                 {/* AI Video Override */}
