@@ -14,6 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import AIChatbox from "@/components/AIChatbox";
 import SplashScreen from "@/components/SplashScreen";
 import CampusSpotlight from "@/components/landing/CampusSpotlight";
+import PromoCarousel from "@/components/promo/PromoCarousel";
 
 const CATEGORY_ICONS: Record<string, string> = {
   "Food & Snacks": "🍔",
@@ -230,6 +231,9 @@ const Index = () => {
             </p>
           </div>
         </section>
+
+        {/* ── Live deals & promos ── */}
+        <PromoCarousel />
 
         {/* ── Schools ── */}
         <section className="py-16 px-4 bg-muted/30">

@@ -14,9 +14,11 @@ interface VendorCardProps {
     live_location_on?: boolean;
   };
   index?: number;
+  /** True when this vendor has at least one live deal running. */
+  hasPromo?: boolean;
 }
 
-const VendorCard = ({ vendor, index = 0 }: VendorCardProps) => {
+const VendorCard = ({ vendor, index = 0, hasPromo = false }: VendorCardProps) => {
   const primaryImage = vendor.images?.find((img) => img.is_primary) || vendor.images?.[0];
   const cardRef      = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
@@ -116,6 +118,13 @@ const VendorCard = ({ vendor, index = 0 }: VendorCardProps) => {
                 <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
                 Live
               </div>
+            )}
+
+            {/* Live promo badge */}
+            {hasPromo && (
+              <span className="absolute bottom-2 left-2 rounded-full bg-orange-500 text-white text-[10px] font-bold px-2 py-0.5 shadow-md shadow-orange-500/40">
+                🔥 Promo
+              </span>
             )}
 
             {/* Category — bottom right */}

@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import VendorCard from "@/components/marketplace/VendorCard";
+import { useLiveDeals } from "@/hooks/useLiveDeals";
 import SearchFilters from "@/components/marketplace/SearchFilters";
 import { useVendors } from "@/hooks/useVendors";
 import { useSchools } from "@/hooks/useSchools";
@@ -15,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const Browse = () => {
   const [searchParams] = useSearchParams();
+  const { vendorsWithDeals } = useLiveDeals();
   const [searchQuery,      setSearchQuery]      = useState("");
   const [selectedSchool,   setSelectedSchool]   = useState(searchParams.get("school") || "all");
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get("category") || "all");
@@ -239,7 +241,7 @@ const Browse = () => {
                           <span className="text-sm font-semibold text-foreground">All Vendors</span>
                         </div>
                       )}
-                      <VendorCard key={vendor.id} vendor={vendor} index={index} />
+                      <VendorCard key={vendor.id} vendor={vendor} index={index} hasPromo={vendorsWithDeals.has(vendor.id)} />
                     </>
                   );
                 })}
