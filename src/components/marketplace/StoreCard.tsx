@@ -14,9 +14,11 @@ interface StoreCardProps {
     live_location_on?: boolean;
   };
   index?: number;
+  /** "grid" = full card, "rail" = compact side-rail row */
+  variant?: "grid" | "rail";
 }
 
-const StoreCard = ({ vendor, index = 0 }: StoreCardProps) => {
+const StoreCard = ({ vendor, index = 0, variant = "grid" }: StoreCardProps) => {
   const primaryImage = vendor.images?.find((img) => img.is_primary) || vendor.images?.[0];
   const cardRef      = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
