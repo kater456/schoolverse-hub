@@ -10,8 +10,9 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Loader2, Flame, ImagePlus, Clock, Pencil } from "lucide-react";
-import { dealLabel, timeLeft } from "@/hooks/useLiveDeals";
+import { Plus, Trash2, Loader2, Flame, ImagePlus, Pencil } from "lucide-react";
+import { dealLabel } from "@/hooks/useLiveDeals";
+import { LiveCountdown } from "@/components/promo/LiveCountdown";
 
 interface Deal {
   id: string;
@@ -316,9 +317,7 @@ const VendorDealManager = ({ vendorId }: { vendorId: string }) => {
                         {deal.deal_price && (
                           <span className="font-bold text-green-600">₦{Number(deal.deal_price).toLocaleString()}</span>
                         )}
-                        <span className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Clock className="h-3 w-3" /> {timeLeft(deal.expires_at)}
-                        </span>
+                        <LiveCountdown expiresAt={deal.expires_at} variant="simple" />
                       </div>
                     </div>
                     <div className="flex gap-1 shrink-0">

@@ -1,6 +1,8 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Flame, Clock, ArrowRight } from "lucide-react";
-import { useLiveDeals, dealLabel, timeLeft } from "@/hooks/useLiveDeals";
+import { Flame, ArrowRight } from "lucide-react";
+import { useLiveDeals, dealLabel, LiveDeal } from "@/hooks/useLiveDeals";
+import { LiveCountdown } from "./LiveCountdown";
 
 /**
  * Horizontal scrolling carousel of every live deal on the platform.
@@ -8,8 +10,19 @@ import { useLiveDeals, dealLabel, timeLeft } from "@/hooks/useLiveDeals";
  */
 const PromoCarousel = () => {
   const { deals, isLoading } = useLiveDeals();
+  const [liveDeals, setLiveDeals] = useState<LiveDeal[]>([]);
 
-  if (isLoading || deals.length === 0) return null;
+  useEffect(() => {
+    if (deals) {
+      setLiveDeals(deals);
+    }
+  }, [deals]);
+
+  const handleExpired = (dealId: string) => {
+    setLiveDeals((prev) => prev.filter((d) => d.id !== dealId));
+  };
+
+  if (isLoading || liveDeals.length === 0) return null;
 
   return (
     <section className="py-10 px-4 bg-gradient-to-b from-orange-500/5 to-transparent">
@@ -28,7 +41,7 @@ const PromoCarousel = () => {
         </div>
 
         <div className="flex gap-3 overflow-x-auto pb-3 -mx-1 px-1 snap-x snap-mandatory scrollbar-none">
-          {deals.map((deal) => (
+          {liveDeals.map((deal) => (
             <Link
               key={deal.id}
               to={`/vendor/${deal.vendor_id}`}
@@ -73,9 +86,11 @@ const PromoCarousel = () => {
                   )}
                 </div>
 
-                <p className="mt-2 text-[10px] font-medium text-orange-600 flex items-center gap-1">
-                  <Clock className="h-3 w-3" /> {timeLeft(deal.expires_at)}
-                </p>
+                <LiveCountdown
+                  expiresAt={deal.expires_at}
+                  variant="blocks"
+                  onExpired={() => handleExpired(deal.id)}
+                />
               </div>
             </Link>
           ))}
