@@ -44,6 +44,23 @@ export const timeLeft = (expiresAt: string) => {
   return `${mins}m left`;
 };
 
+/** Returns structured countdown parts for live ticking. */
+export const getTimeParts = (expiresAt: string) => {
+  const ms = new Date(expiresAt).getTime() - Date.now();
+  if (ms <= 0) {
+    return { days: 0, hours: 0, minutes: 0, seconds: 0, isEnded: true };
+  }
+  const totalSecs = Math.floor(ms / 1000);
+  const seconds = totalSecs % 60;
+  const totalMins = Math.floor(totalSecs / 60);
+  const minutes = totalMins % 60;
+  const totalHours = Math.floor(totalMins / 60);
+  const hours = totalHours % 24;
+  const days = Math.floor(totalHours / 24);
+
+  return { days, hours, minutes, seconds, isEnded: false };
+};
+
 /**
  * Fetches every currently-live deal (active + inside its start/end window)
  * and joins vendor names. Deals from suspended/unapproved vendors are dropped.
