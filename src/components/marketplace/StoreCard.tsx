@@ -43,6 +43,41 @@ const StoreCard = ({ vendor, index = 0, variant = "grid" }: StoreCardProps) => {
     return () => observer.disconnect();
   }, []);
 
+  if (variant === "rail") {
+    return (
+      <Link
+        to={`/store/${vendor.id}`}
+        className="group flex items-center gap-3 rounded-xl border border-purple-500/25 bg-card hover:border-purple-500/50 hover:bg-purple-500/5 transition-colors p-2.5 shrink-0 w-[220px] lg:w-auto"
+      >
+        <div className="relative w-14 h-14 rounded-lg overflow-hidden bg-muted shrink-0">
+          {primaryImage ? (
+            <img src={primaryImage.image_url} alt={vendor.business_name} loading="lazy" className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-xl">🏪</div>
+          )}
+          {isLive && (
+            <span className="absolute bottom-1 right-1 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-card" />
+          )}
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1">
+            <h3 className="text-sm font-semibold truncate group-hover:text-purple-600 transition-colors">
+              {vendor.business_name}
+            </h3>
+            {(vendor as any).is_verified && <ShieldCheck className="h-3.5 w-3.5 text-purple-500 shrink-0" />}
+          </div>
+          <p className="text-[11px] text-muted-foreground truncate">{vendor.category}</p>
+          {vendor.school_name && (
+            <p className="text-[10px] text-muted-foreground/80 truncate">🎓 {vendor.school_name}</p>
+          )}
+        </div>
+
+        <ArrowRight className="h-4 w-4 text-purple-500 shrink-0 group-hover:translate-x-0.5 transition-transform" />
+      </Link>
+    );
+  }
+
   return (
     <div
       ref={cardRef}
