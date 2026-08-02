@@ -344,6 +344,34 @@ const Browse = () => {
                   </div>
                 )
               )}
+              </div>
+
+              {/* ── Official Stores side rail ── */}
+              {sortedActiveStores.length > 0 && (
+                <aside
+                  id="official-stores"
+                  className="mt-10 lg:mt-0 lg:sticky lg:top-24 rounded-2xl border border-purple-500/20 bg-purple-500/[0.04] p-4"
+                >
+                  <div className="flex items-center justify-between gap-2 mb-3">
+                    <div className="min-w-0">
+                      <h2 className="text-sm font-bold flex items-center gap-1.5 text-foreground">
+                        🏪 Official Stores
+                      </h2>
+                      <p className="text-[11px] text-muted-foreground">Verified stores with full catalogs</p>
+                    </div>
+                    <Badge variant="secondary" className="text-[10px] font-bold shrink-0">
+                      {sortedActiveStores.length}
+                    </Badge>
+                  </div>
+
+                  <div className="flex lg:flex-col gap-2.5 overflow-x-auto lg:overflow-visible -mx-1 px-1 pb-1 lg:pb-0 lg:max-h-[70vh] lg:overflow-y-auto">
+                    {sortedActiveStores.map((store: any, idx: number) => (
+                      <StoreCard key={store.id} vendor={store} index={idx} variant="rail" />
+                    ))}
+                  </div>
+                </aside>
+              )}
+              </div>
             </>
           )}
         </div>
