@@ -757,32 +757,59 @@ const VendorDashboard = () => {
         {/* ── Subscription CTAs — shown when no active subscription ── */}
         {!isSubscriptionActive(vendor) && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {/* Standard */}
+            {/* Standard — Store plan */}
             <button
               type="button"
               disabled={payingUpgrade}
               style={{ touchAction: "manipulation", width: "100%", textAlign: "left" }}
-              className="relative rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-background p-5 overflow-hidden cursor-pointer group disabled:opacity-70"
+              className="relative rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-background p-4 sm:p-5 overflow-hidden cursor-pointer group disabled:opacity-70 flex flex-col"
               onClick={() => initiateSubscription("standard")}
             >
               <div className="absolute top-0 right-0 w-24 h-24 rounded-full bg-primary/10 -translate-y-8 translate-x-8" />
-              <div className="relative">
-                <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center mb-3">
-                  <span className="text-xl">⚡</span>
+              <div className="relative flex flex-col h-full">
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
+                    <span className="text-xl">🏪</span>
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="font-bold text-foreground text-sm sm:text-base leading-snug">
+                      Turn your listing into a store
+                    </h3>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mt-0.5">
+                      Standard plan
+                    </p>
+                  </div>
                 </div>
-                <h3 className="font-bold text-foreground text-sm mb-1">Standard Plan</h3>
+
                 <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
-                  Turn your listing into a full storefront — organize products into categories, showcase your brand, and manage deals, all from one dashboard..
+                  Get your own storefront page — a real shop customers can browse, not just a listing.
                 </p>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-primary">₦1,500/month</span>
-                  <span className="text-[10px] text-muted-foreground">→ auto-renews</span>
+
+                <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-1 lg:grid-cols-2 gap-1.5 mb-4">
+                  {[
+                    "Own storefront page",
+                    "Up to 20 products",
+                    "Deals & flash sales",
+                    "Custom store design",
+                  ].map((f) => (
+                    <span key={f} className="flex items-center gap-1.5 text-[11px] text-foreground/80">
+                      <span className="text-primary">✓</span> {f}
+                    </span>
+                  ))}
                 </div>
-                <div className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-primary group-hover:gap-2.5 transition-all">
-                  {payingUpgrade ? "Processing…" : "Subscribe now"} <span className="text-base">→</span>
+
+                <div className="mt-auto flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-base font-bold text-primary">₦1,500</span>
+                    <span className="text-[10px] text-muted-foreground">/month · auto-renews</span>
+                  </div>
+                  <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary group-hover:gap-2.5 transition-all">
+                    {payingUpgrade ? "Processing…" : "Open my store"} <span className="text-base">→</span>
+                  </span>
                 </div>
               </div>
             </button>
+
 
             {/* Pro */}
             <button

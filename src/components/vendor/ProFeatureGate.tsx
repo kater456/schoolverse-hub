@@ -46,7 +46,7 @@ function UpgradePanel({
   const [done, setDone] = useState(false);
 
   const perks = requiredPlan === "pro" ? PRO_PERKS : STANDARD_PERKS;
-  const planLabel = requiredPlan === "pro" ? "Pro — ₦3,500/month" : "Standard — ₦1,500/month";
+  const planLabel = requiredPlan === "pro" ? "Pro — ₦3,500/month" : "Store plan — ₦1,500/month";
   const planKey = requiredPlan === "pro" ? "subscription_pro" : "subscription_standard";
 
   const handleSubscribe = async () => {

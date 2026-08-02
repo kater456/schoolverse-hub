@@ -2181,7 +2181,6 @@ export type Database = {
           is_approved: boolean | null
           is_open: boolean | null
           is_store_upgraded: boolean | null
-          store_upgrade_source: string | null
           is_suspended: boolean | null
           is_vendor_of_week: boolean | null
           is_verified: boolean | null
@@ -2206,6 +2205,7 @@ export type Database = {
           store_number: number | null
           store_theme_color: string | null
           store_upgrade_expires_at: string | null
+          store_upgrade_source: string | null
           strike_count: number | null
           subscription_code: string | null
           subscription_expires: string | null
@@ -2242,7 +2242,6 @@ export type Database = {
           is_approved?: boolean | null
           is_open?: boolean | null
           is_store_upgraded?: boolean | null
-          store_upgrade_source?: string | null
           is_suspended?: boolean | null
           is_vendor_of_week?: boolean | null
           is_verified?: boolean | null
@@ -2267,6 +2266,7 @@ export type Database = {
           store_number?: number | null
           store_theme_color?: string | null
           store_upgrade_expires_at?: string | null
+          store_upgrade_source?: string | null
           strike_count?: number | null
           subscription_code?: string | null
           subscription_expires?: string | null
@@ -2303,7 +2303,6 @@ export type Database = {
           is_approved?: boolean | null
           is_open?: boolean | null
           is_store_upgraded?: boolean | null
-          store_upgrade_source?: string | null
           is_suspended?: boolean | null
           is_vendor_of_week?: boolean | null
           is_verified?: boolean | null
@@ -2328,6 +2327,7 @@ export type Database = {
           store_number?: number | null
           store_theme_color?: string | null
           store_upgrade_expires_at?: string | null
+          store_upgrade_source?: string | null
           strike_count?: number | null
           subscription_code?: string | null
           subscription_expires?: string | null

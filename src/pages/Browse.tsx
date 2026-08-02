@@ -251,36 +251,17 @@ const Browse = () => {
             </div>
           ) : (
             <>
-              {/* ── Stores Section ── */}
+              <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-8 lg:items-start">
+              <div className="min-w-0">
               {sortedActiveStores.length > 0 && (
-                <div className="mb-10 bg-gradient-to-br from-purple-500/5 via-transparent to-pink-500/5 p-5 sm:p-6 rounded-3xl border border-purple-500/20 relative overflow-hidden shadow-sm">
-                  <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/5 rounded-full blur-3xl pointer-events-none" />
-                  <div className="absolute bottom-0 left-0 w-64 h-64 bg-pink-500/5 rounded-full blur-3xl pointer-events-none" />
-
-                  <div className="relative flex items-center justify-between gap-2 mb-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-2xl">🏪</span>
-                      <div>
-                        <h2 className="text-xl sm:text-2xl font-black bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
-                          Official Stores
-                        </h2>
-                        <p className="text-xs text-muted-foreground">
-                          Browse verified direct campus stores with custom catalogs
-                        </p>
-                      </div>
-                    </div>
-                    <Badge className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white border-0 font-bold px-3 py-1 text-xs shadow-md shadow-purple-500/25">
-                      {sortedActiveStores.length} STORE{sortedActiveStores.length !== 1 ? "S" : ""}
-                    </Badge>
-                  </div>
-
-                  <div className="relative grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {sortedActiveStores.map((store: any, idx: number) => (
-                      <StoreCard key={store.id} vendor={store} index={idx} />
-                    ))}
-                  </div>
-                </div>
+                <a
+                  href="#official-stores"
+                  className="lg:hidden inline-flex items-center gap-1.5 mb-4 rounded-full border border-purple-500/30 bg-purple-500/5 px-3 py-1.5 text-[11px] font-semibold text-purple-600 dark:text-purple-400"
+                >
+                  🏪 {sortedActiveStores.length} Official Store{sortedActiveStores.length !== 1 ? "s" : ""} →
+                </a>
               )}
+
 
               {/* ── Regular Grid ── */}
               {sortedRegularVendors.length > 0 ? (
@@ -344,6 +325,34 @@ const Browse = () => {
                   </div>
                 )
               )}
+              </div>
+
+              {/* ── Official Stores side rail ── */}
+              {sortedActiveStores.length > 0 && (
+                <aside
+                  id="official-stores"
+                  className="mt-10 lg:mt-0 lg:sticky lg:top-24 rounded-2xl border border-purple-500/20 bg-purple-500/[0.04] p-4"
+                >
+                  <div className="flex items-center justify-between gap-2 mb-3">
+                    <div className="min-w-0">
+                      <h2 className="text-sm font-bold flex items-center gap-1.5 text-foreground">
+                        🏪 Official Stores
+                      </h2>
+                      <p className="text-[11px] text-muted-foreground">Verified stores with full catalogs</p>
+                    </div>
+                    <Badge variant="secondary" className="text-[10px] font-bold shrink-0">
+                      {sortedActiveStores.length}
+                    </Badge>
+                  </div>
+
+                  <div className="flex lg:flex-col gap-2.5 overflow-x-auto lg:overflow-visible -mx-1 px-1 pb-1 lg:pb-0 lg:max-h-[70vh] lg:overflow-y-auto">
+                    {sortedActiveStores.map((store: any, idx: number) => (
+                      <StoreCard key={store.id} vendor={store} index={idx} variant="rail" />
+                    ))}
+                  </div>
+                </aside>
+              )}
+              </div>
             </>
           )}
         </div>
