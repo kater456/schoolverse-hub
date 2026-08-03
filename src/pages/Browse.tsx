@@ -5,6 +5,7 @@ import Footer from "@/components/layout/Footer";
 import VendorCard from "@/components/marketplace/VendorCard";
 import StoreCard from "@/components/marketplace/StoreCard";
 import { useLiveDeals } from "@/hooks/useLiveDeals";
+import AdBanner from "@/components/AdBanner";
 import SearchFilters from "@/components/marketplace/SearchFilters";
 import { useVendors } from "@/hooks/useVendors";
 import { useSchools } from "@/hooks/useSchools";
