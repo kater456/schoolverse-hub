@@ -100,13 +100,32 @@ export async function ensurePushRegistered(): Promise<boolean> {
     if (perm === "default") perm = await Notification.requestPermission();
     if (perm !== "granted") return false;
 
+    const serverKey = await getServerVapidKey();
+
     let sub = await reg.pushManager.getSubscription();
+
+    // If an existing subscription was created with a different VAPID key it can
+    // never receive our pushes — drop it (and its DB row) and re-subscribe.
+    if (sub) {
+      const existingKey = bufferToBase64Url(sub.options?.applicationServerKey ?? null);
+      if (existingKey && existingKey !== serverKey) {
+        const staleEndpoint = sub.endpoint;
+        try { await sub.unsubscribe(); } catch { /* ignore */ }
+        try {
+          await (supabase.from("push_subscriptions") as any)
+            .delete().eq("endpoint", staleEndpoint);
+        } catch { /* ignore */ }
+        sub = null;
+      }
+    }
+
     if (!sub) {
       sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        applicationServerKey: urlBase64ToUint8Array(serverKey),
       });
     }
+
 
     const json: any = sub.toJSON();
     const { data: { user } } = await supabase.auth.getUser();
