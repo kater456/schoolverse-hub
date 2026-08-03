@@ -15,6 +15,7 @@ import AIChatbox from "@/components/AIChatbox";
 import SplashScreen from "@/components/SplashScreen";
 import CampusSpotlight from "@/components/landing/CampusSpotlight";
 import PromoCarousel from "@/components/promo/PromoCarousel";
+import AdBanner from "@/components/AdBanner";
 
 const CATEGORY_ICONS: Record<string, string> = {
   "Food & Snacks": "🍔",
@@ -234,6 +235,12 @@ const Index = () => {
 
         {/* ── Live deals & promos ── */}
         <PromoCarousel />
+
+        {/* ── Sponsored banner ── */}
+        <div className="max-w-5xl mx-auto px-4">
+          <AdBanner />
+        </div>
+
 
         {/* ── Schools ── */}
         <section className="py-16 px-4 bg-muted/30">

@@ -284,6 +284,13 @@ const VendorRegistration = () => {
 
       setIsSubmitting(false);
 
+      // Notify admins/sub-admins of the new vendor request (email + push).
+      // Non-blocking — never fail signup because of a notification.
+      supabase.functions
+        .invoke("notify-new-vendor", { body: { vendor_id: vendor.id } })
+        .catch(() => {});
+
+
       if (showPayment) {
         // Admin has payment ON — open Paystack popup
         setPaymentPending(true);

@@ -64,7 +64,16 @@ const PushBroadcastPanel = ({ scope = "super_admin" }: Props) => {
         },
       });
       if (error) throw error;
-      toast({ title: "Notification sent 🔔", description: `Delivered to ${data?.sent ?? 0} device(s).` });
+      const sent = data?.sent ?? 0;
+      const failed = data?.failed ?? 0;
+      const removed = data?.removed ?? 0;
+      toast({
+        title: sent > 0 ? "Notification sent 🔔" : "Not delivered to any device",
+        description: sent > 0
+          ? `Accepted by ${sent} device(s)${failed ? ` · ${failed} failed` : ""}${removed ? ` · ${removed} expired removed` : ""}.`
+          : `${failed} device(s) rejected the push${removed ? `, ${removed} expired registration(s) removed` : ""}. Ask users to re-enable notifications.`,
+        variant: sent > 0 ? "default" : "destructive",
+      });
       setTitle(""); setBody("");
     } catch (e: any) {
       toast({ title: "Failed to send", description: e.message, variant: "destructive" });
@@ -80,13 +89,18 @@ const PushBroadcastPanel = ({ scope = "super_admin" }: Props) => {
         body: { mode: "test", sender_id: user?.id, sender_role: userRole?.role },
       });
       if (error) throw error;
+      const sent = data?.sent ?? 0;
+      const failed = data?.failed ?? 0;
       toast({
-        title: data?.sent ? "Test sent 🔔" : "No device subscribed yet",
-        description: data?.sent
-          ? `Delivered to ${data.sent} of your device(s).`
-          : "Enable notifications on this device first, then try again.",
-        variant: data?.sent ? "default" : "destructive",
+        title: sent ? "Test sent 🔔" : failed ? "Push rejected by your device" : "No device subscribed yet",
+        description: sent
+          ? `Accepted by ${sent} of your device(s).`
+          : failed
+            ? `${failed} registration(s) failed. Turn notifications off and on again in the app to re-register this device.`
+            : "Enable notifications on this device first, then try again.",
+        variant: sent ? "default" : "destructive",
       });
+
     } catch (e: any) {
       toast({ title: "Test failed", description: e.message, variant: "destructive" });
     } finally {

@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
 import { useToast } from "@/hooks/use-toast";
 import { compressImage } from "@/lib/compressImage";
 import {
@@ -119,9 +121,69 @@ const ManageAds = () => {
   };
 
   const toggleActive = async (id: string, current: boolean) => {
+    const ad = ads.find((a) => a.id === id);
+    const expired = ad?.ends_at && new Date(ad.ends_at) < new Date();
+    if (!current && expired) {
+      toast({
+        title: "This ad has expired",
+        description: "Edit the ad and set a new end date before activating it.",
+        variant: "destructive",
+      });
+      return;
+    }
     await supabase.from("platform_ads").update({ is_active: !current } as any).eq("id", id);
     setAds((prev) => prev.map((a) => a.id === id ? { ...a, is_active: !current } : a));
     toast({ title: !current ? "Ad activated" : "Ad paused" });
+  };
+
+  // ── Edit an existing ad ───────────────────────────────────────────────────
+  const [editAd, setEditAd] = useState<any | null>(null);
+  const [editForm, setEditForm] = useState<any>({});
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const toLocalInput = (iso?: string | null) =>
+    iso ? new Date(new Date(iso).getTime() - new Date().getTimezoneOffset() * 60000)
+      .toISOString().slice(0, 16) : "";
+
+  const openEdit = (ad: any) => {
+    setEditAd(ad);
+    setEditForm({
+      title: ad.title || "",
+      description: ad.description || "",
+      advertiser_name: ad.advertiser_name || "",
+      link_url: ad.link_url || "",
+      starts_at: toLocalInput(ad.starts_at),
+      ends_at: toLocalInput(ad.ends_at),
+      priority: String(ad.priority ?? 0),
+      display_position: ad.display_position || "popup",
+    });
+  };
+
+  const saveEdit = async () => {
+    if (!editAd) return;
+    if (!editForm.title?.trim()) {
+      toast({ title: "Ad title is required", variant: "destructive" }); return;
+    }
+    setSavingEdit(true);
+    const patch: any = {
+      title: editForm.title.trim(),
+      description: editForm.description?.trim() || null,
+      advertiser_name: editForm.advertiser_name?.trim() || null,
+      link_url: editForm.link_url?.trim() || null,
+      starts_at: editForm.starts_at ? new Date(editForm.starts_at).toISOString() : new Date().toISOString(),
+      ends_at: editForm.ends_at ? new Date(editForm.ends_at).toISOString() : null,
+      priority: parseInt(editForm.priority || "0", 10) || 0,
+      display_position: editForm.display_position,
+    };
+    const { error } = await supabase.from("platform_ads").update(patch).eq("id", editAd.id);
+    setSavingEdit(false);
+    if (error) {
+      toast({ title: "Couldn't save", description: error.message, variant: "destructive" });
+      return;
+    }
+    setAds((prev) => prev.map((a) => a.id === editAd.id ? { ...a, ...patch } : a));
+    setEditAd(null);
+    toast({ title: "Ad updated ✅" });
   };
 
   const deleteAd = async (id: string) => {
@@ -129,6 +191,7 @@ const ManageAds = () => {
     setAds((prev) => prev.filter((a) => a.id !== id));
     toast({ title: "Ad deleted" });
   };
+
 
   const schoolName = (id: string) => schools.find((s) => s.id === id)?.name || id;
 
@@ -215,10 +278,14 @@ const ManageAds = () => {
               <Switch checked={ad.is_active} onCheckedChange={() => toggleActive(ad.id, ad.is_active)} />
               <Label className="text-xs cursor-pointer">{ad.is_active ? "Live" : "Paused"}</Label>
             </div>
+            <Button variant="outline" size="sm" className="h-7 text-xs px-2" onClick={() => openEdit(ad)}>
+              <Edit className="h-3 w-3" />
+            </Button>
             <Button variant="destructive" size="sm" className="h-7 text-xs px-2" onClick={() => deleteAd(ad.id)}>
               <Trash2 className="h-3 w-3" />
             </Button>
           </div>
+
         </CardContent>
       </Card>
     );
@@ -465,9 +532,77 @@ const ManageAds = () => {
             ))}
           </Tabs>
         )}
+
+        {/* ── Edit ad dialog ─────────────────────────────────────────────── */}
+        <Dialog open={!!editAd} onOpenChange={(o) => !o && setEditAd(null)}>
+          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-base">Edit ad</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div>
+                <Label className="text-xs">Title</Label>
+                <Input value={editForm.title || ""}
+                  onChange={(e) => setEditForm((f: any) => ({ ...f, title: e.target.value }))} />
+              </div>
+              <div>
+                <Label className="text-xs">Description</Label>
+                <Textarea rows={3} value={editForm.description || ""}
+                  onChange={(e) => setEditForm((f: any) => ({ ...f, description: e.target.value }))} />
+              </div>
+              <div>
+                <Label className="text-xs">Advertiser</Label>
+                <Input value={editForm.advertiser_name || ""}
+                  onChange={(e) => setEditForm((f: any) => ({ ...f, advertiser_name: e.target.value }))} />
+              </div>
+              <div>
+                <Label className="text-xs">Link URL</Label>
+                <Input value={editForm.link_url || ""}
+                  onChange={(e) => setEditForm((f: any) => ({ ...f, link_url: e.target.value }))} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Starts</Label>
+                  <Input type="datetime-local" value={editForm.starts_at || ""}
+                    onChange={(e) => setEditForm((f: any) => ({ ...f, starts_at: e.target.value }))} />
+                </div>
+                <div>
+                  <Label className="text-xs">Ends (blank = never)</Label>
+                  <Input type="datetime-local" value={editForm.ends_at || ""}
+                    onChange={(e) => setEditForm((f: any) => ({ ...f, ends_at: e.target.value }))} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Priority</Label>
+                  <Input type="number" value={editForm.priority || "0"}
+                    onChange={(e) => setEditForm((f: any) => ({ ...f, priority: e.target.value }))} />
+                </div>
+                <div>
+                  <Label className="text-xs">Placement</Label>
+                  <div className="flex gap-1 mt-1">
+                    {["popup", "banner", "both"].map((p) => (
+                      <Button key={p} type="button" size="sm"
+                        variant={editForm.display_position === p ? "default" : "outline"}
+                        className="h-8 text-[11px] capitalize flex-1 px-1"
+                        onClick={() => setEditForm((f: any) => ({ ...f, display_position: p }))}>
+                        {p}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <Button className="w-full" disabled={savingEdit} onClick={saveEdit}>
+                {savingEdit ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Save changes
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </AdminLayout>
   );
 };
+
 
 export default ManageAds;
