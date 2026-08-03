@@ -530,9 +530,77 @@ const ManageAds = () => {
             ))}
           </Tabs>
         )}
+
+        {/* ── Edit ad dialog ─────────────────────────────────────────────── */}
+        <Dialog open={!!editAd} onOpenChange={(o) => !o && setEditAd(null)}>
+          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-base">Edit ad</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div>
+                <Label className="text-xs">Title</Label>
+                <Input value={editForm.title || ""}
+                  onChange={(e) => setEditForm((f: any) => ({ ...f, title: e.target.value }))} />
+              </div>
+              <div>
+                <Label className="text-xs">Description</Label>
+                <Textarea rows={3} value={editForm.description || ""}
+                  onChange={(e) => setEditForm((f: any) => ({ ...f, description: e.target.value }))} />
+              </div>
+              <div>
+                <Label className="text-xs">Advertiser</Label>
+                <Input value={editForm.advertiser_name || ""}
+                  onChange={(e) => setEditForm((f: any) => ({ ...f, advertiser_name: e.target.value }))} />
+              </div>
+              <div>
+                <Label className="text-xs">Link URL</Label>
+                <Input value={editForm.link_url || ""}
+                  onChange={(e) => setEditForm((f: any) => ({ ...f, link_url: e.target.value }))} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Starts</Label>
+                  <Input type="datetime-local" value={editForm.starts_at || ""}
+                    onChange={(e) => setEditForm((f: any) => ({ ...f, starts_at: e.target.value }))} />
+                </div>
+                <div>
+                  <Label className="text-xs">Ends (blank = never)</Label>
+                  <Input type="datetime-local" value={editForm.ends_at || ""}
+                    onChange={(e) => setEditForm((f: any) => ({ ...f, ends_at: e.target.value }))} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Priority</Label>
+                  <Input type="number" value={editForm.priority || "0"}
+                    onChange={(e) => setEditForm((f: any) => ({ ...f, priority: e.target.value }))} />
+                </div>
+                <div>
+                  <Label className="text-xs">Placement</Label>
+                  <div className="flex gap-1 mt-1">
+                    {["popup", "banner", "both"].map((p) => (
+                      <Button key={p} type="button" size="sm"
+                        variant={editForm.display_position === p ? "default" : "outline"}
+                        className="h-8 text-[11px] capitalize flex-1 px-1"
+                        onClick={() => setEditForm((f: any) => ({ ...f, display_position: p }))}>
+                        {p}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <Button className="w-full" disabled={savingEdit} onClick={saveEdit}>
+                {savingEdit ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Save changes
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </AdminLayout>
   );
 };
+
 
 export default ManageAds;
