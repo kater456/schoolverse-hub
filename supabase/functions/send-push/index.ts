@@ -141,6 +141,15 @@ function resolveTemplate(
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  // Public: expose the server's VAPID public key so clients can never subscribe
+  // with a mismatched key (the cause of silent "VapidPkHashMismatch" failures).
+  if (req.method === "GET") {
+    return new Response(JSON.stringify({ publicKey: VAPID_PUBLIC }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+
   try {
     // ── Trusted system caller (DB triggers, other edge functions) ──────────
     const SYSTEM_KEY = Deno.env.get("PUSH_SYSTEM_KEY") || "";
