@@ -119,9 +119,69 @@ const ManageAds = () => {
   };
 
   const toggleActive = async (id: string, current: boolean) => {
+    const ad = ads.find((a) => a.id === id);
+    const expired = ad?.ends_at && new Date(ad.ends_at) < new Date();
+    if (!current && expired) {
+      toast({
+        title: "This ad has expired",
+        description: "Edit the ad and set a new end date before activating it.",
+        variant: "destructive",
+      });
+      return;
+    }
     await supabase.from("platform_ads").update({ is_active: !current } as any).eq("id", id);
     setAds((prev) => prev.map((a) => a.id === id ? { ...a, is_active: !current } : a));
     toast({ title: !current ? "Ad activated" : "Ad paused" });
+  };
+
+  // ── Edit an existing ad ───────────────────────────────────────────────────
+  const [editAd, setEditAd] = useState<any | null>(null);
+  const [editForm, setEditForm] = useState<any>({});
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const toLocalInput = (iso?: string | null) =>
+    iso ? new Date(new Date(iso).getTime() - new Date().getTimezoneOffset() * 60000)
+      .toISOString().slice(0, 16) : "";
+
+  const openEdit = (ad: any) => {
+    setEditAd(ad);
+    setEditForm({
+      title: ad.title || "",
+      description: ad.description || "",
+      advertiser_name: ad.advertiser_name || "",
+      link_url: ad.link_url || "",
+      starts_at: toLocalInput(ad.starts_at),
+      ends_at: toLocalInput(ad.ends_at),
+      priority: String(ad.priority ?? 0),
+      display_position: ad.display_position || "popup",
+    });
+  };
+
+  const saveEdit = async () => {
+    if (!editAd) return;
+    if (!editForm.title?.trim()) {
+      toast({ title: "Ad title is required", variant: "destructive" }); return;
+    }
+    setSavingEdit(true);
+    const patch: any = {
+      title: editForm.title.trim(),
+      description: editForm.description?.trim() || null,
+      advertiser_name: editForm.advertiser_name?.trim() || null,
+      link_url: editForm.link_url?.trim() || null,
+      starts_at: editForm.starts_at ? new Date(editForm.starts_at).toISOString() : new Date().toISOString(),
+      ends_at: editForm.ends_at ? new Date(editForm.ends_at).toISOString() : null,
+      priority: parseInt(editForm.priority || "0", 10) || 0,
+      display_position: editForm.display_position,
+    };
+    const { error } = await supabase.from("platform_ads").update(patch).eq("id", editAd.id);
+    setSavingEdit(false);
+    if (error) {
+      toast({ title: "Couldn't save", description: error.message, variant: "destructive" });
+      return;
+    }
+    setAds((prev) => prev.map((a) => a.id === editAd.id ? { ...a, ...patch } : a));
+    setEditAd(null);
+    toast({ title: "Ad updated ✅" });
   };
 
   const deleteAd = async (id: string) => {
@@ -129,6 +189,7 @@ const ManageAds = () => {
     setAds((prev) => prev.filter((a) => a.id !== id));
     toast({ title: "Ad deleted" });
   };
+
 
   const schoolName = (id: string) => schools.find((s) => s.id === id)?.name || id;
 
