@@ -142,20 +142,28 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    // ── Trusted system caller (DB triggers, other edge functions) ──────────
+    const SYSTEM_KEY = Deno.env.get("PUSH_SYSTEM_KEY") || "";
+    const providedSystemKey = req.headers.get("x-system-key") || "";
+    const isSystem = !!SYSTEM_KEY && providedSystemKey === SYSTEM_KEY;
+
     // ── Authenticate caller ────────────────────────────────────────────────
-    const token = req.headers.get("Authorization")?.replace("Bearer ", "");
-    if (!token) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    let callerId: string | null = null;
+    if (!isSystem) {
+      const token = req.headers.get("Authorization")?.replace("Bearer ", "");
+      if (!token) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { data: userData, error: authErr } = await supabase.auth.getUser(token);
+      if (authErr || !userData?.user) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      callerId = userData.user.id;
     }
-    const { data: userData, error: authErr } = await supabase.auth.getUser(token);
-    if (authErr || !userData?.user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const callerId = userData.user.id;
 
     const reqBody = await req.json();
     let {
@@ -170,7 +178,7 @@ Deno.serve(async (req) => {
     } = reqBody;
 
     // ── Test mode: caller -> caller's own subscriptions ───────────────────
-    if (mode === "test") {
+    if (mode === "test" && callerId) {
       user_id = callerId;
       vendor_id = undefined;
       school_id = undefined;
@@ -182,8 +190,8 @@ Deno.serve(async (req) => {
 
     // ── Broadcast / cross-user targeting requires admin role ──────────────
     const isBroadcast = audience === "vendors" || (!user_id && !vendor_id);
-    const isSelfPing  = user_id === callerId;
-    if (!isSelfPing) {
+    const isSelfPing  = !!callerId && user_id === callerId;
+    if (!isSystem && !isSelfPing) {
       const { data: roleRow } = await supabase
         .from("user_roles").select("role").eq("user_id", callerId);
       const isAdmin = (roleRow || []).some((r: any) =>
@@ -194,6 +202,7 @@ Deno.serve(async (req) => {
         });
       }
     }
+
 
     // ── Resolve professional notification copy ──────────────────────────────
     const resolved = resolveTemplate(type || "broadcast", data || {}, title, body);
