@@ -1161,6 +1161,24 @@ export type Database = {
           },
         ]
       }
+      system_config: {
+        Row: {
+          created_at: string
+          key: string
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          key: string
+          value: string
+        }
+        Update: {
+          created_at?: string
+          key?: string
+          value?: string
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           created_at: string | null
