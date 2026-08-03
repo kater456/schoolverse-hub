@@ -1,8 +1,30 @@
 import { supabase } from "@/integrations/supabase/client";
 
-const VAPID_PUBLIC_KEY = "BKgMcjfuJy3ls5Sz5UimYz63sXoY8c6kg5V8fAR9UNb3mB6SuxaAyoYIdBQ-3Ulp4HjvwovLxlSgj_lQ6c9tc1A";
+// Fallback only — the real key is fetched from the send-push function so the
+// client can never subscribe with a key that doesn't match the server's VAPID
+// private key (that mismatch caused every push to fail with VapidPkHashMismatch).
+const FALLBACK_VAPID_PUBLIC_KEY =
+  "BEXF3r3qiQqWjY7BIUXh5xaFN-ragMVOY2ygMqD2FWOf8Rb0X866D_M7BBnruWwL7Q0cen7uxpZpF36CrrIJI1M";
 const PUSH_SW_URL = "/push-sw.js";
 const KILL_SW_URL = "/sw.js";
+
+async function getServerVapidKey(): Promise<string> {
+  try {
+    const base = import.meta.env.VITE_SUPABASE_URL;
+    const res = await fetch(`${base}/functions/v1/send-push`, { method: "GET" });
+    const json = await res.json();
+    if (json?.publicKey && typeof json.publicKey === "string") return json.publicKey;
+  } catch { /* ignore */ }
+  return FALLBACK_VAPID_PUBLIC_KEY;
+}
+
+function bufferToBase64Url(buf: ArrayBuffer | null) {
+  if (!buf) return "";
+  const bytes = new Uint8Array(buf);
+  let bin = "";
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -12,6 +34,7 @@ function urlBase64ToUint8Array(base64String: string) {
   for (let i = 0; i < raw.length; ++i) out[i] = raw.charCodeAt(i);
   return out;
 }
+
 
 export function isPushSupported() {
   return (
