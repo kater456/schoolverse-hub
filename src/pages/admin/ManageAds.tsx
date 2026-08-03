@@ -215,10 +215,14 @@ const ManageAds = () => {
               <Switch checked={ad.is_active} onCheckedChange={() => toggleActive(ad.id, ad.is_active)} />
               <Label className="text-xs cursor-pointer">{ad.is_active ? "Live" : "Paused"}</Label>
             </div>
+            <Button variant="outline" size="sm" className="h-7 text-xs px-2" onClick={() => openEdit(ad)}>
+              <Edit className="h-3 w-3" />
+            </Button>
             <Button variant="destructive" size="sm" className="h-7 text-xs px-2" onClick={() => deleteAd(ad.id)}>
               <Trash2 className="h-3 w-3" />
             </Button>
           </div>
+
         </CardContent>
       </Card>
     );
