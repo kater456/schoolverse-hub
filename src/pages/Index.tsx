@@ -236,6 +236,12 @@ const Index = () => {
         {/* ── Live deals & promos ── */}
         <PromoCarousel />
 
+        {/* ── Sponsored banner ── */}
+        <div className="max-w-5xl mx-auto px-4">
+          <AdBanner />
+        </div>
+
+
         {/* ── Schools ── */}
         <section className="py-16 px-4 bg-muted/30">
           <div className="container mx-auto">
