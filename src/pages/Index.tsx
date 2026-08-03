@@ -15,6 +15,7 @@ import AIChatbox from "@/components/AIChatbox";
 import SplashScreen from "@/components/SplashScreen";
 import CampusSpotlight from "@/components/landing/CampusSpotlight";
 import PromoCarousel from "@/components/promo/PromoCarousel";
+import AdBanner from "@/components/AdBanner";
 
 const CATEGORY_ICONS: Record<string, string> = {
   "Food & Snacks": "🍔",
