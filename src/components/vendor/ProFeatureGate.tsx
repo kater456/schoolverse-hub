@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { hasPlan, resolvePlan, SUBSCRIPTION_PLAN_CODES } from "@/lib/pricing";
+import { getPaystackKey, loadPaystack } from "@/lib/paystack";
 
 // ── What each plan unlocks ────────────────────────────────────────────────────
 const STANDARD_PERKS = [
