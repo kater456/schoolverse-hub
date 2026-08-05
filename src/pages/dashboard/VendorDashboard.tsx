@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { isRealtimeSafe, safeLocalStorage } from "@/lib/safeStorage";
 import { useAuth } from "@/hooks/useAuth";
@@ -38,6 +38,7 @@ import ExitPortfolio from "@/components/vendor/ExitPortfolio";
 import ProFeatureGate from "@/components/vendor/ProFeatureGate";
 import VendorLiveLocation from "@/components/vendor/VendorLiveLocation";
 import VendorLocationSettings from "@/components/vendor/VendorLocationSettings";
+import { getPaystackKey, loadPaystack } from "@/lib/paystack";
 import { resolvePlan, SUBSCRIPTION_PLAN_CODES, isSubscriptionActive, hasPlan, daysRemaining } from "@/lib/pricing";
 import VendorAnalytics from "@/components/vendor/VendorAnalytics";
 import VendorCustomerList from "@/components/vendor/VendorCustomerList";
@@ -59,7 +60,14 @@ const VendorDashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [vendor, setVendor] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState("products");
+  const [activeTab, setActiveTabState] = useState<string>(
+    () => safeLocalStorage.getItem("vendor_dashboard_tab") || "products"
+  );
+  const setActiveTab = useCallback((tab: string) => {
+    setActiveTabState(tab);
+    safeLocalStorage.setItem("vendor_dashboard_tab", tab);
+    if (typeof window !== "undefined") window.scrollTo({ top: 0 });
+  }, []);
   const [showUpgradeBanner, setShowUpgradeBanner] = useState(true);
 
   useEffect(() => {
@@ -106,36 +114,21 @@ const VendorDashboard = () => {
     if (!v) { setIsLoading(false); return; }
     setVendor(v);
 
-    const { data: settings } = await (supabase as any)
-      .from("platform_settings")
-      .select("verification_payment_enabled")
-      .maybeSingle();
-    setSignupPaymentEnabled(!!settings?.verification_payment_enabled);
-
     setEditContact(v.contact_number || "");
     setSocialInstagram(v.social_instagram || "");
     setSocialTiktok(v.social_tiktok || "");
     setSocialTwitter(v.social_twitter || "");
 
-    const { data: primaryImg } = await supabase
-      .from("vendor_images")
-      .select("image_url")
-      .eq("vendor_id", v.id)
-      .eq("is_primary", true)
-      .maybeSingle();
-    setAvatarUrl(primaryImg?.image_url || null);
-
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
-    const { count: editsCount } = await supabase
-      .from("vendor_contact_edits")
-      .select("id", { count: "exact", head: true })
-      .eq("vendor_id", v.id)
-      .gte("edited_at", startOfMonth.toISOString()) as any;
-    setContactEditsThisMonth(editsCount || 0);
 
-    const [views, likes, comments, contacts, txns, cmts] = await Promise.all([
+    // Everything below is independent — fire in one round trip batch.
+    const [settingsRes, primaryImgRes, editsRes, views, likes, comments, contacts, txns, cmts] = await Promise.all([
+      (supabase as any).from("platform_settings").select("verification_payment_enabled").maybeSingle(),
+      supabase.from("vendor_images").select("image_url").eq("vendor_id", v.id).eq("is_primary", true).maybeSingle(),
+      supabase.from("vendor_contact_edits").select("id", { count: "exact", head: true })
+        .eq("vendor_id", v.id).gte("edited_at", startOfMonth.toISOString()) as any,
       supabase.from("vendor_views").select("id", { count: "exact", head: true }).eq("vendor_id", v.id),
       supabase.from("vendor_likes").select("id", { count: "exact", head: true }).eq("vendor_id", v.id),
       supabase.from("vendor_comments").select("id", { count: "exact", head: true }).eq("vendor_id", v.id),
@@ -144,6 +137,9 @@ const VendorDashboard = () => {
       supabase.from("vendor_comments").select("*").eq("vendor_id", v.id).order("created_at", { ascending: false }).limit(5),
     ]);
 
+    setSignupPaymentEnabled(!!settingsRes?.data?.verification_payment_enabled);
+    setAvatarUrl(primaryImgRes?.data?.image_url || null);
+    setContactEditsThisMonth(editsRes?.count || 0);
     setStats({ views: views.count || 0, likes: likes.count || 0, comments: comments.count || 0, contacts: contacts.count || 0 });
     setTransactions(txns.data || []);
 
@@ -168,12 +164,7 @@ const VendorDashboard = () => {
 
   useEffect(() => {
     if (!user) return;
-    if (!(window as any).PaystackPop) {
-      const script = document.createElement("script");
-      script.src   = "https://js.paystack.co/v1/inline.js";
-      script.async = true;
-      document.body.appendChild(script);
-    }
+    loadPaystack().catch(() => {});
     fetchVendorData();
 
     const channel = isRealtimeSafe()
@@ -314,39 +305,16 @@ const VendorDashboard = () => {
     }
   };
 
-  useEffect(() => {
-    if ((window as any).PaystackPop) return;
-    if (document.querySelector('script[src="https://js.paystack.co/v1/inline.js"]')) return;
-    const s = document.createElement("script");
-    s.src = "https://js.paystack.co/v1/inline.js";
-    s.async = true;
-    document.body.appendChild(s);
-  }, []);
-
   const openVerifPaystack = async () => {
     if (!verifIdUrl) {
       toast({ title: "Upload your ID first", variant: "destructive" });
       return;
     }
-    if (!(window as any).PaystackPop) {
-      await new Promise<void>((resolve) => {
-        if (document.querySelector('script[src="https://js.paystack.co/v1/inline.js"]')) {
-          const existing = document.querySelector('script[src="https://js.paystack.co/v1/inline.js"]') as HTMLScriptElement;
-          existing.addEventListener("load", () => resolve(), { once: true });
-        } else {
-          const s = document.createElement("script");
-          s.src = "https://js.paystack.co/v1/inline.js";
-          s.async = true;
-          s.onload = () => resolve();
-          document.body.appendChild(s);
-        }
-      });
-    }
+    const PaystackPop = await loadPaystack();
     const plan = await resolvePlan("verification");
-    const PaystackPop = (window as any).PaystackPop;
     const ref = `verif_${vendor.id}_${Date.now()}`;
     const handler = PaystackPop.setup({
-      key: (import.meta.env.VITE_PAYSTACK_PUBLIC_KEY as string),
+      key: getPaystackKey(),
       email: user!.email,
       amount: plan.amountSubunits,
       currency: plan.currency,
@@ -382,24 +350,14 @@ const VendorDashboard = () => {
       return;
     }
 
-    // Ensure Paystack script is loaded before doing anything
-    if (!(window as any).PaystackPop) {
-      toast({ title: "Loading payment…", description: "Please tap again in a moment." });
-      const s = document.createElement("script");
-      s.src = "https://js.paystack.co/v1/inline.js";
-      s.async = true;
-      document.body.appendChild(s);
-      return; // Exit — user taps again once loaded
-    }
-
     setPayingUpgrade(true);
     try {
+      const PaystackPop = await loadPaystack();
       const planKey = plan === "pro" ? "subscription_pro" : "subscription_standard";
       const resolvedPlan = await resolvePlan(planKey as any);
-      const PaystackPop = (window as any).PaystackPop;
       const ref = `sub_${plan}_${vendor.id}_${Date.now()}`;
       const handler = PaystackPop.setup({
-        key: (import.meta.env.VITE_PAYSTACK_PUBLIC_KEY as string),
+        key: getPaystackKey(),
         email: user.email,
         currency: resolvedPlan.currency,
         ref,
@@ -503,21 +461,11 @@ const VendorDashboard = () => {
     const isPendingPayment = signupPaymentEnabled && vendor.payment_status === "unpaid";
 
     const retryPayment = async () => {
-      if (!(window as any).PaystackPop) {
-        if (!document.querySelector('script[src="https://js.paystack.co/v1/inline.js"]')) {
-          const s = document.createElement("script");
-          s.src = "https://js.paystack.co/v1/inline.js";
-          s.async = true;
-          document.body.appendChild(s);
-        }
-        toast({ title: "Loading payment…", description: "Please tap again in a moment." });
-        return;
-      }
+      const PaystackPop = await loadPaystack();
       const plan = await resolvePlan("registration");
-      const PaystackPop = (window as any).PaystackPop;
       const ref = `vr_${vendor.id}_${Date.now()}`;
       const handler = PaystackPop.setup({
-        key: (import.meta.env.VITE_PAYSTACK_PUBLIC_KEY as string),
+        key: getPaystackKey(),
         email: user!.email,
         amount: plan.amountSubunits,
         currency: plan.currency,
