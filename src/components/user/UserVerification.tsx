@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { getPaystackKey, loadPaystack } from "@/lib/paystack";
 import { resolvePlan } from "@/lib/pricing";
 import { compressImage } from "@/lib/compressImage";
 import {
@@ -89,15 +90,12 @@ export default function UserVerification({ onVerified }: Props) {
       toast({ title: "Upload your student ID first", variant: "destructive" });
       return;
     }
-    if (!(window as any).PaystackPop) {
-      toast({ title: "Loading payment…", description: "Please try again in a moment." });
-      return;
-    }
+    const PaystackPop = await loadPaystack();
 
     const plan = await resolvePlan("user_verification");
 
-    const handler = (window as any).PaystackPop.setup({
-      key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || "pk_live_86d78a3f9090b60d4d45f2ee1caf54dda3198ad5",
+    const handler = PaystackPop.setup({
+      key: getPaystackKey(),
       email: user!.email,
       amount: plan.amountSubunits,
       currency: plan.currency,
