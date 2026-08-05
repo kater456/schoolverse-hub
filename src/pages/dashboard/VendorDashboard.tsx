@@ -532,108 +532,8 @@ const VendorDashboard = () => {
     { title: "Contacts Made",  value: stats.contacts, icon: Phone,         gradient: "from-emerald-500/20 to-teal-500/20",  accent: "text-emerald-400", border: "border-emerald-500/20" },
   ];
 
-  return (
-    <div className="min-h-screen bg-background">
-      {/* ── Top Nav Bar ── */}
-      <header className="sticky top-0 z-40 bg-background/90 backdrop-blur-xl border-b border-border px-4 sm:px-6 h-14 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-accent flex items-center justify-center">
-            <ShoppingBag className="h-3.5 w-3.5 text-accent-foreground" />
-          </div>
-          <span className="font-bold text-foreground text-sm hidden sm:block">Campus Market</span>
-        </Link>
-        <div className="flex items-center gap-1.5">
-          <Button variant="ghost" size="sm" asChild className="text-xs h-8">
-            <Link to="/messages"><MessageCircle className="h-4 w-4 mr-1" /><span className="hidden sm:inline">Messages</span></Link>
-          </Button>
-          <Button variant="ghost" size="sm" asChild className="text-xs h-8">
-            <Link to={`/vendor/${vendor.id}`}><Eye className="h-4 w-4 mr-1" /><span className="hidden sm:inline">My Store</span></Link>
-          </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={signOut}><LogOut className="h-4 w-4" /></Button>
-          <ThemeToggle />
-        </div>
-      </header>
-
-      <main className="p-4 sm:p-6 max-w-6xl mx-auto space-y-5">
-
-        {/* ── Hero business card ── */}
-        <div className="relative rounded-2xl overflow-hidden border border-border/50">
-          <div className="absolute inset-0 bg-gradient-to-br from-accent/20 via-primary/10 to-background" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-accent/10 via-transparent to-transparent" />
-          <div className="relative p-5 sm:p-6">
-            <div className="flex items-start gap-4">
-              <div className="relative group shrink-0">
-                <Avatar className="h-16 w-16 sm:h-20 sm:w-20 border-2 border-accent/50 shadow-lg">
-                  {avatarUrl ? <AvatarImage src={avatarUrl} alt={vendor.business_name} /> : null}
-                  <AvatarFallback className="bg-accent/20 text-accent text-xl font-bold">
-                    {vendor.business_name?.charAt(0) || "V"}
-                  </AvatarFallback>
-                </Avatar>
-                <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer overflow-hidden">
-                  <div className="flex flex-col items-center gap-1">
-                    {uploadingAvatar ? (
-                      <>
-                        <Loader2 className="h-5 w-5 text-white animate-spin" />
-                        {avatarCompressionProgress < 100 && (
-                          <span className="text-[8px] text-white font-bold">{avatarCompressionProgress}%</span>
-                        )}
-                      </>
-                    ) : (
-                      <Camera className="h-5 w-5 text-white" />
-                    )}
-                  </div>
-                  <input type="file" accept="image/*" className="hidden" onChange={uploadAvatar} disabled={uploadingAvatar} />
-                </label>
-                <span className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-background" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-xl sm:text-2xl font-bold text-foreground">{vendor.business_name}</h1>
-                  {vendor.is_verified && (
-                    <Badge className="bg-primary/15 text-primary border border-primary/20 text-[10px] px-1.5">
-                      <ShieldCheck className="h-2.5 w-2.5 mr-1" /> Verified
-                    </Badge>
-                  )}
-                </div>
-                <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">
-                  {vendor.category} · {vendor.schools?.name}
-                  {vendor.campus_locations?.name && ` · ${vendor.campus_locations.name}`}
-                </p>
-                <div className="flex items-center gap-2 mt-2 flex-wrap">
-                  {vendor.is_approved
-                    ? <Badge className="bg-emerald-500/15 text-emerald-500 border border-emerald-500/20 text-[10px]">● Active</Badge>
-                    : <Badge variant="secondary" className="text-[10px]">⏳ Pending Approval</Badge>
-                  }
-                  {liveViews > 0 && (
-                    <Badge className="bg-violet-500/15 text-violet-400 border border-violet-500/20 text-[10px] animate-pulse">
-                      <TrendingUp className="h-2.5 w-2.5 mr-1" /> +{liveViews} new views
-                    </Badge>
-                  )}
-                  {viewsTrend > 0 && (
-                    <span className="text-[10px] text-muted-foreground">{viewsTrend} views today</span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ── Stat cards ── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {statCards.map((s) => (
-            <div key={s.title} className={`relative rounded-xl border ${s.border} bg-gradient-to-br ${s.gradient} p-4 overflow-hidden`}>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-medium text-muted-foreground">{s.title}</span>
-                <s.icon className={`h-4 w-4 ${s.accent}`} />
-              </div>
-              <div className={`text-2xl font-bold ${s.accent}`}>{s.value.toLocaleString()}</div>
-              {(s as any).live && liveViews > 0 && (
-                <div className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-              )}
-            </div>
-          ))}
-        </div>
-
+  const billingPanel = (
+    <div className="space-y-4">
         {/* ── Store Upgrade Prompt Banner ── */}
         {!isStoreUpgraded && showUpgradeBanner && (
           <div className="relative rounded-2xl border border-amber-300 bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-background p-5 overflow-hidden transition-all duration-300 shadow-sm">
@@ -834,7 +734,6 @@ const VendorDashboard = () => {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {[
                     { icon: "📦", label: "Products",     sub: vendor.subscription_plan === "pro" ? "Unlimited" : "Up to 20", tab: "products" },
-                    { icon: "🎥", label: "Ad Studio",    sub: "Video credits",   tab: "reels"   },
                     { icon: "🔥", label: "Deals",        sub: "Flash sales",     tab: "deals"   },
                     { icon: "🏪", label: "Store Design", sub: "Custom theme",    tab: "store"   },
                     ...(hasPlan(vendor, "pro") ? [
@@ -859,6 +758,110 @@ const VendorDashboard = () => {
             </div>
           </div>
         )}
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* ── Top Nav Bar ── */}
+      <header className="sticky top-0 z-40 bg-background/90 backdrop-blur-xl border-b border-border px-4 sm:px-6 h-14 flex items-center justify-between">
+        <Link to="/" className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg bg-accent flex items-center justify-center">
+            <ShoppingBag className="h-3.5 w-3.5 text-accent-foreground" />
+          </div>
+          <span className="font-bold text-foreground text-sm hidden sm:block">Campus Market</span>
+        </Link>
+        <div className="flex items-center gap-1.5">
+          <Button variant="ghost" size="sm" asChild className="text-xs h-8">
+            <Link to="/messages"><MessageCircle className="h-4 w-4 mr-1" /><span className="hidden sm:inline">Messages</span></Link>
+          </Button>
+          <Button variant="ghost" size="sm" asChild className="text-xs h-8">
+            <Link to={`/vendor/${vendor.id}`}><Eye className="h-4 w-4 mr-1" /><span className="hidden sm:inline">My Store</span></Link>
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={signOut}><LogOut className="h-4 w-4" /></Button>
+          <ThemeToggle />
+        </div>
+      </header>
+
+      <main className="p-4 sm:p-6 max-w-6xl mx-auto space-y-5">
+
+        {/* ── Hero business card ── */}
+        <div className="relative rounded-2xl overflow-hidden border border-border/50">
+          <div className="absolute inset-0 bg-gradient-to-br from-accent/20 via-primary/10 to-background" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-accent/10 via-transparent to-transparent" />
+          <div className="relative p-5 sm:p-6">
+            <div className="flex items-start gap-4">
+              <div className="relative group shrink-0">
+                <Avatar className="h-16 w-16 sm:h-20 sm:w-20 border-2 border-accent/50 shadow-lg">
+                  {avatarUrl ? <AvatarImage src={avatarUrl} alt={vendor.business_name} /> : null}
+                  <AvatarFallback className="bg-accent/20 text-accent text-xl font-bold">
+                    {vendor.business_name?.charAt(0) || "V"}
+                  </AvatarFallback>
+                </Avatar>
+                <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer overflow-hidden">
+                  <div className="flex flex-col items-center gap-1">
+                    {uploadingAvatar ? (
+                      <>
+                        <Loader2 className="h-5 w-5 text-white animate-spin" />
+                        {avatarCompressionProgress < 100 && (
+                          <span className="text-[8px] text-white font-bold">{avatarCompressionProgress}%</span>
+                        )}
+                      </>
+                    ) : (
+                      <Camera className="h-5 w-5 text-white" />
+                    )}
+                  </div>
+                  <input type="file" accept="image/*" className="hidden" onChange={uploadAvatar} disabled={uploadingAvatar} />
+                </label>
+                <span className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-background" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-xl sm:text-2xl font-bold text-foreground">{vendor.business_name}</h1>
+                  {vendor.is_verified && (
+                    <Badge className="bg-primary/15 text-primary border border-primary/20 text-[10px] px-1.5">
+                      <ShieldCheck className="h-2.5 w-2.5 mr-1" /> Verified
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">
+                  {vendor.category} · {vendor.schools?.name}
+                  {vendor.campus_locations?.name && ` · ${vendor.campus_locations.name}`}
+                </p>
+                <div className="flex items-center gap-2 mt-2 flex-wrap">
+                  {vendor.is_approved
+                    ? <Badge className="bg-emerald-500/15 text-emerald-500 border border-emerald-500/20 text-[10px]">● Active</Badge>
+                    : <Badge variant="secondary" className="text-[10px]">⏳ Pending Approval</Badge>
+                  }
+                  {liveViews > 0 && (
+                    <Badge className="bg-violet-500/15 text-violet-400 border border-violet-500/20 text-[10px] animate-pulse">
+                      <TrendingUp className="h-2.5 w-2.5 mr-1" /> +{liveViews} new views
+                    </Badge>
+                  )}
+                  {viewsTrend > 0 && (
+                    <span className="text-[10px] text-muted-foreground">{viewsTrend} views today</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Stat cards ── */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {statCards.map((s) => (
+            <div key={s.title} className={`relative rounded-xl border ${s.border} bg-gradient-to-br ${s.gradient} p-4 overflow-hidden`}>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-medium text-muted-foreground">{s.title}</span>
+                <s.icon className={`h-4 w-4 ${s.accent}`} />
+              </div>
+              <div className={`text-2xl font-bold ${s.accent}`}>{s.value.toLocaleString()}</div>
+              {(s as any).live && liveViews > 0 && (
+                <div className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+              )}
+            </div>
+          ))}
+        </div>
 
         {/* ── Main Dashboard Layout ── */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-0">
@@ -921,6 +924,7 @@ const VendorDashboard = () => {
               <div className="h-px bg-border/50 my-1.5 mx-1" />
               {[
                 { v: "control",  icon: ToggleLeft, label: "Controls" },
+                { v: "billing",  icon: CreditCard, label: "Billing & Plans" },
                 { v: "settings", icon: Settings,   label: "Settings" },
               ].map(({ v, icon: Icon, label }) => (
                 <TabsTrigger key={v} value={v}
@@ -950,19 +954,18 @@ const VendorDashboard = () => {
               </TabsContent>
 
               <TabsContent value="reels">
-                <ProFeatureGate
-                  vendor={vendor}
-                  feature="AI Video Generator & Reels"
-                  description="Create cinematic product videos and publish them as reels on your store profile."
-                  icon="🎬"
-                  onUpgradeSuccess={(v) => setVendor(v)}
-                >
-                  <div className="space-y-6">
-                    <VendorAdStudio vendor={vendor} />
-                    <VendorVideoManager vendorId={vendor.id} reelsEnabled={vendor.reels_enabled || false} vendor={vendor} />
+              <Card className="border-border/50">
+                <CardContent className="p-8 flex flex-col items-center text-center gap-3">
+                  <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center">
+                    <Film className="h-7 w-7 text-muted-foreground" />
                   </div>
-                </ProFeatureGate>
-              </TabsContent>
+                  <h3 className="font-semibold text-foreground">Reels are on hold</h3>
+                  <p className="text-sm text-muted-foreground max-w-sm">
+                    Reels have been paused by the admin for now. You'll be notified here as soon as they're switched back on — no payment or action needed.
+                  </p>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
               <TabsContent value="profile">
                 <div className="space-y-6">
@@ -1275,7 +1278,14 @@ const VendorDashboard = () => {
                 </ProFeatureGate>
               </TabsContent>
 
-              <TabsContent value="settings">
+              <TabsContent value="billing">
+                {billingPanel}
+              </TabsContent>
+
+              <TabsContent value="billing">
+              {billingPanel}
+            </TabsContent>
+            <TabsContent value="settings">
                 <div className="space-y-4 max-w-xl">
                   <TrustScoreBreakdown vendor={vendor} />
                   <ExitPortfolio vendor={vendor} stats={{ totalOrders: transactions.length, totalRevenue: transactions.reduce((s: number, t: any) => s + (t.amount ?? 0), 0), totalProducts: 0, topCategory: vendor.category }} />
@@ -1622,7 +1632,7 @@ const VendorDashboard = () => {
         <div className="flex items-center justify-around px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))]">
           {[
             { v: "products",  icon: Package,     label: "Products" },
-            { v: "reels",     icon: Film,        label: "Reels"    },
+            { v: "deals",     icon: Flame,       label: "Deals"    },
             { v: "orders",    icon: ShoppingBag, label: "Orders"   },
             { v: "profile",   icon: User,        label: "Profile"  },
             { v: "more-menu", icon: Settings,    label: "More"     },
@@ -1659,6 +1669,7 @@ const VendorDashboard = () => {
               { v: "engagement",   icon: BarChart3,     label: "Insights",  color: "bg-blue-50 text-blue-600"    },
               { v: "analytics",    icon: TrendingUp,    label: "Analytics", color: "bg-teal-50 text-teal-600"    },
               { v: "store",        icon: Crown,         label: "Store",     color: "bg-amber-50 text-amber-600"   },
+              { v: "billing",      icon: CreditCard,    label: "Billing",   color: "bg-slate-50 text-slate-600"  },
               { v: "testimonials", icon: MessageSquare, label: "Reviews",   color: "bg-pink-50 text-pink-600"    },
               { v: "verify",       icon: ShieldCheck,   label: vendor.is_verified ? "Verified ✅" : "Verify", color: "bg-green-50 text-green-600" },
               { v: "control",      icon: ToggleLeft,    label: "Controls",  color: "bg-purple-50 text-purple-600" },
@@ -1667,7 +1678,7 @@ const VendorDashboard = () => {
                     { v: "ai",        icon: Sparkles, label: "AI Advisor", color: "bg-violet-50 text-violet-600" },
                     { v: "community", icon: Users,    label: "Community",  color: "bg-cyan-50 text-cyan-600"    },
                   ]
-                : [{ v: "store", icon: Crown, label: "Upgrade ⚡", color: "bg-amber-50 text-amber-700" }]),
+                : []),
               { v: "settings", icon: Settings, label: "Settings", color: "bg-gray-50 text-gray-600" },
             ].map(({ v, icon: Icon, label, color }) => (
               <button key={`more-${v}`} style={{ touchAction: "manipulation" }}
