@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, Star, Film, CreditCard, CheckCircle2 } from "lucide-react";
+import { getPaystackKey } from "@/lib/paystack";
 import { resolvePlan, type PlanKey, type ResolvedPlan } from "@/lib/pricing";
 
 interface Props {
@@ -65,7 +66,7 @@ const FeaturedPaymentModal = ({ open, onOpenChange, vendorId, onSuccess }: Props
     const reference = `feat_${vendorId}_${Date.now()}`;
 
     PaystackPop.setup({
-      key:      (import.meta.env.VITE_PAYSTACK_PUBLIC_KEY as string),
+      key:      getPaystackKey(),
       email:    user.email,
       amount:   plan.amountSubunits,
       currency: plan.currency,
