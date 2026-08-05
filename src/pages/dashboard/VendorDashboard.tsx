@@ -1432,12 +1432,17 @@ const VendorDashboard = () => {
               </Card>
             </TabsContent>
             <TabsContent value="reels">
-              <ProFeatureGate vendor={vendor} feature="AI Video Generator & Reels" description="Create cinematic product videos and publish them as reels on your store profile." icon="🎬" onUpgradeSuccess={(v) => setVendor(v)}>
-                <div className="space-y-6">
-                  <VendorAdStudio vendor={vendor} />
-                  <VendorVideoManager vendorId={vendor.id} reelsEnabled={vendor.reels_enabled || false} vendor={vendor} />
-                </div>
-              </ProFeatureGate>
+              <Card className="border-border/50">
+                <CardContent className="p-8 flex flex-col items-center text-center gap-3">
+                  <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center">
+                    <Film className="h-7 w-7 text-muted-foreground" />
+                  </div>
+                  <h3 className="font-semibold text-foreground">Reels are on hold</h3>
+                  <p className="text-sm text-muted-foreground max-w-sm">
+                    Reels have been paused by the admin for now. You'll be notified here as soon as they're switched back on — no payment or action needed.
+                  </p>
+                </CardContent>
+              </Card>
             </TabsContent>
             <TabsContent value="profile">
               <div className="space-y-6">
