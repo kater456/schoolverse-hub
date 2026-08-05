@@ -21,8 +21,6 @@ import {
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import VendorProductManager from "@/components/vendor/VendorProductManager";
-import VendorVideoManager from "@/components/vendor/VendorVideoManager";
-import VendorAdStudio from "@/components/vendor/VendorAdStudio";
 import ThemeToggle from "@/components/ThemeToggle";
 import { compressVendorImage } from "@/lib/vendorImageCompression";
 import { Progress } from "@/components/ui/progress";

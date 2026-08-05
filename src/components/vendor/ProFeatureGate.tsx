@@ -55,29 +55,16 @@ function UpgradePanel({
       return;
     }
 
-    // Load Paystack if needed
-    if (!(window as any).PaystackPop) {
-      setLoading(true);
-      await new Promise<void>((resolve) => {
-        const s = document.createElement("script");
-        s.src = "https://js.paystack.co/v1/inline.js";
-        s.async = true;
-        s.onload = () => resolve();
-        document.body.appendChild(s);
-      });
-    }
-
     setLoading(true);
 
     try {
+      const PaystackPop = await loadPaystack();
       const plan = await resolvePlan(planKey as any);
-      const PaystackPop = (window as any).PaystackPop;
       const ref = `sub_${requiredPlan}_${vendor.id}_${Date.now()}`;
 
       const handler = PaystackPop.setup({
-        key: "pk_live_86d78a3f9090b60d4d45f2ee1caf54dda3198ad5",
+        key: getPaystackKey(),
         email: user.email,
-        amount: plan.amountSubunits,
         currency: plan.currency,
         ref,
         plan: SUBSCRIPTION_PLAN_CODES[requiredPlan],
