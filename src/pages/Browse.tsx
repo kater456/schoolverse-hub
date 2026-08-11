@@ -17,12 +17,28 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
 const Browse = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { vendorsWithDeals } = useLiveDeals();
-  const [searchQuery,      setSearchQuery]      = useState("");
-  const [selectedSchool,   setSelectedSchool]   = useState(searchParams.get("school") || "all");
-  const [selectedCategory, setSelectedCategory] = useState(searchParams.get("category") || "all");
-  const [selectedLocation, setSelectedLocation] = useState("all");
+
+  // ── Filters live in the URL so back/forward restores the exact context ──
+  const searchQuery      = searchParams.get("q")        || "";
+  const selectedSchool   = searchParams.get("school")   || "all";
+  const selectedCategory = searchParams.get("category") || "all";
+  const selectedLocation = searchParams.get("loc")      || "all";
+
+  const setParam = (key: string, value: string, extra?: Record<string, string>) => {
+    const next = new URLSearchParams(searchParams);
+    if (!value || value === "all") next.delete(key); else next.set(key, value);
+    Object.entries(extra || {}).forEach(([k, v]) => {
+      if (!v || v === "all") next.delete(k); else next.set(k, v);
+    });
+    setSearchParams(next, { replace: true });
+  };
+
+  const setSearchQuery      = (v: string) => setParam("q", v);
+  const setSelectedSchool   = (v: string) => setParam("school", v, { loc: "all" });
+  const setSelectedCategory = (v: string) => setParam("category", v);
+  const setSelectedLocation = (v: string) => setParam("loc", v);
   const [votw,             setVotw]             = useState<any>(null);
   const [activeSchoolIds,  setActiveSchoolIds]  = useState<Set<string>>(new Set());
   const [activeCategories, setActiveCategories] = useState<Set<string>>(new Set());
@@ -34,8 +50,6 @@ const Browse = () => {
     campusLocationId:selectedLocation !== "all" ? selectedLocation : undefined,
     searchQuery:     searchQuery || undefined,
   });
-
-  useEffect(() => { setSelectedLocation("all"); }, [selectedSchool]);
 
   // Compute which schools / categories actually have at least one active regular vendor
   useEffect(() => {
@@ -133,6 +147,21 @@ const Browse = () => {
 
   const promotedCount = sortedRegularVendors.filter((v: any) => v.promoted_until && new Date(v.promoted_until) > new Date()).length;
   const verifiedCount = sortedRegularVendors.filter((v: any) => v.is_verified).length;
+
+  // ── Scroll position restoration (keyed by the full browse URL) ────────────
+  const scrollKey = `browse-scroll:${searchParams.toString()}`;
+  useEffect(() => {
+    const saved = sessionStorage.getItem(scrollKey);
+    if (!saved || isLoading) return;
+    const t = setTimeout(() => window.scrollTo({ top: Number(saved), behavior: "auto" }), 120);
+    return () => clearTimeout(t);
+  }, [scrollKey, isLoading]);
+
+  useEffect(() => {
+    const onScroll = () => sessionStorage.setItem(scrollKey, String(window.scrollY));
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [scrollKey]);
 
   const votwImage = votw?.vendor_images?.find((i: any) => i.is_primary)?.image_url
     || votw?.vendor_images?.[0]?.image_url;
