@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { compressVendorImage } from "@/lib/vendorImageCompression";
 import { Progress } from "@/components/ui/progress";
+import { hasPlan } from "@/lib/pricing";
 
 interface VendorStoreUpgradeProps {
   vendor: any;
@@ -208,12 +209,12 @@ const VendorStoreUpgrade = ({ vendor, onUpdate }: VendorStoreUpgradeProps) => {
       script.async = true;
       document.body.appendChild(script);
     }
-    const upgraded = vendor.is_store_upgraded === true && (
+    const upgraded = (vendor.is_store_upgraded === true && (
       !vendor.store_upgrade_expires_at ||
       new Date(vendor.store_upgrade_expires_at) > new Date()
-    );
+    )) || hasPlan(vendor, "pro");
     setIsUpgraded(!!upgraded);
-    setExpiresAt(vendor.store_upgrade_expires_at);
+    setExpiresAt(vendor.subscription_expires || vendor.store_upgrade_expires_at);
     setBannerUrl(vendor.banner_url || "");
     setThemeColor(vendor.store_theme_color || "#6366f1");
     setAccentColor(vendor.store_accent_color || "#f59e0b");
@@ -393,14 +394,15 @@ const VendorStoreUpgrade = ({ vendor, onUpdate }: VendorStoreUpgradeProps) => {
           <CardTitle className="text-base flex items-center gap-2">
             <Crown className={`h-5 w-5 ${isUpgraded ? "text-accent" : "text-muted-foreground"}`} />
             {isUpgraded ? "Premium Store Active" : "Upgrade Your Store"}
-            {isUpgraded && <Badge className="bg-accent text-accent-foreground text-xs">{daysLeft} days left</Badge>}
+            {isUpgraded && expiresAt && <Badge className="bg-accent text-accent-foreground text-xs">{daysLeft} days left</Badge>}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {isUpgraded ? (
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground">
-                Your premium store is active until <strong>{new Date(expiresAt!).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</strong>.
+                Your premium store is active{expiresAt ? ` until ` : "."}
+                {expiresAt && <strong>{new Date(expiresAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</strong>}
               </p>
               <div className="flex items-center gap-2 text-xs text-success">
                 <CheckCircle className="h-4 w-4" />
@@ -421,7 +423,7 @@ const VendorStoreUpgrade = ({ vendor, onUpdate }: VendorStoreUpgradeProps) => {
           ) : (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Unlock your full store designer for <strong>₦2,000/month</strong>:
+                Customize your store with a banner, brand colors, and a premium layout. This feature is exclusive to <strong>Pro Plan (₦3,500/month)</strong> subscribers.
               </p>
               <ul className="space-y-1.5 text-sm text-muted-foreground">
                 <li className="flex items-center gap-2"><ImageIcon className="h-4 w-4 text-accent" /> Custom store banner</li>
@@ -432,52 +434,9 @@ const VendorStoreUpgrade = ({ vendor, onUpdate }: VendorStoreUpgradeProps) => {
                 <li className="flex items-center gap-2"><GripVertical className="h-4 w-4 text-accent" /> Drag & drop product order</li>
                 <li className="flex items-center gap-2"><Tag className="h-4 w-4 text-accent" /> Store name placement control</li>
               </ul>
-              <Button
-                type="button"
-                onClick={initiateUpgradePayment}
-                disabled={paying}
-                className="w-full bg-gradient-to-r from-accent to-primary text-accent-foreground shadow-lg hover:shadow-xl"
-              >
-                {paying ? (
-                  <><Loader2 className="h-4 w-4 animate-spin mr-2" />Verifying payment…</>
-                ) : (
-                  <><Crown className="h-4 w-4 mr-2" />Upgrade for ₦2,000/month</>
-                )}
-              </Button>
-
-              {/* Reference input — shown after shop link opened */}
-              {showRefInput && (
-                <div className="rounded-lg border border-accent/30 bg-accent/5 p-4 space-y-3">
-                  <p className="text-sm font-medium">✅ Payment page opened in a new tab</p>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    After paying, copy your <strong>Transaction ID / Reference</strong> from the Paystack receipt and paste it below. Your store upgrades instantly.
-                  </p>
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="e.g. T123456789"
-                      value={manualRef}
-                      onChange={(e) => setManualRef(e.target.value)}
-                      className="h-9 text-sm flex-1"
-                    />
-                    <Button
-                      className="h-9 bg-accent text-accent-foreground hover:bg-accent/90 shrink-0"
-                      onClick={confirmUpgrade}
-                      disabled={paying || !manualRef.trim()}
-                    >
-                      {paying ? <Loader2 className="h-4 w-4 animate-spin" /> : "Activate"}
-                    </Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Can't find your reference? Check your email receipt from Paystack, or contact support.
-                  </p>
-                  <button
-                    className="text-xs text-muted-foreground hover:text-foreground underline"
-                    onClick={() => { setShowRefInput(false); setManualRef(""); }}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              )}
+              <div className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-lg border border-border">
+                Please subscribe to the <strong>Pro Plan (₦3,500/month)</strong> from your Dashboard sidebar or the Upgrade popup to unlock these features.
+              </div>
             </div>
           )}
         </CardContent>

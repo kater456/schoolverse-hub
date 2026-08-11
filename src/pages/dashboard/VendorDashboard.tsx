@@ -1160,7 +1160,7 @@ const VendorDashboard = () => {
               </TabsContent>
 
               <TabsContent value="analytics">
-                <VendorAnalytics />
+                <VendorAnalytics vendorId={vendor.id} />
               </TabsContent>
 
 
@@ -1518,7 +1518,7 @@ const VendorDashboard = () => {
               </Card>
             </TabsContent>
             <TabsContent value="analytics">
-              <VendorAnalytics />
+              <VendorAnalytics vendorId={vendor.id} />
             </TabsContent>
             <TabsContent value="store">
               <ProFeatureGate vendor={vendor} feature="Store Designer" description="Customize your store with a banner, brand colors, and a premium layout." icon="🏪" onUpgradeSuccess={(v) => setVendor(v)}>
