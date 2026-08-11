@@ -26,7 +26,6 @@ interface Customer {
   profiles?: {
     first_name: string | null;
     last_name: string | null;
-    email: string | null;
   } | null;
 }
 
@@ -40,25 +39,54 @@ export const VendorCustomerList = ({ vendorId }: { vendorId: string }) => {
 
   const fetchCustomers = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    const { data: customerData, error: customerError } = await supabase
       .from("vendor_customers")
-      .select(`
-        *,
-        profiles:buyer_id (
-          first_name,
-          last_name,
-          email
-        )
-      `)
+      .select("*")
       .eq("vendor_id", vendorId)
       .order("last_seen", { ascending: false });
 
-    if (error) {
-      console.error("Error fetching customers:", error);
+    if (customerError) {
+      console.error("Error fetching customers:", customerError);
       toast.error("Failed to load customers");
-    } else {
-      setCustomers((data as any) || []);
+      setLoading(false);
+      return;
     }
+
+    const customersList: Customer[] = (customerData as any) || [];
+    const buyerIds = Array.from(new Set(customersList.map(c => c.buyer_id).filter(Boolean))) as string[];
+
+    if (buyerIds.length > 0) {
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("user_id, first_name, last_name")
+        .in("user_id", buyerIds);
+
+      if (profileError) {
+        console.error("Error fetching profiles:", profileError);
+      } else {
+        const profileMap = new Map<string, { first_name: string | null; last_name: string | null }>();
+        profileData?.forEach(p => {
+          profileMap.set(p.user_id, {
+            first_name: p.first_name,
+            last_name: p.last_name
+          });
+        });
+
+        customersList.forEach(c => {
+          if (c.buyer_id) {
+            const prof = profileMap.get(c.buyer_id);
+            if (prof) {
+              c.profiles = {
+                first_name: prof.first_name,
+                last_name: prof.last_name
+              };
+            }
+          }
+        });
+      }
+    }
+
+    setCustomers(customersList);
     setLoading(false);
   };
 
@@ -85,11 +113,10 @@ export const VendorCustomerList = ({ vendorId }: { vendorId: string }) => {
 
   const filteredCustomers = customers.filter(c => {
     const fullName = `${c.profiles?.first_name || ""} ${c.profiles?.last_name || ""}`.toLowerCase();
-    const email = (c.profiles?.email || "").toLowerCase();
     const notes = (c.notes || "").toLowerCase();
     const visitorId = (c.visitor_id || "").toLowerCase();
     const s = search.toLowerCase();
-    return fullName.includes(s) || email.includes(s) || notes.includes(s) || visitorId.includes(s);
+    return fullName.includes(s) || notes.includes(s) || visitorId.includes(s);
   });
 
   const getBadge = (c: Customer) => {
@@ -114,7 +141,7 @@ export const VendorCustomerList = ({ vendorId }: { vendorId: string }) => {
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Search by name, email, or notes..."
+          placeholder="Search by name or notes..."
           className="pl-10"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -171,9 +198,6 @@ export const VendorCustomerList = ({ vendorId }: { vendorId: string }) => {
                       <Calendar className="h-3 w-3" />
                       Last seen {formatDistanceToNow(new Date(c.last_seen))} ago
                     </div>
-                    {c.profiles?.email && (
-                       <p className="text-xs text-muted-foreground">{c.profiles.email}</p>
-                    )}
                   </div>
                 </div>
 
