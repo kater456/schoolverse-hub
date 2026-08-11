@@ -1566,6 +1566,27 @@ const VendorDashboard = () => {
                     </CardContent>
                   </Card>
                 )}
+                <Card className="border-border/50">
+                  <CardHeader><CardTitle className="text-base flex items-center gap-2"><Share2 className="h-4 w-4" /> Link Your Social Media</CardTitle></CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-sm text-muted-foreground">These links appear on your public profile so buyers can see more of your work.</p>
+                    <div className="space-y-1.5">
+                      <Label className="flex items-center gap-1.5 text-sm"><Instagram className="h-4 w-4 text-pink-500" /> Instagram</Label>
+                      <Input value={socialInstagram} onChange={(e) => setSocialInstagram(e.target.value)} placeholder="@yourhandle or full link" className="text-sm" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="flex items-center gap-1.5 text-sm"><Music2 className="h-4 w-4 text-foreground" /> TikTok</Label>
+                      <Input value={socialTiktok} onChange={(e) => setSocialTiktok(e.target.value)} placeholder="@yourhandle or full link" className="text-sm" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="flex items-center gap-1.5 text-sm"><Twitter className="h-4 w-4 text-sky-500" /> X / Twitter</Label>
+                      <Input value={socialTwitter} onChange={(e) => setSocialTwitter(e.target.value)} placeholder="@yourhandle or full link" className="text-sm" />
+                    </div>
+                    <Button className="w-full" onClick={saveSocials} disabled={savingSocial}>
+                      {savingSocial ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving…</> : <><Save className="h-4 w-4 mr-2" />Save Social Links</>}
+                    </Button>
+                  </CardContent>
+                </Card>
               </div>
             </TabsContent>
             <TabsContent value="control" className="space-y-4">
