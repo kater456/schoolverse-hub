@@ -207,18 +207,18 @@ export default function ProFeatureGate({
 
   return (
     <div className="relative rounded-2xl overflow-hidden">
-      {/* Blurred preview */}
+      {/* Blurred preview (background only — never drives the height) */}
       <div
-        className="pointer-events-none select-none"
+        className="absolute inset-0 pointer-events-none select-none overflow-hidden"
         style={{ filter: "blur(6px)", opacity: 0.45 }}
         aria-hidden="true"
       >
         {children}
       </div>
 
-      {/* Glass overlay */}
+      {/* Glass overlay — sits in normal flow so the panel is always fully reachable */}
       <div
-        className="absolute inset-0 flex items-start justify-center pt-6 px-4"
+        className="relative flex items-start justify-center pt-6 pb-8 px-4"
         style={{ background: "linear-gradient(to bottom, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.97) 40%, rgba(255,255,255,1) 100%)" }}
       >
         <div className="w-full max-w-sm">
