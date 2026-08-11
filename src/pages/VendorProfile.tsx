@@ -415,7 +415,7 @@ const VendorProfile = () => {
   );
 
   const totalRatings = ratings.length;
-  const hasSocialLinks = vendor.is_verified && (vendor.social_instagram || vendor.social_tiktok || vendor.social_twitter);
+  const hasSocialLinks = !!(vendor.social_instagram || vendor.social_tiktok || vendor.social_twitter);
 
   // ── Store design settings (upgraded stores only) ──────────────────────────
   const isUpgraded    = vendor.is_store_upgraded === true &&
