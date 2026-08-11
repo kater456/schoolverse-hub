@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useMarketplaceTracker } from "@/hooks/useMarketplaceTracker";
 import { trackEvent as trackVendorEvent } from "@/lib/tracker";
+import { normalizeInstagram, normalizeTiktok, normalizeTwitter } from "@/lib/social";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { Badge } from "@/components/ui/badge";
@@ -730,7 +731,7 @@ const VendorProfile = () => {
                     </h3>
                     <div className="space-y-2">
                       {vendor.social_instagram && (
-                        <a href={vendor.social_instagram} target="_blank" rel="noopener noreferrer"
+                        <a href={normalizeInstagram(vendor.social_instagram) || "#"} target="_blank" rel="noopener noreferrer"
                           onClick={() => trackEvent(id!, 'click', 'instagram', {
                             campusName: vendor?.campus_locations?.name,
                             vendorCategory: vendor?.category
@@ -742,7 +743,7 @@ const VendorProfile = () => {
                         </a>
                       )}
                       {vendor.social_tiktok && (
-                        <a href={vendor.social_tiktok} target="_blank" rel="noopener noreferrer"
+                        <a href={normalizeTiktok(vendor.social_tiktok) || "#"} target="_blank" rel="noopener noreferrer"
                           className="flex items-center gap-2.5 text-sm text-muted-foreground hover:text-foreground transition-colors group">
                           <div className="w-7 h-7 rounded-lg bg-foreground/10 flex items-center justify-center group-hover:bg-foreground/20">
                             <Music2 className="h-4 w-4" />
@@ -750,7 +751,7 @@ const VendorProfile = () => {
                         </a>
                       )}
                       {vendor.social_twitter && (
-                        <a href={vendor.social_twitter} target="_blank" rel="noopener noreferrer"
+                        <a href={normalizeTwitter(vendor.social_twitter) || "#"} target="_blank" rel="noopener noreferrer"
                           className="flex items-center gap-2.5 text-sm text-muted-foreground hover:text-foreground transition-colors group">
                           <div className="w-7 h-7 rounded-lg bg-sky-500/10 flex items-center justify-center group-hover:bg-sky-500/20">
                             <Twitter className="h-4 w-4 text-sky-500" />
