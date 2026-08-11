@@ -63,6 +63,7 @@ const StorePage = () => {
   const { trackEvent } = useMarketplaceTracker();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const goBack   = useSmartBack("/browse");
 
   const [vendor, setVendor] = useState<any>(null);
   const [products, setProducts] = useState<Product[]>([]);
