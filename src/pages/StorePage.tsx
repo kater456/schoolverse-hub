@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
+import { useSmartBack } from "@/hooks/useSmartBack";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useMarketplaceTracker } from "@/hooks/useMarketplaceTracker";
@@ -225,8 +226,8 @@ const StorePage = () => {
         <div className="text-center pt-32">
           <ShoppingBag className="h-16 w-16 mx-auto mb-4 text-muted-foreground/30" />
           <h2 className="text-xl font-semibold mb-2">Store not found</h2>
-          <Button variant="ghost" onClick={() => navigate("/browse")}>
-            <ArrowLeft className="h-4 w-4 mr-2" /> Back to Browse
+          <Button variant="ghost" onClick={goBack}>
+            <ArrowLeft className="h-4 w-4 mr-2" /> Back
           </Button>
         </div>
       </div>
