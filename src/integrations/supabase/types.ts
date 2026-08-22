@@ -1922,6 +1922,7 @@ export type Database = {
           is_active: boolean | null
           name: string
           price: number
+          stock_status: string
           updated_at: string
           vendor_id: string
         }
@@ -1935,6 +1936,7 @@ export type Database = {
           is_active?: boolean | null
           name: string
           price?: number
+          stock_status?: string
           updated_at?: string
           vendor_id: string
         }
@@ -1948,6 +1950,7 @@ export type Database = {
           is_active?: boolean | null
           name?: string
           price?: number
+          stock_status?: string
           updated_at?: string
           vendor_id?: string
         }

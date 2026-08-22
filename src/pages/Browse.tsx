@@ -1,8 +1,9 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import VendorCard from "@/components/marketplace/VendorCard";
+import { VendorCardSkeletonGrid } from "@/components/marketplace/VendorCardSkeleton";
 import StoreCard from "@/components/marketplace/StoreCard";
 import { useLiveDeals } from "@/hooks/useLiveDeals";
 import AdBanner from "@/components/AdBanner";
@@ -15,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+
 
 const Browse = () => {
   const [searchParams, setSearchParams] = useSearchParams();
