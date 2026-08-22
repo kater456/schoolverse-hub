@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { isRealtimeSafe } from "@/lib/safeStorage";
 
@@ -15,7 +15,7 @@ export interface Vendor {
   is_approved: boolean;
   is_active: boolean;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
   school_name?: string;
   campus_location_name?: string;
   images?: { id: string; image_url: string; is_primary: boolean }[];
@@ -29,68 +29,163 @@ interface UseVendorsOptions {
   category?: string;
   campusLocationId?: string;
   searchQuery?: string;
-  featured?: boolean;
+  /** How many regular vendors to load per page (default 12). */
+  pageSize?: number;
 }
 
+/**
+ * Only the columns the marketplace card actually renders — keeps the payload
+ * (and therefore the time-to-first-card) small. Note: no assumption is made
+ * about the shape of `category`, so a future `store_category` column can be
+ * added here without touching any of the query logic below.
+ */
+const CARD_FIELDS = `
+  id, user_id, business_name, category, description, contact_number,
+  messaging_enabled, school_id, campus_location_id, created_at,
+  is_verified, is_vendor_of_week, vendor_of_week_expires_at, promoted_until,
+  reels_enabled, profile_image_url, is_store_upgraded, store_upgrade_expires_at,
+  social_instagram, social_tiktok, social_twitter,
+  schools!inner(name),
+  campus_locations(name),
+  vendor_images(id, image_url, is_primary)
+`;
+
+const shape = (v: any) => ({
+  ...v,
+  school_name:          v.schools?.name,
+  campus_location_name: v.campus_locations?.name,
+  images:               v.vendor_images || [],
+});
+
+const withFeatured = async (rows: any[]) =>
+  Promise.all(
+    rows.map(async (v: any) => {
+      const { data } = await supabase.rpc("is_vendor_featured", { _vendor_id: v.id });
+      return { ...v, is_featured: data || false };
+    })
+  );
+
 export const useVendors = (options?: UseVendorsOptions) => {
-  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const pageSize = options?.pageSize ?? 12;
+
+  const [vendors, setVendors]     = useState<Vendor[]>([]);
+  const [stores, setStores]       = useState<Vendor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore]     = useState(true);
 
-  const fetchVendors = async () => {
-    setIsLoading(true);
+  // Cache holding the already-prefetched next page.
+  const prefetched = useRef<{ key: string; page: number; rows: Vendor[] } | null>(null);
+  const nextPage   = useRef(0);
+  const reqKey     = useRef("");
 
-    let query = supabase
+  const filterKey = [
+    options?.schoolId, options?.category, options?.campusLocationId, options?.searchQuery,
+  ].join("|");
+
+  const baseQuery = useCallback(() => {
+    let q = (supabase as any)
       .from("vendors")
-      .select(`
-        *,
-        schools!inner(name),
-        campus_locations(name),
-        vendor_images(id, image_url, is_primary)
-      `)
+      .select(CARD_FIELDS)
       .eq("is_approved", true)
-      .eq("is_active", true)
-      .order("created_at", { ascending: false });
+      .eq("is_active", true);
 
-    if (options?.schoolId) query = query.eq("school_id", options.schoolId);
-    if (options?.category) query = query.eq("category", options.category);
-    if (options?.campusLocationId) query = query.eq("campus_location_id", options.campusLocationId);
+    if (options?.schoolId)         q = q.eq("school_id", options.schoolId);
+    if (options?.category)         q = q.eq("category", options.category);
+    if (options?.campusLocationId) q = q.eq("campus_location_id", options.campusLocationId);
     if (options?.searchQuery) {
-      query = query.or(`business_name.ilike.%${options.searchQuery}%,description.ilike.%${options.searchQuery}%,category.ilike.%${options.searchQuery}%`);
-    }
-
-    const { data, error } = await query;
-
-    if (!error && data) {
-      const vendorsWithFeatured = await Promise.all(
-        data.map(async (v: any) => {
-          const { data: featuredData } = await supabase.rpc("is_vendor_featured", { _vendor_id: v.id });
-          return {
-            ...v,
-            school_name:           v.schools?.name,
-            campus_location_name:  v.campus_locations?.name,
-            images:                v.vendor_images || [],
-            is_featured:           featuredData || false,
-          };
-        })
+      const safe = options.searchQuery.replace(/[%,]/g, "");
+      q = q.or(
+        `business_name.ilike.%${safe}%,description.ilike.%${safe}%,category.ilike.%${safe}%`
       );
-
-      vendorsWithFeatured.sort((a, b) => {
-        if (a.is_featured && !b.is_featured) return -1;
-        if (!a.is_featured && b.is_featured) return 1;
-        return 0;
-      });
-
-      setVendors(vendorsWithFeatured);
     }
-
-    setIsLoading(false);
-  };
-
-  useEffect(() => {
-    fetchVendors();
+    return q;
   }, [options?.schoolId, options?.category, options?.campusLocationId, options?.searchQuery]);
 
-  return { vendors, isLoading, refetch: fetchVendors };
+  /** Fetch one page of regular (non-store) vendors. */
+  const fetchPage = useCallback(async (page: number): Promise<Vendor[]> => {
+    const now  = new Date().toISOString();
+    const from = page * pageSize;
+
+    const { data, error } = await baseQuery()
+      .or(`is_store_upgraded.is.null,is_store_upgraded.eq.false,store_upgrade_expires_at.lt.${now}`)
+      .order("is_vendor_of_week", { ascending: false })
+      .order("is_verified",       { ascending: false })
+      .order("created_at",        { ascending: false })
+      .range(from, from + pageSize - 1);
+
+    if (error || !data) return [];
+    return (await withFeatured(data.map(shape))) as Vendor[];
+  }, [baseQuery, pageSize]);
+
+  /** Warm the cache for the page after the one just rendered. */
+  const prefetch = useCallback(async (page: number, key: string) => {
+    const rows = await fetchPage(page);
+    if (reqKey.current === key) prefetched.current = { key, page, rows };
+  }, [fetchPage]);
+
+  const loadMore = useCallback(async () => {
+    if (isLoadingMore || !hasMore) return;
+    const key  = reqKey.current;
+    const page = nextPage.current;
+    setIsLoadingMore(true);
+
+    const cached = prefetched.current;
+    const rows =
+      cached && cached.key === key && cached.page === page
+        ? cached.rows
+        : await fetchPage(page);
+
+    if (reqKey.current !== key) { setIsLoadingMore(false); return; }
+
+    prefetched.current = null;
+    setVendors((prev) => {
+      const seen = new Set(prev.map((v) => v.id));
+      return [...prev, ...rows.filter((v) => !seen.has(v.id))];
+    });
+    setHasMore(rows.length === pageSize);
+    nextPage.current = page + 1;
+    setIsLoadingMore(false);
+
+    if (rows.length === pageSize) prefetch(page + 1, key);
+  }, [fetchPage, hasMore, isLoadingMore, pageSize, prefetch]);
+
+  const load = useCallback(async () => {
+    const key = `${filterKey}:${Date.now()}`;
+    reqKey.current   = key;
+    prefetched.current = null;
+    nextPage.current = 1;
+    setIsLoading(true);
+    setHasMore(true);
+
+    const now = new Date().toISOString();
+
+    const [first, storeRes] = await Promise.all([
+      fetchPage(0),
+      // Upgraded stores are a small set — load them all, unpaginated.
+      baseQuery()
+        .eq("is_store_upgraded", true)
+        .or(`store_upgrade_expires_at.is.null,store_upgrade_expires_at.gt.${now}`)
+        .order("created_at", { ascending: false })
+        .limit(50),
+    ]);
+
+    if (reqKey.current !== key) return;
+
+    setVendors(first);
+    setStores(((storeRes as any)?.data || []).map(shape));
+    setHasMore(first.length === pageSize);
+    setIsLoading(false);
+
+    if (first.length === pageSize) prefetch(1, key);
+  }, [baseQuery, fetchPage, filterKey, pageSize, prefetch]);
+
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterKey]);
+
+  return { vendors, stores, isLoading, isLoadingMore, hasMore, loadMore, refetch: load };
 };
 
 /**
