@@ -11,6 +11,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Plus, Edit2, Trash2, Package, Loader2, Image as ImageIcon, DollarSign, ExternalLink } from "lucide-react";
 import { compressVendorImage } from "@/lib/vendorImageCompression";
 import { Progress } from "@/components/ui/progress";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { STOCK_OPTIONS, StockStatus } from "@/lib/stock";
+import StockBadge from "@/components/marketplace/StockBadge";
 
 interface VendorProductManagerProps {
   vendorId: string;
@@ -24,6 +27,7 @@ interface VendorProduct {
   price: number;
   image_url: string | null;
   category: string | null;
+  stock_status?: StockStatus | string | null;
   is_active: boolean;
   display_order: number;
 }
@@ -44,6 +48,7 @@ const VendorProductManager = ({ vendorId, schoolId }: VendorProductManagerProps)
     description: "",
     price: "",
     category: "",
+    stock_status: "in_stock" as StockStatus,
     image_url: "",
   });
 
@@ -60,7 +65,7 @@ const VendorProductManager = ({ vendorId, schoolId }: VendorProductManagerProps)
   useEffect(() => { fetchData(); }, [vendorId]);
 
   const resetForm = () => {
-    setForm({ name: "", description: "", price: "", category: "", image_url: "" });
+    setForm({ name: "", description: "", price: "", category: "", stock_status: "in_stock", image_url: "" });
     setEditingProduct(null);
   };
 
@@ -72,6 +77,7 @@ const VendorProductManager = ({ vendorId, schoolId }: VendorProductManagerProps)
       description: p.description || "",
       price: p.price.toString(),
       category: p.category || "",
+      stock_status: (p.stock_status as StockStatus) || "in_stock",
       image_url: p.image_url || "",
     });
     setShowDialog(true);
@@ -109,6 +115,7 @@ const VendorProductManager = ({ vendorId, schoolId }: VendorProductManagerProps)
       description: form.description.trim() || null,
       price: parseFloat(form.price) || 0,
       category: form.category.trim() || null,
+      stock_status: form.stock_status,
       image_url: form.image_url || null,
       display_order: editingProduct ? editingProduct.display_order : products.length,
     };
@@ -235,7 +242,10 @@ const VendorProductManager = ({ vendorId, schoolId }: VendorProductManagerProps)
                   <div className="p-3">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <h4 className="font-semibold text-sm text-foreground truncate">{p.name}</h4>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <h4 className="font-semibold text-sm text-foreground truncate">{p.name}</h4>
+                          <StockBadge status={p.stock_status} />
+                        </div>
                         {p.category && <Badge variant="outline" className="text-[10px] mt-1">{p.category}</Badge>}
                       </div>
                       <span className="text-sm font-bold text-success shrink-0">
@@ -338,6 +348,27 @@ const VendorProductManager = ({ vendorId, schoolId }: VendorProductManagerProps)
             <div className="space-y-1.5">
               <Label>Category (optional)</Label>
               <Input value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))} placeholder="e.g. Food, Fashion" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Stock Status</Label>
+              <Select
+                value={form.stock_status}
+                onValueChange={(val: StockStatus) => setForm((f) => ({ ...f, stock_status: val }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select stock status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {STOCK_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      <span className="flex items-center gap-2">
+                        <span>{opt.emoji}</span>
+                        <span>{opt.label}</span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1.5">
               <Label>Description (optional)</Label>
