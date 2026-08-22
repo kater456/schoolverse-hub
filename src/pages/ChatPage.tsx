@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { isRealtimeSafe } from "@/lib/safeStorage";
 import { useAuth } from "@/hooks/useAuth";
@@ -47,12 +47,15 @@ const ChatPage: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [messages, setMessages]         = useState<Message[]>([]);
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [loading, setLoading]           = useState(true);
   const [sending, setSending]           = useState(false);
-  const [inputText, setInputText]       = useState("");
+  const [inputText, setInputText]       = useState(() => {
+    return (location.state as any)?.prefilledMessage || "";
+  });
   const [otherName, setOtherName]       = useState("...");
   const [otherAvatar, setOtherAvatar]   = useState<string | null>(null);
   const [otherVerified, setOtherVerified] = useState(false);

@@ -14,6 +14,8 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import ContactVendorButton from "@/components/ContactVendorButton";
 import { TrustScoreBadge, computeTrustScore } from "@/components/guarantee/TrustScore";
+import StockBadge from "@/components/marketplace/StockBadge";
+import { buildProductMessage, whatsappLink } from "@/lib/contactMessage";
 import {
   Search, ShieldCheck, MapPin, Package, ArrowLeft, Share2,
   Loader2, ShoppingBag, Grid3X3, LayoutList, X, Check,
@@ -27,6 +29,7 @@ interface Product {
   price: number;
   image_url: string | null;
   category: string | null;
+  stock_status?: string | null;
   is_active: boolean;
   display_order: number | null;
 }
@@ -171,6 +174,36 @@ const StorePage = () => {
     };
 
     load();
+
+    const channel = isRealtimeSafe()
+      ? supabase
+          .channel(`store-products-${vendorId}`)
+          .on(
+            "postgres_changes",
+            {
+              event: "*",
+              schema: "public",
+              table: "vendor_products",
+              filter: `vendor_id=eq.${vendorId}`,
+            },
+            () => {
+              (supabase as any)
+                .from("vendor_products")
+                .select("*")
+                .eq("vendor_id", vendorId)
+                .eq("is_active", true)
+                .order("display_order", { ascending: true })
+                .then(({ data }: any) => {
+                  if (data) setProducts(data);
+                });
+            }
+          )
+          .subscribe()
+      : null;
+
+    return () => {
+      if (channel) supabase.removeChannel(channel);
+    };
   }, [vendorId]);
 
   const categories = useMemo(() => {
@@ -673,6 +706,8 @@ const ProductCard = ({
             <img
               src={product.image_url}
               alt={product.name}
+              loading="lazy"
+              decoding="async"
               className="w-full h-full object-cover"
             />
           ) : (
@@ -684,9 +719,12 @@ const ProductCard = ({
 
         {/* Info */}
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-sm text-foreground truncate leading-tight">
-            {product.name}
-          </p>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <p className="font-semibold text-sm text-foreground truncate leading-tight">
+              {product.name}
+            </p>
+            <StockBadge status={product.stock_status} />
+          </div>
           {product.category && (
             <Badge variant="outline" className="text-[10px] mt-0.5 mb-1 h-4 px-1.5">
               {product.category}
@@ -704,14 +742,27 @@ const ProductCard = ({
           <span className="text-sm font-bold" style={{ color: priceColor }}>
             ₦{Number(product.price).toLocaleString()}
           </span>
-          <div onClick={() => trackEvent(vendor.id, 'click', 'buy_list', {
+          <div className="flex items-center gap-1.5" onClick={() => trackEvent(vendor.id, 'click', 'buy_list', {
             campusName: vendor?.campus_locations?.name,
             vendorCategory: vendor?.category
           })}>
+            {vendor.messaging_enabled && vendor.contact_number && (
+              <a
+                href={whatsappLink(vendor.contact_number, buildProductMessage(vendor.business_name, product.name))}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="h-7 w-7 flex items-center justify-center text-xs bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 rounded-lg transition-colors border border-emerald-500/20"
+                aria-label={`WhatsApp ${vendor.business_name} about ${product.name}`}
+              >
+                <MessageCircle className="h-3.5 w-3.5" />
+              </a>
+            )}
             <ContactVendorButton
               vendorId={vendor.id}
               vendorUserId={vendor.user_id}
               productId={product.id}
+              productName={product.name}
+              storeName={vendor.business_name}
               variant="outline"
               className="h-7 text-xs px-2.5 rounded-lg"
               label="Buy"
@@ -734,7 +785,7 @@ const ProductCard = ({
       {/* Image */}
       <div className="relative aspect-square overflow-hidden bg-muted">
         {product.image_url ? (
-          <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+          <img src={product.image_url} alt={product.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
         ) : (
           <div
             className="w-full h-full flex items-center justify-center text-4xl"
@@ -745,7 +796,7 @@ const ProductCard = ({
         )}
 
         {/* Hover overlay */}
-        <div className="overlay absolute inset-0 bg-black/55 flex items-end p-2" onClick={() => trackEvent(vendor.id, 'click', 'buy_grid', {
+        <div className="overlay absolute inset-0 bg-black/55 flex items-end p-2 gap-1.5" onClick={() => trackEvent(vendor.id, 'click', 'buy_grid', {
           campusName: vendor?.campus_locations?.name,
           vendorCategory: vendor?.category
         })}>
@@ -753,10 +804,23 @@ const ProductCard = ({
             vendorId={vendor.id}
             vendorUserId={vendor.user_id}
             productId={product.id}
+            productName={product.name}
+            storeName={vendor.business_name}
             variant="default"
-            className="w-full h-8 text-xs rounded-lg font-medium"
-            label="💬 Message to Buy"
+            className="flex-1 h-8 text-xs rounded-lg font-medium"
+            label="💬 Message"
           />
+          {vendor.messaging_enabled && vendor.contact_number && (
+            <a
+              href={whatsappLink(vendor.contact_number, buildProductMessage(vendor.business_name, product.name))}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="h-8 w-8 flex items-center justify-center text-xs bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors shadow-md"
+              aria-label={`WhatsApp ${vendor.business_name} about ${product.name}`}
+            >
+              <MessageCircle className="h-4 w-4" />
+            </a>
+          )}
         </div>
 
         {/* Category chip */}
@@ -774,9 +838,12 @@ const ProductCard = ({
         className="p-2.5"
         style={themeColor ? { background: `${themeColor}06` } : {}}
       >
-        <p className="text-xs font-semibold text-foreground truncate leading-tight mb-0.5">
-          {product.name}
-        </p>
+        <div className="flex items-center justify-between gap-1 mb-0.5">
+          <p className="text-xs font-semibold text-foreground truncate leading-tight">
+            {product.name}
+          </p>
+          <StockBadge status={product.stock_status} />
+        </div>
         {product.description && (
           <p className="text-[10px] text-muted-foreground line-clamp-1 mb-1 leading-snug">
             {product.description}

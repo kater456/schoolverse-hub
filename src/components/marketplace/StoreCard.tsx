@@ -51,7 +51,7 @@ const StoreCard = ({ vendor, index = 0, variant = "grid" }: StoreCardProps) => {
       >
         <div className="relative w-14 h-14 rounded-lg overflow-hidden bg-muted shrink-0">
           {primaryImage ? (
-            <img src={primaryImage.image_url} alt={vendor.business_name} loading="lazy" className="w-full h-full object-cover" />
+            <img src={primaryImage.image_url} alt={vendor.business_name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-xl">🏪</div>
           )}
@@ -107,6 +107,8 @@ const StoreCard = ({ vendor, index = 0, variant = "grid" }: StoreCardProps) => {
               <img
                 src={primaryImage.image_url}
                 alt={vendor.business_name}
+                loading="lazy"
+                decoding="async"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               />
             ) : (
@@ -138,7 +140,7 @@ const StoreCard = ({ vendor, index = 0, variant = "grid" }: StoreCardProps) => {
               {/* Name + verified */}
               <div className="flex items-center gap-2 mb-1.5">
                 {(vendor as any).profile_image_url ? (
-                  <img src={(vendor as any).profile_image_url} alt="" className="w-8 h-8 rounded-full object-cover shrink-0 border-2 border-purple-400" />
+                  <img src={(vendor as any).profile_image_url} alt="" loading="lazy" decoding="async" className="w-8 h-8 rounded-full object-cover shrink-0 border-2 border-purple-400" />
                 ) : (
                   <div className="w-8 h-8 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-xs shrink-0 border-2 border-purple-400">
                     {vendor.business_name.charAt(0).toUpperCase()}

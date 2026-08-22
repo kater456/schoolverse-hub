@@ -83,6 +83,8 @@ const VendorCard = ({ vendor, index = 0, hasPromo = false }: VendorCardProps) =>
               <img
                 src={primaryImage.image_url}
                 alt={vendor.business_name}
+                loading="lazy"
+                decoding="async"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               />
             ) : (
@@ -145,7 +147,7 @@ const VendorCard = ({ vendor, index = 0, hasPromo = false }: VendorCardProps) =>
                   <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-accent via-primary to-pink-500 p-[2px]">
                     <div className="w-full h-full rounded-full bg-card flex items-center justify-center overflow-hidden">
                       {(vendor as any).profile_image_url ? (
-                        <img src={(vendor as any).profile_image_url} alt="" className="w-full h-full object-cover rounded-full" />
+                        <img src={(vendor as any).profile_image_url} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover rounded-full" />
                       ) : (
                         <span className="text-[10px] font-bold text-accent">
                           {vendor.business_name.charAt(0).toUpperCase()}
@@ -155,7 +157,7 @@ const VendorCard = ({ vendor, index = 0, hasPromo = false }: VendorCardProps) =>
                   </div>
                 </div>
               ) : (vendor as any).profile_image_url ? (
-                <img src={(vendor as any).profile_image_url} alt="" className="w-7 h-7 rounded-full object-cover shrink-0 border border-border" />
+                <img src={(vendor as any).profile_image_url} alt="" loading="lazy" decoding="async" className="w-7 h-7 rounded-full object-cover shrink-0 border border-border" />
               ) : null}
 
               <h3 className="font-semibold text-foreground truncate flex-1 text-sm leading-tight">

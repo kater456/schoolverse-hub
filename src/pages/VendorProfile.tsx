@@ -35,6 +35,8 @@ import VendorEnhancements, {
   QuickCartSheet, SchedulePickupSheet, QuickQuestionSheet, useFollow,
 } from "@/components/vendor/VendorEnhancements";
 import { ShoppingCart, CalendarClock, HelpCircle } from "lucide-react";
+import StockBadge from "@/components/marketplace/StockBadge";
+import { isRealtimeSafe } from "@/lib/safeStorage";
 
 // ── Lightbox ──────────────────────────────────────────────────────────────────
 const Lightbox = ({ images, startIndex, onClose }: {
@@ -258,6 +260,36 @@ const VendorProfile = () => {
 
         setActiveDeals(dealsRes.data || []);
         setVendorProducts(productsRes.data || []);
+
+        const prodChannel = isRealtimeSafe()
+          ? supabase
+              .channel(`profile-products-${id}`)
+              .on(
+                "postgres_changes",
+                {
+                  event: "*",
+                  schema: "public",
+                  table: "vendor_products",
+                  filter: `vendor_id=eq.${id}`,
+                },
+                () => {
+                  (supabase as any)
+                    .from("vendor_products")
+                    .select("*")
+                    .eq("vendor_id", id)
+                    .eq("is_active", true)
+                    .order("display_order", { ascending: true })
+                    .then(({ data }: any) => {
+                      if (data) setVendorProducts(data);
+                    });
+                }
+              )
+              .subscribe()
+          : null;
+
+        return () => {
+          if (prodChannel) supabase.removeChannel(prodChannel);
+        };
 
         const presence: any = (presenceRes as any).data;
         if (presence) {
@@ -934,7 +966,10 @@ const VendorProfile = () => {
                               />
                             )}
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-foreground truncate">{p.name}</p>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <p className="text-sm font-medium text-foreground truncate">{p.name}</p>
+                                <StockBadge status={p.stock_status} />
+                              </div>
                               {p.description && <p className="text-xs text-muted-foreground line-clamp-1">{p.description}</p>}
                             </div>
                             <span
@@ -963,7 +998,10 @@ const VendorProfile = () => {
                             >
                               <div className="flex justify-between items-start">
                                 <div>
-                                  <p className="font-semibold text-sm text-foreground">{p.name}</p>
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <p className="font-semibold text-sm text-foreground">{p.name}</p>
+                                    <StockBadge status={p.stock_status} />
+                                  </div>
                                   {p.category && <Badge variant="outline" className="text-[10px] mt-1">{p.category}</Badge>}
                                 </div>
                                 <span
@@ -997,7 +1035,10 @@ const VendorProfile = () => {
                               className="p-2"
                               style={themeColor ? { background: `${themeColor}06` } : {}}
                             >
-                              <p className="text-xs font-semibold text-foreground truncate">{p.name}</p>
+                              <div className="flex items-center justify-between gap-1">
+                                <p className="text-xs font-semibold text-foreground truncate">{p.name}</p>
+                                <StockBadge status={p.stock_status} />
+                              </div>
                               <span
                                 className="text-xs font-bold"
                                 style={{ color: accentColor || themeColor || "green" }}

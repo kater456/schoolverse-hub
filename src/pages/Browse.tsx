@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, Fragment } from "react";
 import { useSearchParams } from "react-router-dom";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -11,7 +11,7 @@ import SearchFilters from "@/components/marketplace/SearchFilters";
 import { useVendors } from "@/hooks/useVendors";
 import { useSchools } from "@/hooks/useSchools";
 import { useCampusLocations } from "@/hooks/useCampusLocations";
-import { Loader2, Star, ShieldCheck, Trophy, ArrowRight } from "lucide-react";
+import { Star, ShieldCheck, Trophy, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -47,11 +47,35 @@ const Browse = () => {
 
   const { schools }    = useSchools();
   const { locations }  = useCampusLocations(selectedSchool !== "all" ? selectedSchool : undefined);
-  const { vendors, isLoading } = useVendors({
+  const { vendors, stores, isLoading, hasMore, loadMore, isLoadingMore } = useVendors({
     schoolId:        selectedSchool   !== "all" ? selectedSchool   : undefined,
+    category:        selectedCategory !== "all" ? selectedCategory : undefined,
     campusLocationId:selectedLocation !== "all" ? selectedLocation : undefined,
     searchQuery:     searchQuery || undefined,
   });
+
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (isLoading) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !isLoadingMore) {
+          loadMore();
+        }
+      },
+      { rootMargin: "200px" }
+    );
+
+    const currentSentinel = sentinelRef.current;
+    if (currentSentinel) {
+      observer.observe(currentSentinel);
+    }
+
+    return () => {
+      if (currentSentinel) observer.unobserve(currentSentinel);
+    };
+  }, [isLoading, hasMore, isLoadingMore, loadMore]);
 
   // Compute which schools / categories actually have at least one active regular vendor
   useEffect(() => {
@@ -91,30 +115,9 @@ const Browse = () => {
     fetchVotw();
   }, []);
 
-  // Separate and client-filter stores vs regular vendors
-  const { activeStores, regularVendors } = useMemo(() => {
-    const stores: any[] = [];
-    const regulars: any[] = [];
-    const now = new Date();
-
-    (vendors || []).forEach((v: any) => {
-      const isStoreUpgraded = v.is_store_upgraded === true && (
-        !v.store_upgrade_expires_at || new Date(v.store_upgrade_expires_at) > now
-      );
-
-      if (isStoreUpgraded) {
-        stores.push(v);
-      } else {
-        if (selectedCategory === "all" || v.category === selectedCategory) {
-          regulars.push(v);
-        }
-      }
-    });
-
-    return { activeStores: stores, regularVendors: regulars };
-  }, [vendors, selectedCategory]);
-
-  // Sort: promoted → verified → everyone else
+  // Stores and regular vendors come pre-separated from `useVendors` hook.
+  // Stores are in `stores` (all active upgraded stores matching query options).
+  // Regular vendors are in `vendors` (paginated list of regular non-store businesses).
   const sortedRegularVendors = useMemo(() => {
     const now = new Date();
     const rank = (v: any) => {
@@ -124,12 +127,12 @@ const Browse = () => {
       if (v.is_verified) return 2;
       return 3;
     };
-    return [...regularVendors].sort((a, b) => {
+    return [...(vendors || [])].sort((a, b) => {
       const diff = rank(a) - rank(b);
       if (diff !== 0) return diff;
       return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
     });
-  }, [regularVendors]);
+  }, [vendors]);
 
   const sortedActiveStores = useMemo(() => {
     const now = new Date();
@@ -140,12 +143,12 @@ const Browse = () => {
       if (v.is_verified) return 2;
       return 3;
     };
-    return [...activeStores].sort((a, b) => {
+    return [...(stores || [])].sort((a, b) => {
       const diff = rank(a) - rank(b);
       if (diff !== 0) return diff;
       return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
     });
-  }, [activeStores]);
+  }, [stores]);
 
   const promotedCount = sortedRegularVendors.filter((v: any) => v.promoted_until && new Date(v.promoted_until) > new Date()).length;
   const verifiedCount = sortedRegularVendors.filter((v: any) => v.is_verified).length;
@@ -186,7 +189,7 @@ const Browse = () => {
                 <div className="relative shrink-0">
                   <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden border-2 border-yellow-400/50 shadow-lg shadow-yellow-400/20">
                     {votwImage ? (
-                      <img src={votwImage} alt={votw.business_name} className="w-full h-full object-cover" />
+                      <img src={votwImage} alt={votw.business_name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full bg-yellow-400/20 flex items-center justify-center">
                         <span className="text-3xl">🏪</span>
@@ -276,8 +279,8 @@ const Browse = () => {
 
 
           {isLoading ? (
-            <div className="flex justify-center py-20">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4 my-8">
+              <VendorCardSkeletonGrid count={8} />
             </div>
           ) : sortedActiveStores.length === 0 && sortedRegularVendors.length === 0 ? (
             <div className="text-center py-20">
@@ -288,106 +291,111 @@ const Browse = () => {
           ) : (
             <>
               <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-8 lg:items-start">
-              <div className="min-w-0">
-              {sortedActiveStores.length > 0 && (
-                <a
-                  href="#official-stores"
-                  className="lg:hidden inline-flex items-center gap-1.5 mb-4 rounded-full border border-purple-500/30 bg-purple-500/5 px-3 py-1.5 text-[11px] font-semibold text-purple-600 dark:text-purple-400"
-                >
-                  🏪 {sortedActiveStores.length} Official Store{sortedActiveStores.length !== 1 ? "s" : ""} →
-                </a>
-              )}
-
-
-              {/* ── Regular Grid ── */}
-              {sortedRegularVendors.length > 0 ? (
-                <>
-                  <div className="border-t border-border/40 my-6 pt-6">
-                    <h2 className="text-xl font-bold text-foreground flex items-center gap-2 mb-1">
-                      💼 Campus Businesses
-                    </h2>
-                    <p className="text-xs text-muted-foreground">
-                      Direct individual listings and services on campus
-                    </p>
-                  </div>
-
-                  {promotedCount > 0 && (
-                    <div className="flex items-center gap-2 mt-4 mb-3">
-                      <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
-                      <span className="text-sm font-semibold text-foreground">Featured Vendors</span>
-                      <Badge className="bg-yellow-500/20 text-yellow-700 text-xs">{promotedCount}</Badge>
-                    </div>
+                <div className="min-w-0">
+                  {sortedActiveStores.length > 0 && (
+                    <a
+                      href="#official-stores"
+                      className="lg:hidden inline-flex items-center gap-1.5 mb-4 rounded-full border border-purple-500/30 bg-purple-500/5 px-3 py-1.5 text-[11px] font-semibold text-purple-600 dark:text-purple-400"
+                    >
+                      🏪 {sortedActiveStores.length} Official Store{sortedActiveStores.length !== 1 ? "s" : ""} →
+                    </a>
                   )}
 
-                  <div className="grid grid-cols-2 gap-3 sm:gap-4 mt-2">
-                    {sortedRegularVendors.map((vendor: any, index: number) => {
-                      const now         = new Date();
-                      const isPromoted  = vendor.promoted_until && new Date(vendor.promoted_until) > now;
-                      const prevVendor  = sortedRegularVendors[index - 1] as any;
-                      const prevPromoted = prevVendor && prevVendor.promoted_until && new Date(prevVendor.promoted_until) > now;
+                  {/* ── Regular Grid ── */}
+                  {sortedRegularVendors.length > 0 ? (
+                    <>
+                      <div className="border-t border-border/40 my-6 pt-6">
+                        <h2 className="text-xl font-bold text-foreground flex items-center gap-2 mb-1">
+                          💼 Campus Businesses
+                        </h2>
+                        <p className="text-xs text-muted-foreground">
+                          Direct individual listings and services on campus
+                        </p>
+                      </div>
 
-                      const showVerifiedDivider =
-                        vendor.is_verified && !isPromoted &&
-                        (index === 0 || prevPromoted || (prevVendor && !prevVendor.is_verified));
-                      const showAllDivider =
-                        !vendor.is_verified && !isPromoted &&
-                        prevVendor &&
-                        (prevVendor.is_verified || (prevVendor.promoted_until && new Date(prevVendor.promoted_until) > now));
+                      {promotedCount > 0 && (
+                        <div className="flex items-center gap-2 mt-4 mb-3">
+                          <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                          <span className="text-sm font-semibold text-foreground">Featured Vendors</span>
+                          <Badge className="bg-yellow-500/20 text-yellow-700 text-xs">{promotedCount}</Badge>
+                        </div>
+                      )}
 
-                      return (
-                        <>
-                          {showVerifiedDivider && (
-                            <div key={`div-verified-${vendor.id}`} className="col-span-full flex items-center gap-2 mt-4 mb-1">
-                              <ShieldCheck className="h-4 w-4 text-primary" />
-                              <span className="text-sm font-semibold text-foreground">Verified Vendors</span>
-                              <Badge className="bg-primary/10 text-primary text-xs">{verifiedCount}</Badge>
-                            </div>
-                          )}
-                          {showAllDivider && (
-                            <div key={`div-all-${vendor.id}`} className="col-span-full flex items-center gap-2 mt-4 mb-1">
-                              <span className="text-sm font-semibold text-foreground">All Vendors</span>
-                            </div>
-                          )}
-                          <VendorCard key={vendor.id} vendor={vendor} index={index} hasPromo={vendorsWithDeals.has(vendor.id)} />
-                        </>
-                      );
-                    })}
-                  </div>
-                </>
-              ) : (
-                sortedActiveStores.length > 0 && (
-                  <div className="text-center py-10 border-t border-border/40 mt-6">
-                    <p className="text-sm text-muted-foreground">No regular business listings match your current filters.</p>
-                  </div>
-                )
-              )}
-              </div>
+                      <div className="grid grid-cols-2 gap-3 sm:gap-4 mt-2">
+                        {sortedRegularVendors.map((vendor: any, index: number) => {
+                          const now         = new Date();
+                          const isPromoted  = vendor.promoted_until && new Date(vendor.promoted_until) > now;
+                          const prevVendor  = sortedRegularVendors[index - 1] as any;
+                          const prevPromoted = prevVendor && prevVendor.promoted_until && new Date(prevVendor.promoted_until) > now;
 
-              {/* ── Official Stores side rail ── */}
-              {sortedActiveStores.length > 0 && (
-                <aside
-                  id="official-stores"
-                  className="mt-10 lg:mt-0 lg:sticky lg:top-24 rounded-2xl border border-purple-500/20 bg-purple-500/[0.04] p-4"
-                >
-                  <div className="flex items-center justify-between gap-2 mb-3">
-                    <div className="min-w-0">
-                      <h2 className="text-sm font-bold flex items-center gap-1.5 text-foreground">
-                        🏪 Official Stores
-                      </h2>
-                      <p className="text-[11px] text-muted-foreground">Verified stores with full catalogs</p>
+                          const showVerifiedDivider =
+                            vendor.is_verified && !isPromoted &&
+                            (index === 0 || prevPromoted || (prevVendor && !prevVendor.is_verified));
+                          const showAllDivider =
+                            !vendor.is_verified && !isPromoted &&
+                            prevVendor &&
+                            (prevVendor.is_verified || (prevVendor.promoted_until && new Date(prevVendor.promoted_until) > now));
+
+                          return (
+                            <Fragment key={vendor.id}>
+                              {showVerifiedDivider && (
+                                <div key={`div-verified-${vendor.id}`} className="col-span-full flex items-center gap-2 mt-4 mb-1">
+                                  <ShieldCheck className="h-4 w-4 text-primary" />
+                                  <span className="text-sm font-semibold text-foreground">Verified Vendors</span>
+                                  <Badge className="bg-primary/10 text-primary text-xs">{verifiedCount}</Badge>
+                                </div>
+                              )}
+                              {showAllDivider && (
+                                <div key={`div-all-${vendor.id}`} className="col-span-full flex items-center gap-2 mt-4 mb-1">
+                                  <span className="text-sm font-semibold text-foreground">All Vendors</span>
+                                </div>
+                              )}
+                              <VendorCard vendor={vendor} index={index} hasPromo={vendorsWithDeals.has(vendor.id)} />
+                            </Fragment>
+                          );
+                        })}
+                        {isLoadingMore && (
+                          <VendorCardSkeletonGrid count={4} />
+                        )}
+                      </div>
+
+                      {/* Sentinel element for infinite scrolling loadMore */}
+                      <div ref={sentinelRef} className="h-10 w-full" />
+                    </>
+                  ) : (
+                    sortedActiveStores.length > 0 && (
+                      <div className="text-center py-10 border-t border-border/40 mt-6">
+                        <p className="text-sm text-muted-foreground">No regular business listings match your current filters.</p>
+                      </div>
+                    )
+                  )}
+                </div>
+
+                {/* ── Official Stores side rail ── */}
+                {sortedActiveStores.length > 0 && (
+                  <aside
+                    id="official-stores"
+                    className="mt-10 lg:mt-0 lg:sticky lg:top-24 rounded-2xl border border-purple-500/20 bg-purple-500/[0.04] p-4"
+                  >
+                    <div className="flex items-center justify-between gap-2 mb-3">
+                      <div className="min-w-0">
+                        <h2 className="text-sm font-bold flex items-center gap-1.5 text-foreground">
+                          🏪 Official Stores
+                        </h2>
+                        <p className="text-[11px] text-muted-foreground">Verified stores with full catalogs</p>
+                      </div>
+                      <Badge variant="secondary" className="text-[10px] font-bold shrink-0">
+                        {sortedActiveStores.length}
+                      </Badge>
                     </div>
-                    <Badge variant="secondary" className="text-[10px] font-bold shrink-0">
-                      {sortedActiveStores.length}
-                    </Badge>
-                  </div>
 
-                  <div className="flex lg:flex-col gap-2.5 overflow-x-auto lg:overflow-visible -mx-1 px-1 pb-1 lg:pb-0 lg:max-h-[70vh] lg:overflow-y-auto">
-                    {sortedActiveStores.map((store: any, idx: number) => (
-                      <StoreCard key={store.id} vendor={store} index={idx} variant="rail" />
-                    ))}
-                  </div>
-                </aside>
-              )}
+                    <div className="flex lg:flex-col gap-2.5 overflow-x-auto lg:overflow-visible -mx-1 px-1 pb-1 lg:pb-0 lg:max-h-[70vh] lg:overflow-y-auto">
+                      {sortedActiveStores.map((store: any, idx: number) => (
+                        <StoreCard key={store.id} vendor={store} index={idx} variant="rail" />
+                      ))}
+                    </div>
+                  </aside>
+                )}
               </div>
             </>
           )}
