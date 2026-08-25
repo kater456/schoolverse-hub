@@ -8,7 +8,7 @@ const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 
 export type TrackerEventType = 'view' | 'inquiry_click' | 'message_sent' | 'order_started' | 'order_completed';
 
-const getVisitorId = (): string => {
+export const getVisitorId = (): string => {
   let id = safeLocalStorage.getItem(VISITOR_ID_KEY);
   if (!id) {
     id = crypto.randomUUID?.() || Math.random().toString(36).substring(2) + Date.now().toString(36);
@@ -17,7 +17,7 @@ const getVisitorId = (): string => {
   return id;
 };
 
-const getSessionId = (): string => {
+export const getSessionId = (): string => {
   const now = Date.now();
   let id = safeSessionStorage.getItem(SESSION_ID_KEY);
   let expiry = safeSessionStorage.getItem(SESSION_EXPIRY_KEY);
