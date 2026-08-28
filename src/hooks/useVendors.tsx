@@ -57,13 +57,25 @@ const shape = (v: any) => ({
   images:               v.vendor_images || [],
 });
 
-const withFeatured = async (rows: any[]) =>
-  Promise.all(
-    rows.map(async (v: any) => {
-      const { data } = await supabase.rpc("is_vendor_featured", { _vendor_id: v.id });
-      return { ...v, is_featured: data || false };
-    })
-  );
+export const withFeatured = async (rows: any[]) => {
+  if (!rows || rows.length === 0) return [];
+  const ids = rows.map((v: any) => v.id).filter(Boolean);
+  if (ids.length === 0) return rows.map((v: any) => ({ ...v, is_featured: false }));
+
+  const now = new Date().toISOString();
+  const { data } = await supabase
+    .from("featured_listings")
+    .select("vendor_id")
+    .in("vendor_id", ids)
+    .eq("payment_status", "confirmed")
+    .gt("ends_at", now);
+
+  const featuredSet = new Set((data || []).map((item: any) => item.vendor_id));
+  return rows.map((v: any) => ({
+    ...v,
+    is_featured: featuredSet.has(v.id),
+  }));
+};
 
 export const useVendors = (options?: UseVendorsOptions) => {
   const pageSize = options?.pageSize ?? 12;
