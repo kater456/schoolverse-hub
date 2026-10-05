@@ -730,6 +730,92 @@ export type Database = {
         }
         Relationships: []
       }
+      preorder_items: {
+        Row: {
+          id: string
+          preorder_id: string
+          product_id: string | null
+          product_name: string
+          quantity: number
+        }
+        Insert: {
+          id?: string
+          preorder_id: string
+          product_id?: string | null
+          product_name?: string
+          quantity: number
+        }
+        Update: {
+          id?: string
+          preorder_id?: string
+          product_id?: string | null
+          product_name?: string
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "preorder_items_preorder_id_fkey"
+            columns: ["preorder_id"]
+            isOneToOne: false
+            referencedRelation: "preorders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "preorder_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      preorders: {
+        Row: {
+          created_at: string
+          customer_id: string
+          delivered_at: string | null
+          delivery_status: string
+          id: string
+          item_count: number
+          paid_at: string | null
+          payment_status: string
+          public_code: string
+          vendor_id: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          delivered_at?: string | null
+          delivery_status?: string
+          id?: string
+          item_count: number
+          paid_at?: string | null
+          payment_status?: string
+          public_code: string
+          vendor_id: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          delivered_at?: string | null
+          delivery_status?: string
+          id?: string
+          item_count?: number
+          paid_at?: string | null
+          payment_status?: string
+          public_code?: string
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "preorders_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           category: string | null
@@ -2207,11 +2293,13 @@ export type Database = {
           is_verified: boolean | null
           messaging_enabled: boolean | null
           parent_vendor_id: string | null
+          payment_instructions: string | null
           payment_reference: string | null
           payment_status: string | null
           profile_image_url: string | null
           promoted_until: string | null
           reels_enabled: boolean | null
+          sales_mode: string
           school_id: string
           social_instagram: string | null
           social_tiktok: string | null
@@ -2268,11 +2356,13 @@ export type Database = {
           is_verified?: boolean | null
           messaging_enabled?: boolean | null
           parent_vendor_id?: string | null
+          payment_instructions?: string | null
           payment_reference?: string | null
           payment_status?: string | null
           profile_image_url?: string | null
           promoted_until?: string | null
           reels_enabled?: boolean | null
+          sales_mode?: string
           school_id: string
           social_instagram?: string | null
           social_tiktok?: string | null
@@ -2329,11 +2419,13 @@ export type Database = {
           is_verified?: boolean | null
           messaging_enabled?: boolean | null
           parent_vendor_id?: string | null
+          payment_instructions?: string | null
           payment_reference?: string | null
           payment_status?: string | null
           profile_image_url?: string | null
           promoted_until?: string | null
           reels_enabled?: boolean | null
+          sales_mode?: string
           school_id?: string
           social_instagram?: string | null
           social_tiktok?: string | null
@@ -2477,7 +2569,47 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_preorder_ledger: {
+        Row: {
+          created_at: string | null
+          delivered_at: string | null
+          delivery_status: string | null
+          item_count: number | null
+          paid_at: string | null
+          payment_status: string | null
+          public_code: string | null
+          vendor_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          delivered_at?: string | null
+          delivery_status?: string | null
+          item_count?: number | null
+          paid_at?: string | null
+          payment_status?: string | null
+          public_code?: string | null
+          vendor_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          delivered_at?: string | null
+          delivery_status?: string | null
+          item_count?: number | null
+          paid_at?: string | null
+          payment_status?: string | null
+          public_code?: string | null
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "preorders_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       dispatch_push: {
@@ -2499,6 +2631,16 @@ export type Database = {
           role: Database["public"]["Enums"]["app_role"]
           school_id: string
           user_id: string
+        }[]
+      }
+      get_preorder_customers: {
+        Args: { _vendor_id: string }
+        Returns: {
+          email: string
+          first_name: string
+          last_name: string
+          phone: string
+          preorder_id: string
         }[]
       }
       get_user_role: {
@@ -2531,6 +2673,14 @@ export type Database = {
       is_trial_active: { Args: { _user_id: string }; Returns: boolean }
       is_vendor_featured: { Args: { _vendor_id: string }; Returns: boolean }
       notify_expiring_deals: { Args: never; Returns: undefined }
+      place_preorder: {
+        Args: { _items: Json; _vendor_id: string }
+        Returns: {
+          id: string
+          item_count: number
+          public_code: string
+        }[]
+      }
       track_vendor_customer: {
         Args: {
           p_amount?: number
