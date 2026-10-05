@@ -25,6 +25,7 @@ import { Progress } from "@/components/ui/progress";
 const vendorSchema = z.object({
   business_name: z.string().min(2, "Business name is required").max(100),
   category: z.string().min(1, "Category is required"),
+  sales_mode: z.enum(["standard", "preorder"]).default("standard"),
   description: z.string().max(500).optional(),
   contact_number: z.string().min(5, "Contact number is required").max(20),
   school_id: z.string().min(1, "School is required"),
@@ -94,7 +95,7 @@ const VendorRegistration = () => {
   const form = useForm<VendorFormData>({
     resolver: zodResolver(vendorSchema),
     defaultValues: {
-      business_name: "", category: "", description: "", contact_number: "",
+      business_name: "", category: "", sales_mode: "standard", description: "", contact_number: "",
       school_id: "", campus_location_id: "", country: "Nigeria", full_name: "",
       academic_level: "", department: "",
       residential_location: "", personal_contact: "",
@@ -206,6 +207,7 @@ const VendorRegistration = () => {
           user_id: user.id,
           business_name: data.business_name,
           category: finalCategory,
+          sales_mode: data.sales_mode || "standard",
           description: data.description || null,
           contact_number: data.contact_number,
           school_id: data.school_id,
@@ -409,6 +411,47 @@ const VendorRegistration = () => {
                           <SelectItem value="Ghana">🇬🇭 Ghana</SelectItem>
                         </SelectContent>
                       </Select><FormMessage />
+                    </FormItem>
+                  )} />
+
+                  <FormField control={form.control} name="sales_mode" render={({ field }) => (
+                    <FormItem className="space-y-2">
+                      <FormLabel>Selling Model</FormLabel>
+                      <FormControl>
+                        <RadioGroup
+                          onValueChange={field.onChange}
+                          value={field.value}
+                          className="grid grid-cols-1 gap-2 pt-1 sm:grid-cols-2"
+                        >
+                          <div className={`flex items-start space-x-3 rounded-lg border p-3 cursor-pointer transition-colors ${
+                            field.value === "standard" ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"
+                          }`}>
+                            <RadioGroupItem value="standard" id="sales_mode_standard" className="mt-0.5" />
+                            <div className="space-y-1">
+                              <label htmlFor="sales_mode_standard" className="text-sm font-medium leading-none cursor-pointer">
+                                Normal buying and selling
+                              </label>
+                              <p className="text-xs text-muted-foreground">
+                                Direct sales, instant inquiries and contact.
+                              </p>
+                            </div>
+                          </div>
+                          <div className={`flex items-start space-x-3 rounded-lg border p-3 cursor-pointer transition-colors ${
+                            field.value === "preorder" ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"
+                          }`}>
+                            <RadioGroupItem value="preorder" id="sales_mode_preorder" className="mt-0.5" />
+                            <div className="space-y-1">
+                              <label htmlFor="sales_mode_preorder" className="text-sm font-medium leading-none cursor-pointer">
+                                Pre-order vendor
+                              </label>
+                              <p className="text-xs text-muted-foreground">
+                                Collect item pre-orders in advance before fulfillment.
+                              </p>
+                            </div>
+                          </div>
+                        </RadioGroup>
+                      </FormControl>
+                      <FormMessage />
                     </FormItem>
                   )} />
 
