@@ -11,23 +11,29 @@ import { MessageCircle, Loader2 } from "lucide-react";
 interface Props {
   vendorId: string;
   vendorUserId: string;
+  vendorName?: string;
   productId?: string;
   productName?: string;
   storeName?: string;
+  customMessage?: string;
   variant?: "default" | "outline";
   className?: string;
   label?: string;
+  children?: React.ReactNode;
 }
 
 const ContactVendorButton = ({
   vendorId,
   vendorUserId,
+  vendorName,
   productId,
   productName,
   storeName,
+  customMessage,
   variant = "default",
   className = "",
   label = "Message Vendor",
+  children,
 }: Props) => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -55,7 +61,7 @@ const ContactVendorButton = ({
       trackVendorEvent(vendorId, 'order_started', productId);
     }
 
-    const prefilledMessage = buildProductMessage(storeName, productName);
+    const prefilledMessage = customMessage || buildProductMessage(storeName || vendorName, productName);
 
     // Check if conversation already exists
     const { data: existing } = await (supabase as any)
@@ -102,10 +108,16 @@ const ContactVendorButton = ({
       disabled={loading}
       className={className}
     >
-      {loading
-        ? <Loader2 className="h-4 w-4 animate-spin mr-2" />
-        : <MessageCircle className="h-4 w-4 mr-2" />}
-      {label}
+      {loading ? (
+        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+      ) : children ? (
+        children
+      ) : (
+        <>
+          <MessageCircle className="h-4 w-4 mr-2" />
+          {label}
+        </>
+      )}
     </Button>
   );
 };

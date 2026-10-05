@@ -121,6 +121,9 @@ const VendorProfile = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  const preorderCart = usePreorderCart();
+  const [isPreorderCheckoutOpen, setIsPreorderCheckoutOpen] = useState(false);
+
   const [vendor, setVendor]               = useState<any>(null);
   const [images, setImages]               = useState<any[]>([]);
   const [isLoading, setIsLoading]         = useState(true);
@@ -1392,18 +1395,21 @@ const VendorProfile = () => {
       <QuickQuestionSheet open={askSheetOpen} onOpenChange={setAskSheetOpen} vendorId={vendor.id} vendorUserId={vendor.user_id} />
 
 
-      <PreorderCheckoutSheet
-        open={isPreorderCheckoutOpen}
-        onOpenChange={setIsPreorderCheckoutOpen}
-        vendorId={vendor.id}
-        vendorName={vendor.business_name}
-        paymentInstructions={vendor.payment_instructions}
-        items={preorderCart.items}
-        totalItemCount={preorderCart.totalItemCount}
-        onUpdateQuantity={preorderCart.updateQuantity}
-        onRemoveItem={preorderCart.removeItem}
-        onClearCart={preorderCart.clearCart}
-      />
+      {vendor.sales_mode === "preorder" && (
+        <PreorderCheckoutSheet
+          open={isPreorderCheckoutOpen}
+          onOpenChange={setIsPreorderCheckoutOpen}
+          vendorId={vendor.id}
+          vendorUserId={vendor.user_id}
+          vendorName={vendor.business_name}
+          paymentInstructions={vendor.payment_instructions}
+          items={preorderCart.items}
+          totalItemCount={preorderCart.totalItemCount}
+          onUpdateQuantity={preorderCart.updateQuantity}
+          onRemoveItem={preorderCart.removeItem}
+          onClearCart={preorderCart.clearCart}
+        />
+      )}
 
       <Footer />
     </div>
