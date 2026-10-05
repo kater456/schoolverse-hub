@@ -5,12 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   ToggleLeft, Package, ShoppingCart, Truck, MessageCircle,
   Save, Loader2, Radio, AlertCircle, CheckCircle2, Clock,
-  Zap, Info,
+  Zap, Info, FileText,
 } from "lucide-react";
 
 interface Props {
@@ -30,11 +32,14 @@ const VendorControlCenter = ({ vendor, onUpdate }: Props) => {
 
   const [isOpen,           setIsOpen]           = useState(vendor.is_open          ?? true);
   const [stockStatus,      setStockStatus]      = useState(vendor.stock_status     ?? "in_stock");
+  const [salesMode,        setSalesMode]        = useState(vendor.sales_mode        ?? "standard");
+  const [paymentInstructions, setPaymentInstructions] = useState(vendor.payment_instructions ?? "");
   const [acceptsOrders,    setAcceptsOrders]    = useState(vendor.accepts_orders   ?? true);
   const [deliveryAvailable,setDeliveryAvailable] = useState(vendor.delivery_available ?? false);
   const [whatsappOrders,   setWhatsappOrders]   = useState(vendor.whatsapp_orders  ?? false);
   const [statusMessage,    setStatusMessage]    = useState(vendor.status_message   ?? "");
   const [saving,           setSaving]           = useState(false);
+  const [savingInstructions, setSavingInstructions] = useState(false);
   const [savingKey,        setSavingKey]        = useState<string | null>(null);
 
   const patch = async (key: string, value: any, label: string) => {
@@ -51,6 +56,22 @@ const VendorControlCenter = ({ vendor, onUpdate }: Props) => {
       toast({ title: `${label} updated ✅` });
     }
     setSavingKey(null);
+  };
+
+  const savePaymentInstructions = async () => {
+    setSavingInstructions(true);
+    const { error } = await supabase
+      .from("vendors")
+      .update({ payment_instructions: paymentInstructions.trim() || null } as any)
+      .eq("id", vendor.id);
+
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      onUpdate({ payment_instructions: paymentInstructions.trim() || null });
+      toast({ title: "Payment instructions saved ✅" });
+    }
+    setSavingInstructions(false);
   };
 
   const saveStatusMessage = async () => {
@@ -130,6 +151,85 @@ const VendorControlCenter = ({ vendor, onUpdate }: Props) => {
             <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
               <Loader2 className="h-3 w-3 animate-spin" /> Saving…
             </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Sales Mode & Pre-order Settings */}
+      <Card className="border-border/50">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Radio className="h-4 w-4 text-accent" /> Selling Model
+          </CardTitle>
+          <CardDescription className="text-xs">
+            Choose how you receive customer orders
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <RadioGroup
+            value={salesMode}
+            onValueChange={(val) => {
+              setSalesMode(val);
+              patch("sales_mode", val, "Selling model");
+            }}
+            className="grid grid-cols-1 gap-2 sm:grid-cols-2"
+          >
+            <div className={`flex items-start space-x-3 rounded-lg border p-3 cursor-pointer transition-colors ${
+              salesMode === "standard" ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"
+            }`}>
+              <RadioGroupItem value="standard" id="ctrl_sales_mode_standard" className="mt-0.5" />
+              <div className="space-y-1">
+                <label htmlFor="ctrl_sales_mode_standard" className="text-sm font-medium leading-none cursor-pointer">
+                  Normal buying and selling
+                </label>
+                <p className="text-xs text-muted-foreground">
+                  Direct sales & inquiries
+                </p>
+              </div>
+            </div>
+
+            <div className={`flex items-start space-x-3 rounded-lg border p-3 cursor-pointer transition-colors ${
+              salesMode === "preorder" ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"
+            }`}>
+              <RadioGroupItem value="preorder" id="ctrl_sales_mode_preorder" className="mt-0.5" />
+              <div className="space-y-1">
+                <label htmlFor="ctrl_sales_mode_preorder" className="text-sm font-medium leading-none cursor-pointer">
+                  Pre-order vendor
+                </label>
+                <p className="text-xs text-muted-foreground">
+                  Collect item pre-orders in advance
+                </p>
+              </div>
+            </div>
+          </RadioGroup>
+
+          {salesMode === "preorder" && (
+            <div className="space-y-2 pt-2 border-t border-border/50">
+              <Label className="text-sm font-medium flex items-center gap-1.5">
+                <FileText className="h-4 w-4 text-accent" /> Payment Instructions for Customers
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                These instructions will be shown to customers at checkout (e.g. Bank account details, transfer note guidelines).
+              </p>
+              <Textarea
+                placeholder="e.g. Transfer to GTBank 0123456789 (Jane Doe). Send receipt on WhatsApp after transfer."
+                value={paymentInstructions}
+                onChange={(e) => setPaymentInstructions(e.target.value)}
+                rows={3}
+                className="text-sm"
+              />
+              <div className="flex justify-end">
+                <Button
+                  size="sm"
+                  onClick={savePaymentInstructions}
+                  disabled={savingInstructions || paymentInstructions === (vendor.payment_instructions ?? "")}
+                  className="h-8"
+                >
+                  {savingInstructions ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Save className="h-3.5 w-3.5 mr-1" />}
+                  Save Instructions
+                </Button>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>

@@ -25,6 +25,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import { compressVendorImage } from "@/lib/vendorImageCompression";
 import { Progress } from "@/components/ui/progress";
 import VendorControlCenter from "@/components/vendor/VendorControlCenter";
+import VendorPreordersTab from "@/components/vendor/VendorPreordersTab";
 import VendorProfilePicture from "@/components/vendor/VendorProfilePicture";
 import VendorDealManager from "@/components/vendor/VendorDealManager";
 import VendorStoreUpgrade from "@/components/vendor/VendorStoreUpgrade";
@@ -874,6 +875,9 @@ const VendorDashboard = () => {
               <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/50 px-2 pt-1 pb-1.5">Store</p>
               {[
                 { v: "products", icon: Package,     label: "Products"       },
+                ...(vendor.sales_mode === "preorder"
+                  ? [{ v: "preorders", icon: ShoppingBag, label: "Pre-Orders" }]
+                  : []),
                 { v: "reels",    icon: Film,        label: "Reels & Videos" },
                 { v: "orders",   icon: ShoppingBag, label: "Orders"         },
                 { v: "customers",icon: Users,       label: "Customers"      },
@@ -941,6 +945,12 @@ const VendorDashboard = () => {
               <TabsContent value="products">
                 <VendorProductManager vendorId={vendor.id} schoolId={vendor.school_id} />
               </TabsContent>
+
+              {vendor.sales_mode === "preorder" && (
+                <TabsContent value="preorders">
+                  <VendorPreordersTab vendor={vendor} />
+                </TabsContent>
+              )}
 
               <TabsContent value="customers">
                 <Card className="border-border/50">
@@ -1423,6 +1433,11 @@ const VendorDashboard = () => {
             <TabsContent value="products">
               <VendorProductManager vendorId={vendor.id} schoolId={vendor.school_id} />
             </TabsContent>
+            {vendor.sales_mode === "preorder" && (
+              <TabsContent value="preorders">
+                <VendorPreordersTab vendor={vendor} />
+              </TabsContent>
+            )}
             <TabsContent value="customers">
               <Card className="border-border/50">
                 <CardHeader>
@@ -1692,6 +1707,9 @@ const VendorDashboard = () => {
           <div className="w-8 h-1 bg-muted rounded-full mx-auto mb-4" />
           <div className="grid grid-cols-3 gap-3">
             {[
+              ...(vendor.sales_mode === "preorder"
+                ? [{ v: "preorders", icon: ShoppingBag, label: "Pre-Orders", color: "bg-amber-50 text-amber-600" }]
+                : []),
               { v: "customers",    icon: Users,         label: "Customers", color: "bg-indigo-50 text-indigo-600" },
               { v: "deals",        icon: Flame,         label: "Deals",     color: "bg-orange-50 text-orange-600"  },
               { v: "engagement",   icon: BarChart3,     label: "Insights",  color: "bg-blue-50 text-blue-600"    },

@@ -31,6 +31,9 @@ import { CampusGuaranteeBadge, CampusGuaranteeSheet } from "@/components/guarant
 import VendorProximity from "@/components/vendor/VendorProximity";
 import { TrustScoreBadge, computeTrustScore } from "@/components/guarantee/TrustScore";
 import ContactVendorButton from "@/components/ContactVendorButton";
+import PreorderCheckoutSheet from "@/components/cart/PreorderCheckoutSheet";
+import VendorPreorderLedger from "@/components/vendor/VendorPreorderLedger";
+import { usePreorderCart } from "@/hooks/usePreorderCart";
 import VendorEnhancements, {
   QuickCartSheet, SchedulePickupSheet, QuickQuestionSheet, useFollow,
 } from "@/components/vendor/VendorEnhancements";
@@ -837,6 +840,37 @@ const VendorProfile = () => {
                 </Card>
               )}
 
+              {/* Pre-order banner / CTA for pre-order vendors */}
+              {vendor.sales_mode === "preorder" && (
+                <Card className="border-accent/40 bg-accent/10 mb-4">
+                  <CardContent className="p-3 flex items-center justify-between gap-2">
+                    <div>
+                      <p className="text-xs font-bold text-accent uppercase tracking-wide">
+                        📦 Pre-Order Store
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Select items & quantities to add to your pre-order cart
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      className="bg-accent text-accent-foreground hover:bg-accent/90 shrink-0 text-xs gap-1.5"
+                      onClick={() => {
+                        if (!user) {
+                          toast({ title: "Sign in required", description: "Please sign in to place pre-orders", variant: "destructive" });
+                          navigate("/login?redirect=" + encodeURIComponent(window.location.pathname));
+                          return;
+                        }
+                        setIsPreorderCheckoutOpen(true);
+                      }}
+                    >
+                      <ShoppingCart className="h-3.5 w-3.5" />
+                      View Cart ({preorderCart.totalItemCount})
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Browse Store CTA — shown when vendor has products */}
               {vendorProducts.length > 0 && (
                 <div
@@ -978,6 +1012,25 @@ const VendorProfile = () => {
                             >
                               ₦{Number(p.price).toLocaleString()}
                             </span>
+
+                            {vendor.sales_mode === "preorder" && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 px-2 text-xs shrink-0 border-accent/50 text-accent hover:bg-accent/10"
+                                onClick={() => {
+                                  if (!user) {
+                                    toast({ title: "Sign in required", description: "Please sign in to place pre-orders", variant: "destructive" });
+                                    navigate("/login?redirect=" + encodeURIComponent(window.location.pathname));
+                                    return;
+                                  }
+                                  preorderCart.addItem(vendor.id, vendor.business_name, { id: p.id, name: p.name, price: p.price, image_url: p.image_url }, 1);
+                                  toast({ title: "Added to pre-order cart", description: `${p.name} (x1)` });
+                                }}
+                              >
+                                + Pre-order
+                              </Button>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -1045,6 +1098,25 @@ const VendorProfile = () => {
                               >
                                 ₦{Number(p.price).toLocaleString()}
                               </span>
+
+                              {vendor.sales_mode === "preorder" && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="w-full mt-2 h-7 text-[11px] border-accent/50 text-accent hover:bg-accent/10"
+                                  onClick={() => {
+                                    if (!user) {
+                                      toast({ title: "Sign in required", description: "Please sign in to place pre-orders", variant: "destructive" });
+                                      navigate("/login?redirect=" + encodeURIComponent(window.location.pathname));
+                                      return;
+                                    }
+                                    preorderCart.addItem(vendor.id, vendor.business_name, { id: p.id, name: p.name, price: p.price, image_url: p.image_url }, 1);
+                                    toast({ title: "Added to pre-order cart", description: `${p.name} (x1)` });
+                                  }}
+                                >
+                                  + Pre-order cart
+                                </Button>
+                              )}
                             </div>
                           </div>
                         ))}
@@ -1121,6 +1193,13 @@ const VendorProfile = () => {
 
               {/* Testimonials */}
               <VendorTestimonialsDisplay vendorId={vendor.id} />
+
+              {/* Public Pre-order Ledger Tab for pre-order vendors */}
+              {vendor.sales_mode === "preorder" && (
+                <div className="mb-4">
+                  <VendorPreorderLedger vendorId={vendor.id} />
+                </div>
+              )}
 
               {/* Comments */}
               {vendor.comments_enabled !== false && (
@@ -1312,6 +1391,19 @@ const VendorProfile = () => {
       <SchedulePickupSheet open={pickupSheetOpen} onOpenChange={setPickupSheetOpen} vendorId={vendor.id} />
       <QuickQuestionSheet open={askSheetOpen} onOpenChange={setAskSheetOpen} vendorId={vendor.id} vendorUserId={vendor.user_id} />
 
+
+      <PreorderCheckoutSheet
+        open={isPreorderCheckoutOpen}
+        onOpenChange={setIsPreorderCheckoutOpen}
+        vendorId={vendor.id}
+        vendorName={vendor.business_name}
+        paymentInstructions={vendor.payment_instructions}
+        items={preorderCart.items}
+        totalItemCount={preorderCart.totalItemCount}
+        onUpdateQuantity={preorderCart.updateQuantity}
+        onRemoveItem={preorderCart.removeItem}
+        onClearCart={preorderCart.clearCart}
+      />
 
       <Footer />
     </div>
