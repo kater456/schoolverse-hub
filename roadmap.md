@@ -1,0 +1,3 @@
+- [ ] Fix current checkout and TypeScript/runtime failures.
+- [ ] Verify existing push notification delivery path and align it with supported Lovable-managed services.
+- [ ] Recheck build/runtime signals and summarize any external blockers.
