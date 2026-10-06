@@ -14,9 +14,11 @@ interface Props {
   productId?: string;
   productName?: string;
   storeName?: string;
+  customMessage?: string;
   variant?: "default" | "outline";
   className?: string;
   label?: string;
+  children?: React.ReactNode;
 }
 
 const ContactVendorButton = ({
@@ -25,9 +27,11 @@ const ContactVendorButton = ({
   productId,
   productName,
   storeName,
+  customMessage,
   variant = "default",
   className = "",
   label = "Message Vendor",
+  children,
 }: Props) => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -55,7 +59,9 @@ const ContactVendorButton = ({
       trackVendorEvent(vendorId, 'order_started', productId);
     }
 
-    const prefilledMessage = buildProductMessage(storeName, productName);
+    const prefilledMessage = customMessage !== undefined
+      ? customMessage
+      : buildProductMessage(storeName, productName);
 
     // Check if conversation already exists
     const { data: existing } = await (supabase as any)
@@ -102,10 +108,18 @@ const ContactVendorButton = ({
       disabled={loading}
       className={className}
     >
-      {loading
-        ? <Loader2 className="h-4 w-4 animate-spin mr-2" />
-        : <MessageCircle className="h-4 w-4 mr-2" />}
-      {label}
+      {children ? (
+        children
+      ) : (
+        <>
+          {loading ? (
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+          ) : (
+            <MessageCircle className="h-4 w-4 mr-2" />
+          )}
+          {label}
+        </>
+      )}
     </Button>
   );
 };

@@ -32,6 +32,7 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   vendorId: string | null;
+  vendorUserId?: string | null;
   vendorName: string | null;
   paymentInstructions?: string | null;
   items: PreorderCartItem[];
@@ -45,6 +46,7 @@ export default function PreorderCheckoutSheet({
   open,
   onOpenChange,
   vendorId,
+  vendorUserId,
   vendorName,
   paymentInstructions,
   items,
@@ -196,9 +198,9 @@ export default function PreorderCheckoutSheet({
             <div className="w-full space-y-3 pt-2">
               <ContactVendorButton
                 vendorId={vendorId!}
-                vendorName={vendorName || "Vendor"}
-                productName={placedOrder.itemsSummary}
+                vendorUserId={vendorUserId || ""}
                 storeName={vendorName || undefined}
+                productName={placedOrder.itemsSummary}
                 customMessage={`Hello ${vendorName || "Vendor"}, I placed a pre-order (Code: ${
                   placedOrder.publicCode
                 }) for: ${placedOrder.itemsSummary}. Total items: ${
