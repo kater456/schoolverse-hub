@@ -1,3 +1,5 @@
+- [ ] Finish selling-mode switch work (in progress): optimistic update, dashboard overview toggle, confirm dialog, standard-mode access to existing pre-orders.
+- [ ] Academics: read academic session data and build "Second Test" from uploaded files (export_type_Question_c_string_q_pasted.txt = Past Questions; Physiology_Quiz_Bank.html = Know Your CVS), following the existing physiology quiz template (src/pages/academics/PhysioCBT.tsx / BIC1CBT.tsx).
 - [ ] Fix current checkout and TypeScript/runtime failures.
 - [ ] Verify existing push notification delivery path and align it with supported Lovable-managed services.
 - [ ] Recheck build/runtime signals and summarize any external blockers.
