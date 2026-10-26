@@ -52,7 +52,7 @@ const COURSES: CourseCard[] = [
   {
     id: "physio",
     emoji: "🫀",
-    title: "Physiology",
+    title: "Physiology - 1st Test",
     subtitle: "MBBS/BDS/PHT · UNEC 2nd Year",
     desc: "160-question bank for UNEC Physiology 1st Test. Covers Neuromuscular, Cell Biology, Hematology, and Respiratory Physiology with AI Analysis.",
     tags: ["MCQ","AI Analysis"],
@@ -61,6 +61,20 @@ const COURSES: CourseCard[] = [
     route: "/academics/physio",
     badge: "🔥 Available Now",
     badgeColor: "#38bdf8",
+    available: true,
+  },
+  {
+    id: "physio2",
+    emoji: "🫀",
+    title: "Physiology - 2nd Test",
+    subtitle: "MBBS/BDS/PHT · UNEC 2nd Year",
+    desc: "767-question bank for UNEC Physiology 2nd Test. Covers Past Questions (GIT, CVS, Renal) and Know Your CVS bank with instant explanations and AI Analysis.",
+    tags: ["MCQ","AI Analysis"],
+    color: "#a855f7",
+    questions: 767,
+    route: "/academics/physio2",
+    badge: "🔥 Available Now",
+    badgeColor: "#a855f7",
     available: true,
   },
   {
@@ -139,7 +153,7 @@ export default function AcademicsHub() {
         {/* Stats row */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px", marginBottom: "28px" }}>
           {[
-            { label: "Questions", value: "860+", icon: "❓" },
+            { label: "Questions", value: "1,600+", icon: "❓" },
             { label: "Courses", value: `${COURSES.filter(c => c.available).length} Live`, icon: "📚" },
             { label: "Exam Types", value: "4 Types", icon: "🧪" },
           ].map(s => (
