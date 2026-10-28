@@ -8,7 +8,7 @@ export default function AnatomyTestBank() {
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#060b14", fontFamily: "'DM Sans', system-ui, sans-serif" }}>
       <Navbar />
 
-      <main style={{ flex: 1, display: "flex", flexDirection: "column", width: "100%", maxWidth: "1400px", margin: "0 auto", padding: "16px 12px 24px" }}>
+      <main style={{ flex: 1, display: "flex", flexDirection: "column", width: "100%", maxWidth: "1400px", margin: "0 auto", padding: "80px 12px 24px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "0 4px 12px" }}>
           <Link
             to="/academics"
