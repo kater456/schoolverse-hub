@@ -28,6 +28,7 @@ const AcademicsHub       = lazy(() => import("./pages/academics/AcademicsHub"));
 const BIC1CBT            = lazy(() => import("./pages/academics/BIC1CBT"));
 const PhysioCBT          = lazy(() => import("./pages/academics/PhysioCBT"));
 const Physio2CBT         = lazy(() => import("./pages/academics/Physio2CBT"));
+const AnatomyTestBank    = lazy(() => import("./pages/academics/AnatomyTestBank"));
 const AdminAcademicsPage = lazy(() => import("./pages/admin/AdminAcademicsPage"));
 const VendorRegistration = lazy(() => import("./pages/VendorRegistration"));
 const Reels              = lazy(() => import("./pages/Reels"));
@@ -139,6 +140,7 @@ const App = () => (
               <Route path="/academics/bic1"         element={<BIC1CBT />} />
               <Route path="/academics/physio"       element={<PhysioCBT />} />
               <Route path="/academics/physio2"      element={<Physio2CBT />} />
+              <Route path="/academics/anatomy"      element={<AnatomyTestBank />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />
               <Route path="/reels"   element={<Reels />} />
               <Route path="/register-vendor" element={
