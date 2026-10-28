@@ -17,7 +17,7 @@ export default function AnatomyTestBank() {
             ← Back to Academics
           </Link>
           <span style={{ color: "#334155", fontSize: "0.78rem" }}>·</span>
-          <span style={{ color: "#94a3b8", fontSize: "0.82rem", fontWeight: 600 }}>🦴 Anatomy Test Bank — 538 Questions</span>
+          <span style={{ color: "#94a3b8", fontSize: "0.82rem", fontWeight: 600 }}>🦴 Anatomy Test Bank — 640 Questions</span>
         </div>
 
         <iframe
